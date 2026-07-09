@@ -1,0 +1,191 @@
+def execute_validation_rules(a):
+    x, y, z = a
+    triggered = set()
+
+    x = max(1, min(1000, x))
+    y = max(1, min(1000, y))
+    z = max(1, min(600, z))
+
+    energy_price = 0.15
+    time_of_day = 12
+    temp = 25
+    humidity = 60
+    energy_trend = "stable"
+    weather_forecast = "sunny"
+
+if [(energy_price > 0.10 and time_of_day == 12 and (x + temp) > 500)] != [(energy_price > 0.10 and time_of_day == 12 and (x + temp) > 800)]: b[0] = 1
+    if [(energy_price > 0.10 and time_of_day == 12 and (x + temp) > 1000)] != [(energy_price > 0.10 and time_of_day == 12 and (x + temp) > 900)]: b[1] = 2
+    if [(energy_price < 0.20 and (x + z) < 800)] != [(energy_price < 0.20 and (x + z) < 1200)]: b[2] = 3
+    if [(energy_price < 0.20 and (x + z) < 600)] != [(energy_price < 0.20 and (x + z) < 1000)]: b[3] = 4
+    if [(energy_price > 0.10 and (x * temp) > 20000)] != [(energy_price > 0.10 and (x * temp) > 30000)]: b[4] = 5
+    if [(energy_price > 0.10 and (x * temp) > 15000)] != [(energy_price > 0.10 and (x * temp) > 25000)]: b[5] = 6
+    if [(energy_price < 0.20 and (y + humidity) < 100)] != [(energy_price < 0.20 and (y + humidity) < 150)]: b[6] = 7
+    if [(energy_price < 0.20 and (y + humidity) < 80)] != [(energy_price < 0.20 and (y + humidity) < 120)]: b[7] = 8
+    if [(energy_price > 0.10 and z > 300)] != [(energy_price > 0.10 and z > 450)]: b[8] = 9
+    if [(energy_price > 0.10 and z > 200)] != [(energy_price > 0.10 and z > 350)]: b[9] = 10
+
+    if [(time_of_day == 12 and x < 500 and y > 200)] != [(time_of_day == 12 and x < 700 and y > 200)]: b[10] = 11
+    if [(time_of_day == 12 and x < 400 and z < 300)] != [(time_of_day == 12 and x < 600 and z < 300)]: b[11] = 12
+    if [(temp + humidity > 20 and y < 500)] != [(temp + humidity < 20 and y < 500)]: b[12] = 13
+    if [(energy_price < 0.20 and (z + x) < 800 and y > 100)] != [(energy_price < 0.20 and (z + x) < 1200 and y > 100)]: b[13] = 14
+    if [(energy_price < 0.20 and (z + x) < 600 and y < 800)] != [(energy_price < 0.20 and (z + x) < 1000 and y < 800)]: b[14] = 15
+    if [(temp < 30 and x > 500 and z > 200)] != [(temp < 30 and x < 500 and z > 200)]: b[15] = 16
+    if [(temp < 28 and x > 400 and y > 300)] != [(temp < 28 and x > 400 and z > 300)]: b[16] = 17
+    if [(time_of_day == 12 and x > 600 and z < 400)] != [(time_of_day == 12 and x > 800 and z < 400)]: b[17] = 18
+    if [(time_of_day == 12 and x > 500 and y + z > 600)] != [(time_of_day == 12 and x > 750 and y + z > 600)]: b[18] = 19
+
+    if [(time_of_day == 12 and z < 300 and x > 200)] != [(time_of_day == 12 and z < 450 and x > 200)]: b[19] = 20
+    if [(time_of_day == 12 and z < 250 and y > 300)] != [(time_of_day == 12 and z < 400 and y > 300)]: b[20] = 21
+    if [(energy_price > 0.10 and x < 400 and y + z > 500)] != [(energy_price > 0.10 and x < 600 and y + z > 500)]: b[21] = 22
+    if [(energy_price > 0.10 and x < 300 and z > 200)] != [(energy_price > 0.10 and x < 500 and z > 200)]: b[22] = 23
+    if [(time_of_day == 12 and temp > 20 and x > 400)] != [(time_of_day == 12 and temp > 30 and x > 400)]: b[23] = 24
+    if [(time_of_day == 12 and temp > 18 and y < 600)] != [(time_of_day == 12 and temp > 28 and y < 600)]: b[24] = 25
+    if [(humidity > 50 and y > 500 and x < 800)] != [(humidity > 70 and y > 500 and x < 800)]: b[25] = 26
+    if [(humidity > 45 and y > 450 and z < 400)] != [(humidity > 65 and y > 450 and z < 400)]: b[26] = 27
+    if [(time_of_day == 12 and y < 200 and x + z > 500)] != [(time_of_day == 12 and y < 300 and x + z > 500)]: b[27] = 28
+    if [(time_of_day == 12 and y < 150 and z > 100)] != [(time_of_day == 12 and y < 250 and z > 100)]: b[28] = 29
+
+    if [(energy_price > 0.10 and x > 700)] != [(energy_price > 0.10 and x > 850)]: b[29] = 30
+    if [(energy_price > 0.10 and x > 600)] != [(energy_price > 0.10 and x > 750)]: b[30] = 31
+    if [(temp < 28 and y < 250)] != [(temp < 28 and y < 450)]: b[31] = 32
+    if [(energy_price > 0.10 and z > 350)] != [(energy_price > 0.10 and x > 350)]: b[32] = 33
+    if [(humidity < 70 and y < 400)] != [(humidity < 30 and y < 400)]: b[33] = 34
+    if [(humidity < 65 and y < 350)] != [(humidity < 65 and x < 350)]: b[34] = 35
+    if [(time_of_day == 12 and (x + temp) < 600)] != [(time_of_day == 12 and (x + temp) < 800)]: b[35] = 36
+    if [(time_of_day == 12 and (x + temp) < 500)] != [(time_of_day == 12 and (x + temp) < 700)]: b[36] = 37
+
+    if [(energy_price > 0.10 and (x * 0.15) > 80 and temp > 20)] != [(energy_price > 0.10 and (x * 0.15) > 150 and temp > 20)]: b[37] = 38
+    if [(energy_price > 0.10 and (x * 0.15) > 60 and temp > 20)] != [(energy_price > 0.10 and (x * 0.15) > 120 and temp > 20)]: b[38] = 39
+    if [(energy_price < 0.20 and (z * 0.5) > 100 and x < 600)] != [(energy_price < 0.20 and (z * 0.5) > 200 and x < 600)]: b[39] = 40
+    if [(energy_price < 0.20 and (z * 0.5) > 80 and x < 600)] != [(energy_price < 0.20 and (z * 0.5) > 180 and x < 600)]: b[40] = 41
+    if [(temp + humidity > 80 and y > 400)] != [(temp + humidity > 100 and y > 400)]: b[41] = 42
+    if [(temp + humidity > 70 and y > 350)] != [(temp + humidity > 90 and y > 350)]: b[42] = 43
+    if [(energy_price < 0.20 and (y + z) < 400)] != [(energy_price < 0.20 and (y + z) < 600)]: b[43] = 44
+    if [(energy_price < 0.20 and (y + z) < 350)] != [(energy_price < 0.20 and (y + z) < 550)]: b[44] = 45
+    if [(time_of_day == 12 and (x * temp) > 15000)] != [(time_of_day == 12 and (x * temp) > 25000)]: b[45] = 46
+    if [(time_of_day == 12 and (x * temp) > 12000)] != [(time_of_day == 12 and (x * temp) > 20000)]: b[46] = 47
+
+    if [(time_of_day == 12 and (z + temp) < 400)] != [(time_of_day == 12 and (z + temp) < 600)]: b[47] = 48
+    if [(time_of_day == 12 and (z + temp) < 350)] != [(time_of_day == 12 and (z + temp) < 550)]: b[48] = 49
+    if [(energy_price > 0.10 and (humidity * 0.15) > 8 and y > 70)] != [(energy_price > 0.10 and (humidity * 0.15) > 8 and y > 870)]: b[49] = 50
+    if [(energy_price < 0.20 and (x * y * 0.01) < 200 and z < 300)] != [(energy_price < 0.20 and (x * y * 0.01) < 400 and z < 300)]: b[50] = 51
+    if [(time_of_day == 12 and (humidity + y) * 0.5 < 150)] != [(time_of_day == 12 and (humidity + y) * 0.5 < 250)]: b[51] = 52
+    if [(time_of_day == 12 and (humidity + y) * 0.5 < 120)] != [(time_of_day == 12 and (humidity + y) * 0.5 < 220)]: b[52] = 53
+
+    if [(energy_trend == "stable" and x < 500 and y > 200)] != [(energy_trend == "stable" and x < 700 and y > 200)]: b[53] = 54
+    if [(energy_trend == "stable" and x < 400 and z < 300)] != [(energy_trend == "stable" and x < 600 and z < 300)]: b[54] = 55
+    if [(energy_price > 0.10 and temp > 20 and y > 300)] != [(energy_price > 0.10 and temp > 30 and y > 300)]: b[55] = 56
+    if [(energy_price > 0.10 and temp > 18 and z < 400)] != [(energy_price > 0.10 and temp > 28 and z < 400)]: b[56] = 57
+    if [(energy_trend == "stable" and z < 300 and x + y > 600)] != [(energy_trend == "stable" and z < 450 and x + y > 600)]: b[57] = 58
+    if [(energy_trend == "stable" and z < 250 and y > 400)] != [(energy_trend == "stable" and z < 400 and y > 400)]: b[58] = 59
+    if [(energy_trend == "stable" and y < 300 and x > 500)] != [(energy_trend == "stable" and y < 450 and x > 500)]: b[59] = 60
+    if [(energy_trend == "stable" and y < 250 and z > 200)] != [(energy_trend == "stable" and y < 400 and z > 200)]: b[60] = 61
+    if [(humidity > 50 and x > 600 and y + z > 700)] != [(humidity > 70 and x > 600 and y + z > 700)]: b[61] = 62
+    if [(humidity > 45 and x > 550 and z < 400)] != [(humidity > 65 and x > 550 and z < 400)]: b[62] = 63
+
+    if [(energy_trend == "stable" and time_of_day == 12 and x > 600)] != [(energy_trend == "stable" and time_of_day == 12 and x > 800)]: b[63] = 64
+    if [(energy_trend == "stable" and time_of_day == 12 and x > 500)] != [(energy_trend == "stable" and time_of_day == 12 and x > 750)]: b[64] = 65
+    if [(energy_price < 0.20 and z > 350)] != [(energy_price < 0.20 and z > 450)]: b[65] = 66
+    if [(energy_price < 0.20 and z > 300)] != [(energy_price < 0.20 and z > 400)]: b[66] = 67
+    if [(energy_trend == "stable" and (x + temp) < 600)] != [(energy_trend == "stable" and (x + temp) < 800)]: b[67] = 68
+    if [(energy_trend == "stable" and (x + temp) < 500)] != [(energy_trend == "stable" and (x + temp) < 700)]: b[68] = 69
+    if [(humidity < 70 and z < 400)] != [(humidity < 70 and x < 400)]: b[69] = 70
+    if [(humidity < 65 and z < 350)] != [(humidity < 65 and z < 750)]: b[70] = 71
+
+    if [(weather_forecast == "sunny" and x < 600 and y > 300)] != [(weather_forecast == "sunny" and x < 800 and y > 300)]: b[71] = 72
+    if [(weather_forecast == "sunny" and x < 500 and z < 400)] != [(weather_forecast == "sunny" and x < 700 and z < 400)]: b[72] = 73
+    if [(weather_forecast == "sunny" and y < 500 and x > 200)] != [(weather_forecast == "sunny" and y < 700 and x > 200)]: b[73] = 74
+    if [(weather_forecast == "sunny" and y < 400 and z > 250)] != [(weather_forecast == "sunny" and y < 600 and z > 250)]: b[74] = 75
+    if [(weather_forecast == "sunny" and humidity > 50 and x + y > 800)] != [(weather_forecast == "sunny" and humidity > 70 and x + y > 800)]: b[75] = 76
+    if [(weather_forecast == "sunny" and humidity > 45 and z < 300)] != [(weather_forecast == "sunny" and humidity > 65 and z < 300)]: b[76] = 77
+    if [(weather_forecast == "sunny" and temp > 20 and x * y > 200000)] != [(weather_forecast == "sunny" and temp > 30 and x * y > 200000)]: b[77] = 78
+    if [(weather_forecast == "sunny" and temp > 18 and y + z < 800)] != [(weather_forecast == "sunny" and temp > 28 and y + z < 800)]: b[78] = 79
+    if [(weather_forecast == "sunny" and z < 300 and x > 400)] != [(weather_forecast == "sunny" and z < 450 and x > 400)]: b[79] = 80
+    if [(weather_forecast == "sunny" and z < 250 and y < 600)] != [(weather_forecast == "sunny" and z < 400 and y < 600)]: b[80] = 81
+
+    if [(weather_forecast == "sunny" and time_of_day == 12 and y < 300 and x > 400)] != [(weather_forecast == "sunny" and time_of_day == 12 and y < 500 and x > 400)]: b[81] = 82
+    if [(weather_forecast == "sunny" and time_of_day == 12 and y < 250 and z > 200)] != [(weather_forecast == "sunny" and time_of_day == 12 and y < 450 and z > 200)]: b[82] = 83
+    if [(weather_forecast == "sunny" and energy_price > 0.10 and x + y > 1000)] != [(weather_forecast == "sunny" and energy_price > 0.20 and x + y > 1000)]: b[83] = 84
+    if [(weather_forecast == "sunny" and energy_price > 0.05 and z < 400)] != [(weather_forecast == "sunny" and energy_price > 0.18 and z < 400)]: b[84] = 85
+
+    if [(energy_price * 10 + time_of_day * 0.5 > 7 and x > 600 and z > 200)] != [(energy_price * 10 + time_of_day * 0.5 > 11 and x > 600 and z > 200)]: b[85] = 86
+    if [(energy_price * temp > 3 and humidity > 50 and x * y > 300000)] != [(energy_price * temp > 5 and humidity > 50 and x * y > 300000)]: b[86] = 87
+    if [(energy_price * temp > 2.5 and humidity > 50 and z < 400)] != [(energy_price * temp > 4.5 and humidity > 50 and z < 400)]: b[87] = 88
+    if [((1 - energy_price * 2) * (x + z) > 800 and y < 400)] != [((1 - energy_price * 2) * (x + z) > 1200 and y < 400)]: b[88] = 89
+    if [((1 - energy_price * 2) * (x + z) > 600 and y < 400)] != [((1 - energy_price * 2) * (x + z) > 1000 and y < 400)]: b[89] = 90
+    if [(time_of_day == 12 and x * temp * 0.1 > 2000 and y + z > 600)] != [(time_of_day == 12 and x * temp * 0.1 > 3000 and y + z > 600)]: b[90] = 91
+    if [(time_of_day == 12 and x * temp * 0.1 > 1500 and z < 500)] != [(time_of_day == 12 and x * temp * 0.1 > 2500 and z < 500)]: b[91] = 92
+    if [(time_of_day == 12 and (z + y) * 0.8 < 400 and x > 300)] != [(time_of_day == 12 and (z + y) * 0.8 < 600 and x > 300)]: b[92] = 93
+    if [(time_of_day == 12 and (z + y) * 0.8 < 350 and x < 700)] != [(time_of_day == 12 and (z + y) * 0.8 < 550 and x < 700)]: b[93] = 94
+    if [(energy_price * 10 + humidity * 0.1 > 7 and temp > 20 and z > x / 2)] != [(energy_price * 10 + humidity * 0.1 > 11 and temp > 20 and z > x / 2)]: b[94] = 95
+    if [((1 - energy_price * 3) * (x + temp) > 500 and z < 300 and x + y > 800)] != [((1 - energy_price * 3) * (x + temp) > 800 and z < 300 and x + y > 800)]: b[95] = 96
+    if [(energy_price > 0.10 and abs(time_of_day - 12) < 1 and (x + temp) > 600 and y * z > 100000)] != [(energy_price > 0.10 and abs(time_of_day - 12) < 1 and (x + temp) > 900 and y * z > 100000)]: b[96] = 97
+    if [(energy_price > 0.10 and abs(time_of_day - 12) < 1 and (x + temp) > 500 and y + z < 1000)] != [(energy_price > 0.10 and abs(time_of_day - 12) < 1 and (x + temp) > 800 and y + z < 1000)]: b[97] = 98
+    if [(24 - time_of_day > 8 and (y + humidity) < 400 and x > z)] != [(24 - time_of_day > 8 and (y + humidity) < 600 and x > z)]: b[98] = 99
+    if [(24 - time_of_day > 8 and (y + humidity) < 350 and x + y + z > 1000)] != [(24 - time_of_day > 8 and (y + humidity) < 550 and x + y + z > 1000)]: b[99] = 100
+
+    return triggered
+    targetPaths = [
+        {1, 3, 6, 9, 11, 13, 14, 16, 18, 19, 20, 21, 24, 25, 31, 32, 34, 36, 37, 38, 39, 43, 46, 47, 48, 49, 50,
+         52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 80, 81, 82,
+         83, 85, 86, 88, 90, 92, 93, 95, 97, 98, 99, 100},
+        {1, 3, 4, 6, 9, 11, 13, 14, 15, 16, 18, 19, 20, 21, 24, 25, 31, 32, 34, 36, 37, 38, 39, 43, 46, 47, 49, 50, 52,
+         54, 56, 57, 58, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 80, 81, 82, 83, 84, 85,
+         86, 88, 90, 92, 95, 97, 98, 99, 100},
+        {1, 3, 4, 6, 9, 10, 11, 13, 14, 15, 16, 18, 19, 20, 21, 24, 25, 31, 32, 33, 36, 37, 38, 39, 42, 43, 46, 47, 50,
+         52, 54, 56, 57, 58, 59, 60, 62, 63, 64, 65, 67, 68, 69, 70, 72, 73, 75, 76, 78, 79, 80, 81, 82, 83, 84, 85,
+         86, 88, 92, 93, 95, 97, 98, 99, 100},
+        {1, 3, 4, 6, 9, 10, 11, 13, 14, 15, 16, 18, 19, 20, 21, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 39, 46, 47, 49,
+         50, 52, 53, 54, 56, 57, 58, 60, 61, 63, 64, 65, 67, 68, 69, 70, 72, 73, 76, 78, 79, 80, 81, 82, 83, 85, 86,
+         88, 90, 92, 93, 94, 95, 97, 98, 100},
+        {1, 3, 4, 6, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 31, 32, 33, 34, 36, 37, 38, 39, 43, 46, 47,
+         50, 52, 53, 54, 56, 57, 58, 60, 61, 63, 64, 65, 68, 69, 70, 72, 73, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86,
+         88, 90, 92, 93, 94, 97, 98, 99, 100},
+        {1, 3, 4, 6, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 24, 25, 31, 32, 33, 34, 36, 37, 38, 39, 43, 46, 47, 50,
+         52, 53, 54, 56, 57, 60, 61, 63, 64, 65, 68, 69, 70, 72, 73, 76, 77, 78, 79, 81, 82, 83, 84, 85, 86, 88, 90,
+         92, 93, 94, 97, 98, 99, 100},
+        {1, 3, 4, 6, 9, 10, 11, 13, 14, 15, 16, 18, 19, 20, 21, 24, 25, 27, 31, 33, 36, 37, 38, 39, 42, 43, 46, 47, 49,
+         50, 54, 56, 57, 58, 59, 62, 63, 64, 65, 67, 68, 69, 70, 72, 73, 75, 76, 78, 80, 81, 82, 84, 85, 86, 87, 88,
+         92, 95, 97, 98, 99, 100},
+        {1, 3, 4, 6, 9, 11, 14, 15, 16, 18, 19, 20, 21, 24, 25, 26, 27, 31, 36, 37, 38, 39, 42, 43, 46, 47, 48, 49, 50,
+         54, 56, 57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 80, 81, 84, 85, 86, 87,
+         88, 92, 95, 97, 98, 99},
+        {1, 3, 6, 9, 13, 14, 16, 18, 19, 20, 21, 24, 25, 30, 31, 32, 34, 35, 36, 38, 39, 46, 47, 48, 49, 50, 52, 53,
+         56, 57, 58, 60, 61, 62, 63, 64, 65, 66, 67, 68, 70, 71, 72, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 88, 90,
+         92, 93, 95, 97, 98, 100},
+        {1, 3, 4, 6, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20, 24, 25, 28, 31, 32, 34, 35, 36, 37, 38, 39, 46, 47, 49,
+         50, 52, 53, 54, 57, 58, 61, 63, 64, 65, 66, 67, 68, 69, 70, 71, 73, 76, 79, 80, 81, 83, 85, 86, 88, 90, 92,
+         93, 94, 95, 97, 98, 100},
+        {1, 3, 4, 9, 10, 11, 13, 14, 15, 16, 19, 20, 21, 22, 24, 25, 32, 33, 34, 36, 37, 38, 39, 40, 41, 43, 47, 49,
+         50, 52, 53, 54, 56, 57, 58, 60, 61, 63, 65, 67, 68, 69, 70, 73, 76, 78, 79, 80, 81, 82, 83, 85, 88, 90, 93,
+         95, 97, 98, 99, 100},
+        {1, 3, 4, 6, 10, 11, 13, 14, 15, 16, 17, 18, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 39, 44, 45, 46, 47, 50,
+         52, 53, 54, 56, 57, 60, 61, 63, 64, 65, 68, 69, 70, 72, 73, 76, 77, 78, 79, 82, 83, 85, 86, 88, 90, 92, 93,
+         94, 98, 100},
+        {1, 3, 4, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22, 24, 25, 32, 33, 34, 36, 37, 38, 39, 40, 41, 43, 47, 50,
+         52, 54, 55, 56, 57, 60, 61, 63, 65, 68, 69, 70, 73, 76, 77, 78, 79, 81, 82, 83, 85, 88, 90, 93, 94, 97, 98,
+         99, 100},
+        {1, 3, 4, 6, 9, 10, 11, 13, 14, 15, 16, 17, 18, 20, 24, 25, 28, 29, 31, 33, 34, 35, 36, 37, 38, 39, 44, 46,
+         47, 50, 52, 53, 54, 57, 58, 63, 64, 65, 67, 68, 69, 70, 73, 76, 79, 80, 81, 85, 86, 88, 90, 92, 93, 94, 98},
+        {3, 6, 9, 13, 14, 16, 18, 20, 21, 24, 25, 30, 32, 34, 38, 39, 43, 46, 47, 48, 49, 50, 52, 53, 56, 57, 58, 60,
+         61, 62, 63, 64, 66, 67, 70, 71, 72, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 88, 89, 90, 92, 97, 99, 100},
+        {2, 5, 6, 9, 13, 16, 20, 21, 24, 25, 32, 34, 38, 43, 46, 48, 49, 50, 52, 53, 56, 57, 58, 60, 61, 62, 63, 66,
+         67, 70, 71, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 99, 100},
+        {1, 3, 4, 9, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 32, 34, 37, 39, 40, 43, 47, 48, 49, 50, 52, 53, 56, 57,
+         58, 61, 66, 67, 69, 70, 71, 76, 79, 80, 81, 82, 83, 85, 88, 90, 93, 95, 98, 99, 100},
+        {1, 3, 6, 7, 9, 13, 16, 17, 18, 20, 24, 25, 31, 34, 35, 36, 37, 38, 39, 44, 45, 46, 47, 48, 49, 50, 57, 58,
+         63, 64, 65, 66, 67, 68, 69, 70, 71, 73, 79, 80, 81, 85, 86, 88, 90, 92, 94, 95, 98},
+        {1, 3, 6, 7, 8, 9, 13, 16, 17, 18, 20, 24, 25, 31, 34, 35, 36, 37, 38, 39, 44, 45, 46, 47, 48, 49, 57, 58, 63,
+         64, 65, 66, 67, 68, 69, 70, 71, 73, 79, 80, 81, 85, 86, 88, 90, 92, 95, 98},
+        {2, 3, 5, 6, 10, 13, 14, 16, 17, 21, 24, 25, 32, 33, 34, 38, 43, 46, 50, 52, 53, 56, 57, 60, 61, 63, 70, 76,
+         77, 78, 79, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 96, 99, 100},
+        {1, 3, 4, 6, 8, 10, 13, 15, 16, 18, 24, 25, 31, 33, 34, 35, 36, 37, 38, 39, 46, 47, 51, 57, 63, 64, 65, 68,
+         69, 70, 73, 77, 79, 85, 86, 88, 90, 92, 98}
+    ]
+
+
+`x`：1 到 1000
+
+`y`：1 到 1000
+
+`z`：1 到 600

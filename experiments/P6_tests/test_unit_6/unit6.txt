@@ -1,0 +1,279 @@
+
+def section6_low_co2_extremes(moisture, co2, temp):
+    """检测低CO2极端条件下的分支触发情况"""
+    triggered = set()
+
+if (co2 < 1150) != (co2 < 1000): b[0]=1
+    if (co2 < 1150) != (co2 < 950): b[1]=2
+    if (co2 < 1150) != (co2 < 1400): b[2]=3
+
+    # 分支4-11: 调整到中间值区域
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1050 and moisture > 45 and temp > 20): b[3]=4
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1100 and moisture > 45 and temp > 20): b[4]=5
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20): b[5]=6
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 35 and temp > 20): b[6]=7
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20): b[7]=8
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20): b[8]=9
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 5): b[9]=10
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20): b[10]=11
+
+    # 分支12-21: 调整到中间值
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 970 and moisture > 50) or (co2 < 1100 and temp < 22)): b[11]=12
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1000 and moisture > 50) or (co2 < 1100 and temp < 22)): b[12]=13
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 or moisture > 50) or (co2 < 1100 and temp < 22)): b[13]=14
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 40) or (co2 < 1100 and temp < 22)): b[14]=15
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 35) or (co2 < 1100 and temp < 22)): b[15]=16
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) and (co2 < 1100 and temp < 22)): b[16]=17
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 960 and temp < 22)): b[17]=18
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 18)): b[18]=19
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp > 22)): b[19]=20
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 > 1100 and temp < 22)): b[20]=21
+
+    # 分支22-25: 调整阈值到中间
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.04 and temp < 22): b[21]=22
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.03 and temp < 22): b[22]=23
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.06 or temp < 22): b[23]=24
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (moisture + safe_divide(100, co2 - 700) > 0.06 and temp < 22): b[24]=25
+
+    # 分支26-36: 调整到中间值
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1000 and moisture > 45 and temp > 20): b[25]=26
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1070 and moisture > 45 and temp > 20): b[26]=27
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 > 1150 and moisture > 45 and temp > 20): b[27]=28
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20): b[28]=29
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 25 and temp > 20): b[29]=30
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20): b[30]=31
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20): b[31]=32
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 15): b[32]=33
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 12): b[33]=34
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 or temp > 20): b[34]=35
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20): b[35]=36
+
+    # 分支37-44: 调整到中间值
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 970 and moisture < 40 and temp < 22): b[36]=37
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1020 and moisture < 40 and temp < 22): b[37]=38
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 > 1150 and moisture < 40 and temp < 22): b[38]=39
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 or moisture < 40 and temp < 22): b[39]=40
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 50 and temp < 22): b[40]=41
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture > 40 and temp < 22): b[41]=42
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 27): b[42]=43
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 32): b[43]=44
+
+    # 分支45-55: 扩大范围
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1050 and 35 < moisture < 60 and 15 < temp < 28): b[44]=45
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1120 and 35 < moisture < 60 and 15 < temp < 28): b[45]=46
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1070 and 35 < moisture < 60 and 15 < temp < 28): b[46]=47
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 > 1150 and 35 < moisture < 60 and 15 < temp < 28): b[47]=48
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 25 < moisture < 60 and 15 < temp < 28): b[48]=49
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 20 < moisture < 60 and 15 < temp < 28): b[49]=50
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 52 and 15 < temp < 28): b[50]=51
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 or 15 < temp < 28): b[51]=52
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 10 < temp < 28): b[52]=53
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 20): b[53]=54
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 33): b[54]=55
+
+    # 分支56-65: 调整到中间值和扩大范围
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1020 and moisture < 40 and 15 < temp < 25): b[55]=56
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1070 and moisture < 40 and 15 < temp < 25): b[56]=57
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 > 1150 and moisture < 40 and 15 < temp < 25): b[57]=58
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 or moisture < 40 and 15 < temp < 25): b[58]=59
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 50 and 15 < temp < 25): b[59]=60
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 55 and 15 < temp < 25): b[60]=61
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 10 < temp < 25): b[61]=62
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 5 < temp < 25): b[62]=63
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30): b[63]=64
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30): b[64]=65
+
+    # 分支66-74: 调整比例和温度阈值
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 850) > 0.06 and temp > 20): b[65]=66
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 900) > 0.06 and temp > 20): b[66]=67
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 + 200) > 0.06 and temp > 20): b[67]=68
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.04 and temp > 20): b[68]=69
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.03 and temp > 20): b[69]=70
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 or temp > 20): b[70]=71
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 15): b[71]=72
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 12): b[72]=73
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp < 20): b[73]=74
+
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1100 and temp > 18): b[74]=75
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1050 and temp > 18): b[75]=76
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 15): b[76]=77
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 12): b[77]=78
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp < 18): b[78]=79
+
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1000 and abs(moisture - 45) > 15 and abs(temp - 20) > 7): b[79]=80
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1050 and abs(moisture - 45) > 15 and abs(temp - 20) > 7): b[80]=81
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1150 and abs(moisture - 42) > 15 and abs(temp - 20) > 7): b[81]=82
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1150 and abs(moisture - 45) > 12 and abs(temp - 20) > 7): b[82]=83
+
+    # 分支84-87: 简化条件到中间值
+    if (co2 < 1150 and moisture < 40) != (co2 < 1000 and moisture < 40): b[83]=84
+    if (co2 < 1150 and moisture < 40) != (co2 < 1050 and moisture < 40): b[84]=85
+    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 50): b[85]=86
+    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 55): b[86]=87
+
+    # 分支88-92: 调整到中间范围
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1030 and 12 < temp < 25 and moisture > 45): b[87]=88
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1080 and 12 < temp < 25 and moisture > 45): b[88]=89
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 8 < temp < 25 and moisture > 45): b[89]=90
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 30 and moisture > 45): b[90]=91
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 25 and moisture > 35): b[91]=92
+
+    # 分支93-96: 调整到中间值
+    if (moisture > 45 and temp > 20) != (moisture > 35 and temp > 20): b[92]=93
+    if (moisture > 45 and temp > 20) != (moisture > 32 and temp > 20): b[93]=94
+    if (moisture > 45 and temp > 20) != (moisture > 45 and temp > 15): b[94]=95
+    if (moisture > 45 and temp > 20) != (moisture > 45 and temp < 20): b[95]=96
+
+    # 分支97-102: 扩大范围
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            950 < co2 < 1250 and 35 < moisture < 55 and 15 < temp < 25): b[96]=97
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            900 < co2 < 1300 and 35 < moisture < 55 and 15 < temp < 25): b[97]=98
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 28 < moisture < 55 and 15 < temp < 25): b[98]=99
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 62 and 15 < temp < 25): b[99]=100
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 55 and 12 < temp < 25): b[100]=101
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 28): b[101]=102
+
+    # 分支103-109: 调整条件和扩大范围
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1050 and 30 < moisture < 55 and (temp < 20 or temp > 22)): b[102]=103
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 22 < moisture < 55 and (temp < 20 or temp > 22)): b[103]=104
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 62 and (temp < 20 or temp > 22)): b[104]=105
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 16 or temp > 22)): b[105]=106
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 26)): b[106]=107
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 15 or temp > 22)): b[107]=108
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 28)): b[108]=109
+
+    # 分支110-114: 调整到中间值
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 38 and co2 < 1150 and temp < 22): b[109]=110
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 35 and co2 < 1150 and temp < 22): b[110]=111
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1000 and temp < 22): b[111]=112
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 27): b[112]=113
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 30): b[113]=114
+
+    # 分支115-118: 调整条件
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 35 and temp > 20 and co2 < 1150): b[114]=115
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture < 45 and temp > 20 and co2 < 1150): b[115]=116
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 45 and temp > 15 and co2 < 1150): b[116]=117
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1070): b[117]=118
+
+    # 分支119-124: 调整到中间值和扩大范围
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1000 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)): b[118]=119
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 30 or moisture < 40) and (temp > 22 or temp < 18)): b[119]=120
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 40 or moisture < 40) and (temp > 22 or temp < 18)): b[120]=121
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 and moisture < 40) and (temp > 22 or temp < 18)): b[121]=122
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 or moisture < 45) and (temp > 22 or temp < 18)): b[122]=123
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 or moisture < 40) or (temp > 22 or temp < 18)): b[123]=124
+
+    # 分支125-131: 调整比例和阈值
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1050 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45): b[124]=125
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1100 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45): b[125]=126
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 5) > 0.5 and moisture < 45): b[126]=127
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.4 and moisture < 45): b[127]=128
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 or moisture < 45): b[128]=129
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 38): b[129]=130
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 35): b[130]=131
+
+    # 分支132-137: 调整范围到中间
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1000 and 35 <= moisture <= 50 and 15 <= temp <= 25): b[131]=132
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 28 <= moisture <= 50 and 15 <= temp <= 25): b[132]=133
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 32 <= moisture <= 50 and 15 <= temp <= 25): b[133]=134
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 35 <= moisture <= 50 and 12 <= temp <= 25): b[134]=135
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 28): b[135]=136
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1050 and 35 <= moisture <= 50 and 15 <= temp <= 25): b[136]=137
+
+    return triggered
+
+
+
+A1=[1,2,6,7,8,9,14,15,16,20,24,29,30,31,35,36,40,45,47,48,54,59,60,61,68,74,75,76,86,87,92,93,94,103,107,109,113,114,115,116,120,121,123,124,125,127,130,131,132,137]
+A2=[1,2,6,7,8,9,14,16,20,24,29,30,31,35,36,40,43,44,45,47,48,54,56,57,58,68,74,75,76,84,85,92,93,94,103,107,109,113,114,115,116,119,122,125,130,131,132,137]
+A3=[1,2,6,7,8,9,14,16,20,24,29,30,31,35,36,40,43,44,45,48,54,59,64,65,68,74,76,84,85,93,94,102,103,107,109,113,114,115,116,119,122,125,131,136]
+A4=[1,2,6,7,8,9,17,18,19,20,21,29,30,31,35,36,37,38,39,42,45,47,48,54,56,57,58,68,74,75,76,84,85,92,93,94,111,112,115,116,124,125,131,132,137]
+A5=[1,2,6,7,8,9,14,15,16,21,29,30,31,35,36,40,41,42,45,47,48,54,59,60,61,68,74,75,76,86,87,92,93,94,110,111,112,115,116,128,129,132,137]
+A6=[1,2,6,14,15,16,21,36,40,41,42,45,46,47,48,59,60,61,71,72,73,74,77,78,79,86,87,92,103,106,108,110,111,112,120,121,123,124,129,132,137]
+A7=[6,7,8,9,14,15,16,20,24,29,30,31,35,36,40,48,54,59,60,61,68,74,86,87,92,93,94,98,107,109,113,114,115,116,120,121,123,124,127,130,131]
+A8=[1,2,4,9,11,14,15,16,20,24,26,27,28,29,32,40,45,47,48,54,59,68,74,75,76,86,87,91,96,102,103,107,109,116,118,120,121,124,129,132,137]
+A9=[1,2,6,7,8,9,14,15,16,24,29,30,31,35,36,40,52,55,59,68,74,75,76,86,87,93,94,103,109,114,115,116,120,121,123,124,125,126,130,131,136]
+A10=[1,2,6,8,9,14,20,24,29,30,31,35,36,40,43,44,49,50,52,59,64,65,68,74,75,76,84,85,94,103,107,109,113,114,116,119,122,125,131,132,137]
+A11=[1,2,6,8,9,17,18,19,20,21,29,30,31,35,36,37,38,39,42,49,50,52,56,57,58,68,74,75,76,84,85,94,99,111,112,116,124,125,131,132,137]
+A12=[1,2,6,10,11,17,18,19,20,21,32,33,34,35,36,40,41,42,45,47,48,59,60,61,71,72,73,74,75,76,86,87,88,95,96,103,106,108,117,132,137]
+A13=[1,2,4,5,9,11,14,15,16,24,26,27,28,29,32,40,45,46,47,48,54,59,68,74,79,86,87,91,96,102,103,107,109,116,118,120,121,124,129,136]
+A14=[2,6,7,8,9,14,16,20,24,29,30,31,35,36,40,48,54,59,60,61,68,74,86,87,92,93,94,97,98,107,109,113,114,115,116,120,123,124,130,131]
+A15=[1,2,6,10,11,14,15,16,21,32,33,34,35,36,40,41,42,45,47,48,59,60,61,71,72,73,74,79,86,87,88,89,95,96,103,106,108,117,132,137]
+A16=[1,2,6,10,11,12,13,17,32,33,34,35,36,40,42,45,46,47,48,51,59,61,71,72,73,74,77,78,79,87,88,89,95,96,103,106,108,117,119,122]
+A17=[1,2,6,8,9,14,24,29,30,31,35,36,40,43,44,49,50,52,56,57,58,68,74,79,84,85,99,103,107,109,113,114,116,119,122,125,126,133,134]
+A18=[6,7,8,9,14,15,16,20,24,29,30,31,35,36,40,48,54,59,66,67,68,74,86,87,93,94,107,109,113,114,115,116,120,121,123,124,130,131]
+A19=[1,2,6,9,14,21,22,23,24,25,29,35,36,37,38,39,42,50,52,56,57,58,66,67,69,70,71,75,76,84,85,112,116,124,125,126]
+A20=[1,2,6,10,11,14,15,16,21,32,34,35,36,40,41,42,52,53,59,71,73,74,78,79,86,87,88,89,96,101,103,120,121,124,135]
+A21=[1,2,6,14,21,36,37,38,39,42,49,50,52,56,57,58,71,72,73,74,77,78,79,84,85,99,104,112,119,122,125,126,127,133]
+A22=[1,2,4,5,9,11,12,13,17,24,26,27,28,29,32,40,45,46,47,48,51,54,59,68,74,79,88,89,96,100,105,116,118,119,122]
+A23=[1,2,6,9,14,29,35,36,40,44,59,64,65,66,67,69,70,71,75,76,80,81,84,85,104,114,116,119,122,125,126]
+A24=[1,2,6,9,14,20,24,29,30,35,36,40,44,59,64,65,68,74,75,76,80,81,82,84,85,104,114,116,119,122,125]
+A25=[1,2,6,14,16,21,36,37,38,39,42,52,53,59,62,63,71,73,74,84,85,92,101,103,111,112,119,122,129,135]
+A26=[1,2,6,10,11,14,15,16,21,32,35,36,40,41,42,52,53,59,71,74,79,86,87,90,96,103,120,121,124,135]
+A27=[1,2,6,9,14,24,29,30,35,36,40,44,59,64,65,68,74,75,76,83,84,85,104,114,116,119,122,125,126]
+A28=[3,21,22,23,24,25,35,39,40,52,58,59,66,67,69,70,71,79,94,129]
+
+取值范围:
+    moisture:(10-80)
+    co2: (800-1500)
+    temp: (1-40)
