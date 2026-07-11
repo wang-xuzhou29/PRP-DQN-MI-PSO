@@ -357,3 +357,16 @@ Detailed reproduction instructions are provided in [docs/REPRODUCIBILITY.md](doc
 ## 11. License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## 12. Acknowledgments and Provenance of Experiment Subjects
+
+The 8 experiment subjects (P1-P8) used in this replication package combine literature-inspired models, open-source software, and industrial collaborative environments. We express our sincere gratitude to the original authors and teams for their contributions. The detailed provenance is as follows:
+
+*   **P1:** Based on the "Convolutional neural network-based deep Q-network (CNN-DQN) path planning method for mobile robots" proposed by Jiaqiang Zhang et al. [22]. Used for mobile robot path decision-making and action selection.
+*   **P2:** Sourced from the example program in the reference "Optimizing Test Data Generation using SI_CNNpro-Enhanced MGA for Mutation Testing" by Lei Tao et al. [14]. Utilized to verify the fundamental effectiveness of the algorithm.
+*   **P3, P6, and P8:** Obtained from open-source programs (GitHub). These programs are included primarily to provide diverse testing scenarios and input data structures.
+*   **P4 (Industrial Equipment Inspection System):** Adapted from the program under test presented in the reference "Test data generation for covering mutation-based path using MGA for MPI program" by Dang et al. [13].
+*   **P5 (Traffic Signal Control System):** Modified from the program under test provided by Sun et al. [20] in "Integrating an Ensemble Surrogate Model's Estimation into Test data Generation," incorporating its data generation strategy and coverage logic.
+*   **P7 (Intelligent Manufacturing Quality Control System):** Derived from a simulated industrial environment established through school-enterprise collaboration. This subject utilizes desensitized data to generate test samples, ensuring the authenticity of the industrial scenario.
+
+**Summary:** The selection of these programs ensures that our test data exhibits diversity, representativeness, and reproducibility, thereby fully verifying the applicability of the proposed method across different scales and business scenarios.
