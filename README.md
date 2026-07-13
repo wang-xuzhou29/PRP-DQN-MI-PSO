@@ -78,16 +78,19 @@ The DQN backbone uses a customized one-dimensional convolutional neural network 
 
 ## 3. Framework Overview
 
+> **Note on Figures regarding the Manuscript:** 
+> The figures presented below (Figure 1 and Figure 2) are the **fully detailed, comprehensive versions** intended to facilitate complete technical understanding and reproducibility. They differ slightly from the versions included in the main text of our revised manuscript, which were **simplified** to highlight core workflows, enhance readability, and accommodate formatting space constraints. 
+
 <p align="center">
   <img src="Picture/fig1.png" alt="Overall framework of PRP-DQN and MI-PSO" width="70%">
   <br>
-  <em>Figure 1. Overall framework of the proposed PRP-DQN and MI-PSO test-data generation method.</em>
+  <em>Figure 1. Overall framework of the proposed PRP-DQN and MI-PSO test-data generation method. (Detailed Open-Source Version)</em>
 </p>
 
 <p align="center">
   <img src="Picture/fig2.png" alt="Traditional DQN model structure" width="80%">
   <br>
-  <em>Figure 2. Traditional DQN model structure.</em>
+  <em>Figure 2. Traditional DQN model structure. (Detailed Open-Source Version)</em>
 </p>
 
 <p align="center">
