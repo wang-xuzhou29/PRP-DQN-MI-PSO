@@ -13,7 +13,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# --- 全局状态范围配置 ---
+
 STATE_MIN_X, STATE_MAX_X = 1, 100
 STATE_MIN_Y, STATE_MAX_Y = 1, 100
 STATE_MIN_Z, STATE_MAX_Z = 1, 100
@@ -28,13 +28,13 @@ def generate_input():
 
 def execute_Tr(dx: int, dy: int, dz: int):
 
-    # --- 1. 常量与配置 ---
-    MAX_GRID_SIZE = 500.0  # 模拟网格的最大边界，扩大到 500.0
-    INITIAL_BATTERY = 1000.0  # 初始电量相应扩大，以支撑更长的路径
-    BATTERY_PER_STEP = 1.0  # 每走一步消耗的电量降低，避免一步耗尽
-    SAFE_DISTANCE = 5.0  # 安全距离阈值 (固定)
-    CRITICAL_BATTERY_LEVEL = 100.0  # 危险电量阈值 (固定)
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  # 目标坐标相应扩大 (固定值)
+ 
+    MAX_GRID_SIZE = 500.0  
+    INITIAL_BATTERY = 1000.0 
+    BATTERY_PER_STEP = 1.0 
+    SAFE_DISTANCE = 5.0 
+    CRITICAL_BATTERY_LEVEL = 100.0 
+    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0 
 
     MIN_PLANNING_X = 10.0
     MIN_PLANNING_Y = 15.0
