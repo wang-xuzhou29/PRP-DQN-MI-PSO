@@ -26,11 +26,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # === three-dimensional range settings ===
 # Keep the current DQN state range used by the second script. To use a 0-500 range, modify this section only.
 LIGHT_MIN = 1
-LIGHT_MAX = 100
-MOISTURE_MIN = 1
-MOISTURE_MAX = 100
-TEMP_MIN = 1
-TEMP_MAX = 100
+LIGHT_MAX = 40
+MOISTURE_MIN = 1000
+MOISTURE_MAX = 10000
+TEMP_MIN = 800
+TEMP_MAX = 1500
 BOUNDS = {
     "light": (LIGHT_MIN, LIGHT_MAX),
     "moisture": (MOISTURE_MIN, MOISTURE_MAX),
@@ -88,114 +88,390 @@ def is_state_valid(state):
     )
 
 
-def execute_Tr(state_or_dx, dy=None, dz=None) -> Set[int]:
-    """
-    Execute the TR path-trigger function.
-    Accepts execute_Tr(state) or execute_Tr(dx, dy, dz).
-    """
-    if dy is None and dz is None:
-        state = np.asarray(state_or_dx, dtype=float)
-        dx, dy, dz = float(state[0]), float(state[1]), float(state[2])
-    else:
-        dx, dy, dz = float(state_or_dx), float(dy), float(dz)
-
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0
-    INITIAL_BATTERY = 1000.0
-    BATTERY_PER_STEP = 1.0
-    SAFE_DISTANCE = 5.0
-    CRITICAL_BATTERY_LEVEL = 100.0
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(light, co2, temp):
+    """高CO2极端条件增强版分支测试函数"""
+    actions = []
     triggered = set()
 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-    simulated_y = current_y
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
+    # Fixed: removed extra space before if
+    if (co2 > 1200) != (co2 > 400):
         triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
+    if (co2 > 1200) != (co2 > 200):
         triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
+    if (co2 > 1200) != (co2 > 100):
         triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
+    if (co2 > 1200) != (co2 > 600):
         triggered.add(4)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
+    if (co2 > 1100 and light > 7000) != (co2 > 100 and light > 7000):
         triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
+    if (co2 > 1100 and light > 7000) != (co2 > 500 and light > 7000):
         triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
+    if (co2 > 1100 and light > 7000) != (co2 > 800 and light > 7000):
         triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
+    if (co2 > 1100 and light > 7000) != (co2 > 1100 and light > 5000):
         triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
+    if (co2 > 1100 and light > 7000) != (co2 > 1100 and light > 4000):
         triggered.add(9)
-
-    # --- branch 10-15 ---
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
+    if (co2 > 1100 and light > 7000) != (co2 > 1100 and light > 3000):
         triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
+    if (co2 > 1100 and light > 7000) != (co2 > 1100 and light > 2000):
         triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
+
+    if (co2 > 1250 and temp > 28) != (co2 > 950 and temp > 28):
         triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
+    if (co2 > 1250 and temp > 28) != (co2 > 1250 and temp > 18):
         triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
+    if (co2 > 1250 and temp > 28) != (co2 > 1000 and temp > 28):
         triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
+    if (co2 > 1250 and temp > 28) != (co2 > 900 and temp > 28):
         triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
+    if (co2 > 1250 and temp > 28) != (co2 > 1250 or temp > 28):
         triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
+    if (co2 > 1250 and temp > 28) != (co2 > 1250 and temp <= 28):
         triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
+    if (co2 > 1250 and temp > 28) != (co2 < 1250 and temp > 28):
         triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
+    if (co2 > 1250 and temp > 28) != (light > 1250 and temp > 28):
         triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
 
-    # --- branch 22-29 ---
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1350 and light > 6000 and temp > 22):
+        triggered.add(20)
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 < 1150 and light > 6000 and temp > 22):
+        triggered.add(21)
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 7000 and temp > 22):
         triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 8000 and temp > 22):
         triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 4000 and temp > 22):
         triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 6000 and temp > 32):
         triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 6000 and temp > 12):
         triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light < 6000 and temp > 22):
         triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 6000 and temp < 22):
         triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 or light > 6000 and temp > 22):
         triggered.add(29)
+    if (co2 > 1150 and light > 6000 and temp > 22) != (co2 > 1150 and light > 6000 or temp > 22):
+        triggered.add(30)
+
+    if (co2 < 1050 and light > 6000) != (co2 < 1250 and light > 6000):
+        triggered.add(31)
+    if (co2 < 1050 and light > 6000) != (co2 < 1350 and light > 6000):
+        triggered.add(32)
+    if (co2 < 1050 and light > 6000) != (co2 < 1450 and light > 6000):
+        triggered.add(33)
+    if (co2 < 1050 and light > 6000) != (co2 > 1050 and light > 6000):
+        triggered.add(34)
+    if (co2 < 1050 and light > 6000) != (co2 < 1050 or light > 6000):
+        triggered.add(35)
+    if (co2 < 1050 and light > 6000) != (co2 < 1050 and light < 6000):
+        triggered.add(36)
+    if (co2 < 1050 and light > 6000) != (co2 < 1050 and light > 4000):
+        triggered.add(37)
+    if (co2 < 1050 and light > 6000) != (co2 < 1050 and light > 8000):
+        triggered.add(38)
+
+    if (temp > 28 and light > 6000) != (temp > 18 and light > 6000):
+        triggered.add(39)
+    if (temp > 28 and light > 6000) != (temp > 24 and light > 6000):
+        triggered.add(40)
+    if (temp > 28 and light > 6000) != (temp > 20 and light > 6000):
+        triggered.add(41)
+    if (temp > 28 and light > 6000) != (temp > 28 or light > 6000):
+        triggered.add(42)
+    if (temp > 28 and light > 6000) != (temp > 28 and light > 4000):
+        triggered.add(43)
+    if (temp > 28 and light > 6000) != (temp > 28 and light > 2000):
+        triggered.add(44)
+    if (temp > 28 and light > 6000) != (temp > 28 and light > 8000):
+        triggered.add(45)
+
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1300 and light > 6000 and temp > 22):
+        triggered.add(46)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 600 and light > 6000 and temp > 22):
+        triggered.add(47)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 300 and light > 6000 and temp > 22):
+        triggered.add(48)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 < 1100 and light > 6000 and temp > 22):
+        triggered.add(49)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 or light > 6000 and temp > 22):
+        triggered.add(50)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 and light > 4000 and temp > 22):
+        triggered.add(51)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 and light > 8000 and temp > 22):
+        triggered.add(52)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 and light > 6000 or temp > 22):
+        triggered.add(53)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 and light > 6000 and temp > 12):
+        triggered.add(54)
+    if (co2 > 1100 and light > 6000 and temp > 22) != (co2 > 1100 and light > 6000 and temp > 32):
+        triggered.add(55)
+
+    if (co2 < 1050 and light > 5000) != (co2 < 1250 and light > 5000):
+        triggered.add(56)
+    if (co2 < 1050 and light > 5000) != (co2 < 950 and light > 5000):
+        triggered.add(57)
+    if (co2 < 1050 and light > 5000) != (co2 < 1050 or light > 5000):
+        triggered.add(58)
+    if (co2 < 1050 and light > 5000) != (co2 < 1050 and light > 6000):
+        triggered.add(59)
+    if (co2 < 1050 and light > 5000) != (co2 < 1050 and light > 8000):
+        triggered.add(60)
+    if (co2 < 1050 and light > 5000) != (co2 < 1050 and light > 3000):
+        triggered.add(61)
+
+    if (3000 <= light <= 8000) != (2000 <= light <= 8000):
+        triggered.add(62)
+    if (3000 <= light <= 8000) != (1000 <= light <= 8000):
+        triggered.add(63)
+    if (3000 <= light <= 8000) != (4000 <= light <= 8000):
+        triggered.add(64)
+    if (3000 <= light <= 8000) != (6000 <= light <= 8000):
+        triggered.add(65)
+
+    if (co2 > 1180 and light > 5500) != (co2 > 1280 and light > 5500):
+        triggered.add(66)
+    if (co2 > 1180 and light > 5500) != (co2 > 1380 and light > 5500):
+        triggered.add(67)
+    if (co2 > 1180 and light > 5500) != (co2 < 1180 and light > 5500):
+        triggered.add(68)
+    if (co2 > 1180 and light > 5500) != (co2 > 1180 or light > 5500):
+        triggered.add(69)
+    if (co2 > 1180 and light > 5500) != (co2 > 1180 and light > 6600):
+        triggered.add(70)
+    if (co2 > 1180 and light > 5500) != (co2 > 1180 and light > 7700):
+        triggered.add(71)
+    if (co2 > 1180 and light > 5500) != (co2 > 1180 and light > 8800):
+        triggered.add(72)
+
+    if (light > 3500 and light < 8500) != (light > 5500 and light < 8500):
+        triggered.add(73)
+    if (light > 3500 and light < 8500) != (light > 6500 and light < 8500):
+        triggered.add(74)
+    if (light > 3500 and light < 8500) != (light > 7500 and light < 8500):
+        triggered.add(75)
+    if (light > 3500 and light < 8500) != (light < 3500 and light < 8500):
+        triggered.add(76)
+    if (light > 3500 and light < 8500) != (light > 3500 and light > 8500):
+        triggered.add(77)
+    if (light > 3500 and light < 8500) != (light > 3500 and light < 7500):
+        triggered.add(78)
+    if (light > 3500 and light < 8500) != (light > 3500 and light < 5500):
+        triggered.add(79)
+    if (light > 3500 and light < 8500) != (light > 3500 and light < 4500):
+        triggered.add(80)
+
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 900) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(81)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1250) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(82)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 3 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(83)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 4500) ** 2 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(84)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 3500) ** 2 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(85)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 5500) ** 3 / 100 + (temp - 25) ** 2 < 10000):
+        triggered.add(86)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 5500) ** 2 / 200 + (temp - 25) ** 2 < 10000):
+        triggered.add(87)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 15) ** 2 < 10000):
+        triggered.add(88)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 35) ** 2 < 10000):
+        triggered.add(89)
+    if ((co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 2 < 10000) != (
+            (co2 - 1150) ** 2 + (light - 5500) ** 2 / 100 + (temp - 25) ** 3 < 10000):
+        triggered.add(90)
+
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 60 and light / temp < 300):
+        triggered.add(91)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 70 and light / temp < 300):
+        triggered.add(92)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 80 and light / temp < 300):
+        triggered.add(93)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 90 and light / temp < 300):
+        triggered.add(94)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 50 or light / temp < 300):
+        triggered.add(95)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 50 and light / temp < 200):
+        triggered.add(96)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 50 and light / temp < 100):
+        triggered.add(97)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 50 and light / temp < 350):
+        triggered.add(98)
+    if (light / temp > 50 and light / temp < 300) != (light / temp > 50 and light / temp < 400):
+        triggered.add(99)
+
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1050) + abs(light - 5500) / 10 + abs(temp - 25) < 500):
+        triggered.add(100)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 950) + abs(light - 5500) / 10 + abs(temp - 25) < 500):
+        triggered.add(101)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 850) + abs(light - 5500) / 10 + abs(temp - 25) < 500):
+        triggered.add(102)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1150) + abs(light - 6500) / 10 + abs(temp - 25) < 500):
+        triggered.add(103)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1150) + abs(light - 7500) / 10 + abs(temp - 25) < 500):
+        triggered.add(104)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1150) + abs(light - 8500) / 20 + abs(temp - 25) < 500):
+        triggered.add(105)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 15) < 500):
+        triggered.add(106)
+    if (abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 500) != (
+            abs(co2 - 1150) + abs(light - 5500) / 10 + abs(temp - 25) < 400):
+        triggered.add(107)
+
+    if (light > 1200 and light < 9800) != (light > 2200 and light < 9800):
+        triggered.add(108)
+    if (light > 1200 and light < 9800) != (light > 4200 and light < 9800):
+        triggered.add(109)
+    if (light > 1200 and light < 9800) != (light > 6200 and light < 9800):
+        triggered.add(110)
+    if (light > 1200 and light < 9800) != (light > 7200 and light < 9800):
+        triggered.add(111)
+    if (light > 1200 and light < 9800) != (light > 1200 and light < 7800):
+        triggered.add(112)
+    if (light > 1200 and light < 9800) != (light > 1200 and light < 5800):
+        triggered.add(113)
+    if (light > 1200 and light < 9800) != (light > 1200 and light < 2800):
+        triggered.add(114)
+    if (light > 1200 and light < 9800) != (light > 1200 and light < 3800):
+        triggered.add(115)
+    if (light > 1200 and light < 9800) != (light > 1200 and light < 4800):
+        triggered.add(116)
+
+    if (temp > 3 and temp < 38) != (temp > 13 and temp < 38):
+        triggered.add(117)
+    if (temp > 3 and temp < 38) != (temp > 23 and temp < 38):
+        triggered.add(118)
+    if (temp > 3 and temp < 38) != (temp > 33 and temp < 38):
+        triggered.add(119)
+    if (temp > 3 and temp < 38) != (temp > 3 and temp < 8):
+        triggered.add(120)
+    if (temp > 3 and temp < 38) != (temp > 3 and temp < 18):
+        triggered.add(121)
+    if (temp > 3 and temp < 38) != (temp > 3 and temp < 28):
+        triggered.add(122)
+    if (temp > 3 and temp < 38) != (temp > 3 and temp < 30):
+        triggered.add(123)
+
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 1000 and light > 1500 and temp > 5):
+        triggered.add(124)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 950 and light > 1500 and temp > 5):
+        triggered.add(125)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 1250 and light > 1500 and temp > 5):
+        triggered.add(126)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 or light > 1500 and temp > 5):
+        triggered.add(127)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 3500 and temp > 5):
+        triggered.add(128)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 5500 and temp > 5):
+        triggered.add(129)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 6500 and temp > 5):
+        triggered.add(130)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 1500 and temp > 15):
+        triggered.add(131)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 1500 and temp > 25):
+        triggered.add(132)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 1500 and temp > 35):
+        triggered.add(133)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 1500 or temp > 5):
+        triggered.add(134)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 2500 and temp > 5):
+        triggered.add(135)
+    if (co2 > 850 and light > 1500 and temp > 5) != (co2 > 850 and light > 4500 and temp > 5):
+        triggered.add(136)
 
     return triggered
 
 
+
 target_paths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29},
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49,
+     52, 55, 56, 58, 66, 67, 68, 70, 71, 72, 74, 75, 76, 77, 79, 80, 81, 82, 83, 84, 85, 86, 96, 97, 111, 113, 114,
+     115, 116, 119, 120, 121, 122, 123, 126, 130, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49, 52,
+     55, 56, 58, 66, 67, 68, 70, 71, 72, 74, 75, 76, 77, 79, 80, 81, 83, 84, 85, 86, 97, 110, 111, 113, 114, 115, 116,
+     119, 120, 121, 122, 123, 126, 130, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49, 52,
+     55, 56, 58, 68, 69, 74, 75, 76, 77, 79, 80, 81, 82, 84, 85, 86, 96, 97, 110, 111, 113, 114, 115, 116, 119, 120,
+     121, 122, 123, 126, 130, 133],
+    [8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49, 52, 56, 58, 66, 67,
+     68, 70, 71, 72, 74, 75, 76, 77, 79, 80, 81, 83, 84, 85, 86, 90, 97, 110, 111, 113, 114, 115, 116, 120, 121, 122,
+     123, 126, 130],
+    [1, 2, 3, 4, 8, 9, 10, 11, 26, 28, 29, 30, 31, 32, 33, 34, 35, 39, 41, 42, 50, 53, 54, 56, 58, 66, 67, 68, 70, 71,
+     72, 74, 75, 76, 77, 79, 80, 81, 83, 84, 85, 86, 96, 97, 110, 111, 113, 114, 115, 116, 118, 119, 120, 121, 126,
+     130, 132, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 39, 40, 41, 42, 46, 49, 52, 55, 56, 58,
+     68, 69, 74, 75, 76, 77, 79, 80, 81, 82, 84, 85, 86, 96, 97, 110, 111, 113, 114, 115, 116, 119, 120, 121, 126, 130,
+     133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 24, 27, 29, 30, 42, 43, 44, 50, 51, 53, 56, 58, 65, 66, 67, 68,
+     70, 71, 72, 74, 75, 76, 77, 79, 80, 81, 83, 84, 85, 86, 97, 110, 111, 113, 114, 115, 116, 120, 121, 122, 123, 126,
+     130],
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49, 52,
+     55, 56, 58, 66, 67, 68, 71, 72, 75, 76, 77, 79, 80, 87, 96, 97, 111, 113, 114, 115, 116, 119, 120, 121, 122, 126,
+     133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 26, 28, 29, 30, 31, 32, 33, 34, 35, 39, 42, 50, 53, 54, 56, 58, 68, 69, 74, 75, 76, 77,
+     79, 80, 81, 82, 83, 84, 85, 86, 95, 98, 99, 110, 111, 113, 114, 115, 116, 118, 119, 120, 121, 126, 130, 132, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 26, 28, 29, 30, 31, 32, 33, 34, 35, 42, 50, 53, 54, 56, 58, 66, 67, 68, 70, 71, 72, 74,
+     75, 76, 77, 79, 80, 81, 82, 83, 84, 85, 86, 95, 111, 113, 114, 115, 116, 118, 119, 120, 126, 130, 131, 132, 133],
+    [1, 2, 3, 4, 12, 14, 15, 16, 18, 19, 21, 29, 30, 31, 32, 33, 34, 35, 45, 47, 48, 49, 50, 53, 56, 58, 68, 69, 74,
+     75, 76, 77, 79, 80, 81, 82, 84, 85, 86, 97, 110, 111, 113, 114, 115, 116, 119, 120, 121, 122, 123, 126, 130, 133],
+    [8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 27, 28, 31, 32, 33, 34, 35, 45, 46, 49, 52, 55, 56, 58,
+     66, 67, 68, 70, 71, 72, 75, 76, 77, 79, 80, 96, 97, 102, 111, 113, 114, 115, 116, 119, 120, 121, 122, 126, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 28, 29, 30, 31, 32, 33, 34, 35, 42, 50, 53, 56, 58, 66, 67, 68, 70, 71, 72, 74, 75, 76,
+     77, 79, 80, 81, 83, 84, 85, 86, 95, 110, 111, 113, 114, 115, 116, 117, 118, 119, 120, 126, 130, 131, 132, 133],
+    [1, 2, 3, 4, 5, 6, 7, 16, 18, 19, 21, 29, 30, 34, 36, 38, 45, 47, 48, 49, 50, 53, 60, 68, 69, 76, 77, 78, 79, 80,
+     83, 96, 97, 100, 101, 102, 103, 104, 105, 112, 113, 114, 115, 116, 119, 120, 121, 122, 123, 124, 125, 126, 133],
+    [1, 2, 3, 4, 12, 14, 15, 16, 18, 19, 21, 29, 30, 31, 32, 33, 34, 35, 45, 47, 48, 49, 50, 53, 56, 58, 68, 69, 74,
+     75, 76, 77, 79, 80, 81, 82, 84, 85, 86, 88, 90, 97, 111, 113, 114, 115, 116, 120, 121, 122, 123, 126, 130, 133],
+    [8, 9, 10, 11, 13, 16, 17, 20, 21, 22, 23, 25, 27, 28, 32, 33, 34, 35, 39, 41, 42, 46, 49, 52, 55, 58, 67, 68, 70,
+     71, 72, 74, 75, 76, 77, 79, 80, 82, 96, 97, 102, 110, 111, 113, 114, 115, 116, 119, 120, 121, 130, 132, 133],
+    [8, 9, 10, 11, 26, 28, 29, 30, 31, 32, 33, 34, 35, 42, 50, 53, 54, 56, 58, 66, 67, 68, 70, 71, 72, 74, 75, 76, 77,
+     79, 80, 81, 83, 84, 85, 86, 89, 95, 99, 111, 113, 114, 115, 116, 118, 119, 120, 121, 126, 130, 132, 133],
+    [8, 9, 10, 11, 13, 16, 17, 21, 22, 23, 25, 27, 28, 34, 35, 39, 41, 42, 49, 52, 55, 58, 68, 70, 71, 72, 74, 75, 76,
+     77, 79, 80, 96, 97, 100, 101, 102, 107, 111, 113, 114, 115, 116, 118, 119, 120, 121, 130, 132, 133],
+    [1, 2, 3, 4, 5, 6, 7, 16, 18, 19, 21, 29, 30, 34, 36, 38, 45, 47, 48, 49, 50, 53, 60, 68, 69, 75, 76, 77, 79, 80,
+     83, 96, 97, 100, 101, 102, 103, 104, 105, 113, 114, 115, 116, 119, 120, 121, 122, 123, 127, 134],
+    [1, 2, 3, 4, 5, 6, 7, 15, 16, 18, 19, 21, 29, 30, 34, 36, 38, 45, 47, 48, 49, 50, 53, 60, 68, 69, 76, 77, 78, 79,
+     80, 83, 96, 97, 106, 107, 112, 113, 114, 115, 116, 119, 120, 121, 122, 123, 124, 125, 126, 133],
+    [1, 2, 3, 4, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 24, 27, 29, 30, 42, 43, 44, 50, 51, 53, 56, 58, 65, 73, 74, 75,
+     76, 77, 80, 81, 85, 97, 110, 111, 114, 115, 116, 119, 120, 121, 122, 123, 126, 129, 130, 133],
+    [1, 2, 3, 4, 12, 15, 16, 18, 19, 21, 29, 30, 34, 36, 38, 45, 47, 48, 49, 50, 53, 57, 60, 68, 69, 74, 75, 76, 77,
+     79, 80, 81, 83, 96, 97, 110, 111, 113, 114, 115, 116, 119, 120, 121, 122, 124, 126, 130, 133],
+    [1, 2, 3, 4, 9, 10, 11, 12, 14, 15, 16, 18, 19, 24, 27, 29, 30, 42, 43, 44, 50, 51, 53, 65, 69, 73, 74, 75, 76,
+     77, 84, 85, 86, 87, 97, 110, 111, 114, 115, 119, 120, 121, 122, 123, 126, 129, 130, 133, 136],
+    [1, 2, 3, 4, 9, 10, 11, 12, 14, 15, 16, 18, 19, 24, 27, 29, 30, 42, 43, 44, 50, 51, 53, 65, 73, 74, 75, 76, 77,
+     84, 85, 86, 97, 109, 110, 111, 114, 115, 119, 120, 121, 122, 123, 126, 129, 130, 133, 136],
+    [1, 2, 3, 4, 12, 14, 15, 16, 18, 19, 27, 29, 30, 42, 50, 53, 63, 69, 76, 86, 91, 92, 93, 94, 100, 101, 102, 103,
+     104, 107, 108, 109, 110, 111, 119, 120, 121, 122, 123, 126, 128, 129, 130, 133, 135, 136],
+    [1, 2, 3, 4, 16, 18, 19, 30, 35, 36, 37, 42, 43, 44, 53, 58, 61, 65, 73, 74, 75, 76, 77, 83, 86, 97, 103, 104,
+     105, 107, 110, 111, 114, 115, 119, 120, 121, 122, 123, 124, 125, 126, 129, 130, 133, 136],
+    [1, 2, 3, 4, 12, 15, 16, 18, 19, 30, 35, 36, 42, 44, 53, 58, 62, 63, 76, 83, 86, 92, 93, 94, 100, 101, 102, 105,
+     108, 109, 110, 111, 119, 120, 121, 122, 123, 124, 126, 128, 129, 130, 133, 135, 136],
+    [1, 2, 3, 4, 16, 18, 19, 30, 35, 36, 42, 44, 53, 58, 61, 64, 65, 73, 74, 75, 76, 77, 83, 86, 97, 103, 104, 105,
+     107, 109, 110, 111, 114, 115, 120, 121, 122, 123, 124, 125, 126, 129, 130, 133, 136],
+    [1, 2, 3, 4, 15, 16, 18, 19, 30, 35, 36, 37, 42, 43, 44, 53, 59, 60, 65, 68, 69, 74, 75, 76, 77, 79, 80, 81, 83,
+     96, 97, 110, 111, 113, 114, 115, 116, 119, 120, 121, 122, 124, 125, 126, 130, 133]
 ]
 
 
