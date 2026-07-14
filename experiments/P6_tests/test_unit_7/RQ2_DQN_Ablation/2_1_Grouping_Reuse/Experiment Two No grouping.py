@@ -19,12 +19,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # === ()===
-MIN_X = 1
-MAX_X = 100
-MIN_Y = 1
-MAX_Y = 100
-MIN_Z = 1
-MAX_Z = 100
+MIN_X = 1000
+MAX_X = 10000
+MIN_Y = 38
+MAX_Y = 85
+MIN_Z = 30
+MAX_Z = 85
 
 # === / ===
 def normalize_state(state):
@@ -78,89 +78,330 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
 
     return reward
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    # --- 1. 常量与配置 ---
-    MAX_GRID_SIZE = 500.0  # 模拟网格的最大边界，扩大到 500.0
-    INITIAL_BATTERY = 1000.0  # 初始电量相应扩大，以支撑更长的路径
-    BATTERY_PER_STEP = 1.0  # 每走一步消耗的电量降低，避免一步耗尽
-    SAFE_DISTANCE = 5.0  # 安全距离阈值 (固定)
-    CRITICAL_BATTERY_LEVEL = 100.0  # 危险电量阈值 (固定)
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  # 目标坐标相应扩大 (固定值)
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(light, moisture, humidity):
+    """分析正常条件下的分支覆盖"""
+    actions = []
     triggered = set()
 
-    # 模拟环境状态变量，以修复原始代码中的语法错误
-    # 这些变量在原始代码中未定义，这里随机生成以确保代码可执行
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
+    if (light > 2000 and light < 8500) != (light > 3000 and light < 8500):
+        triggered.add(1)
+    if (light > 2000 and light < 8500) != (light > 4000 and light < 8500):
+        triggered.add(2)
+    if (light > 2000 and light < 8500) != (light < 2000 and light < 8500):
+        triggered.add(3)
+    if (light > 2000 and light < 8500) != (light > 2000 or light < 8500):
+        triggered.add(4)
+    if (light > 2000 and light < 8500) != (light > 2000 and light < 9500):
+        triggered.add(5)
 
-    # 为了模仿原始代码可能试图比较的'当前位置'与'速度'的关系，
-    # 针对第10-15分支中的 'self.y' 采用一个模拟值。
-    simulated_y = current_y  # 使用 current_y 作为 self.y 的模拟
+    if (light < 7500 and light > 1500) != (light < 7500 and light > 2500):
+        triggered.add(6)
+    if (light < 7500 and light > 1500) != (light < 7500 and light > 3500):
+        triggered.add(7)
+    if (light < 7500 and light > 1500) != (light < 7500 and light > 4500):
+        triggered.add(8)
 
-    # --- 分支 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+    if (moisture > 38 and moisture < 62) != (moisture > 58 and moisture < 62):
+        triggered.add(9)
+    if (moisture > 38 and moisture < 62) != (moisture > 48 and moisture < 62):
+        triggered.add(10)
+    if (moisture > 38 and moisture < 62) != (moisture > 38 or moisture < 62):
+        triggered.add(11)
+    if (moisture > 38 and moisture < 62) != (moisture > 38 and moisture < 42):
+        triggered.add(12)
+    if (moisture > 38 and moisture < 62) != (moisture > 38 and moisture < 52):
+        triggered.add(13)
 
-    # --- 分支 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
+    if (humidity > 30 and humidity < 60) != (humidity > 50 and humidity < 60):
+        triggered.add(14)
+    if (humidity > 30 and humidity < 60) != (humidity > 40 and humidity < 60):
+        triggered.add(15)
+    if (humidity > 30 and humidity < 60) != (humidity > 30 and humidity < 70):
+        triggered.add(16)
+    if (humidity > 30 and humidity < 60) != (humidity > 30 and humidity < 75):
+        triggered.add(17)
+    if (humidity > 30 and humidity < 60) != (humidity > 30 or humidity < 60):
+        triggered.add(18)
+    if (humidity > 30 and humidity < 60) != (humidity > 30 and humidity < 40):
+        triggered.add(19)
 
-    # --- 分支 10-15 --- (使用 simulated_y 替代 self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            4000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75):
+        triggered.add(20)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 9000 and 50 <= moisture <= 70 and 40 <= humidity <= 75):
+        triggered.add(21)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 8000 and 50 <= moisture <= 70 and 40 <= humidity <= 75):
+        triggered.add(22)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 6000 and 40 <= moisture <= 70 and 40 <= humidity <= 75):
+        triggered.add(23)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 6000 and 50 <= moisture <= 70 and 30 <= humidity <= 75):
+        triggered.add(24)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 6000 and 40 <= moisture <= 70 and 40 <= humidity <= 75):
+        triggered.add(25)
+    if (2000 <= light <= 6000 and 50 <= moisture <= 70 and 40 <= humidity <= 75) != (
+            2000 <= light <= 6000 and 50 <= moisture <= 70 or 40 <= humidity <= 75):
+        triggered.add(26)
 
-    # --- 分支 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 7500 and moisture > 68 and humidity > 65):
+        triggered.add(27)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 8500 and moisture > 68 and humidity > 65):
+        triggered.add(28)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light < 5500 and moisture > 68 and humidity > 65):
+        triggered.add(29)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 5500 and moisture > 48 and humidity > 65):
+        triggered.add(30)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 5500 and moisture > 38 and humidity > 65):
+        triggered.add(31)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 5500 and moisture > 68 and humidity < 65):
+        triggered.add(32)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 5500 and moisture > 68 and humidity > 35):
+        triggered.add(33)
+    if (light > 5500 and moisture > 68 and humidity > 65) != (
+            light > 5500 and moisture > 68 or humidity > 65):
+        triggered.add(34)
 
-    # --- 分支 22-29 --- (使用 current_x, current_y, current_z 替代未定义的变量)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 4500 and moisture > 28 and humidity > 45):
+        triggered.add(35)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 2500 and moisture > 28 and humidity > 45):
+        triggered.add(36)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light < 7500 and moisture > 28 and humidity > 45):
+        triggered.add(37)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 7500 and moisture > 68 and humidity > 45):
+        triggered.add(38)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 7500 and moisture > 48 and humidity > 45):
+        triggered.add(39)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 7500 and moisture > 28 and humidity < 45):
+        triggered.add(40)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 7500 and moisture > 28 and humidity > 75):
+        triggered.add(41)
+    if (light > 7500 and moisture > 28 and humidity > 45) != (
+            light > 7500 and moisture > 28 and humidity > 65):
+        triggered.add(42)
+
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            2500 <= light <= 6500 and abs(moisture - humidity) > 25):
+        triggered.add(43)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            2500 <= light <= 6500 and abs(moisture - humidity) > 25):
+        triggered.add(44)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 9500 and abs(moisture - humidity) > 25):
+        triggered.add(45)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 8500 and abs(moisture - humidity) > 25):
+        triggered.add(46)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 6500 and abs(moisture + humidity) > 25):
+        triggered.add(47)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 6500 and abs(moisture - humidity + 250) > 25):
+        triggered.add(48)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 6500 and abs(moisture - humidity) > 5):
+        triggered.add(49)
+    if (4500 <= light <= 6500 and abs(moisture - humidity) > 25) != (
+            4500 <= light <= 6500 and abs(moisture - humidity) > 10):
+        triggered.add(50)
+
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            1500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45):
+        triggered.add(51)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 7500 and 38 <= moisture <= 68 and humidity < 45):
+        triggered.add(52)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 8500 and 38 <= moisture <= 68 and humidity < 45):
+        triggered.add(53)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 and 48 <= moisture <= 68 and humidity < 45):
+        triggered.add(54)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 and 38 <= moisture <= 85 and humidity < 45):
+        triggered.add(55)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 55):
+        triggered.add(56)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 75):
+        triggered.add(57)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 and 38 <= moisture <= 68 or humidity < 45):
+        triggered.add(58)
+    if (2500 <= light <= 5500 and 38 <= moisture <= 68 and humidity < 45) != (
+            2500 <= light <= 5500 or 38 <= moisture <= 68 and humidity < 45):
+        triggered.add(59)
+
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 1000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(60)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 10000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(61)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 or moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(62)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 40 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(63)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 50 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(64)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 and moisture < 85 and humidity > 55 and humidity < 70):
+        triggered.add(65)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 or moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(66)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 45 and humidity < 70):
+        triggered.add(67)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 35 and humidity < 70):
+        triggered.add(68)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 80):
+        triggered.add(69)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 or humidity < 70):
+        triggered.add(70)
+    if (light > 3000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70) != (
+            light > 1000 and light < 7000 and moisture > 60 and moisture < 75 and humidity > 55 and humidity < 70):
+        triggered.add(71)
+
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 9200 and 38 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(72)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 5900 and 38 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(73)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 48 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(74)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 58 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(75)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 76 and 46 <= humidity <= 60):
+        triggered.add(76)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 or 38 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(77)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 66 and 36 <= humidity <= 60):
+        triggered.add(78)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 50):
+        triggered.add(79)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 70):
+        triggered.add(80)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 80):
+        triggered.add(81)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 6200 and 38 <= moisture <= 66 or 46 <= humidity <= 60):
+        triggered.add(82)
+    if (1800 <= light <= 6200 and 38 <= moisture <= 66 and 46 <= humidity <= 60) != (
+            1800 <= light <= 8200 and 38 <= moisture <= 66 and 46 <= humidity <= 60):
+        triggered.add(83)
+
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 5500 and moisture > 70 and humidity < 48):
+        triggered.add(84)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 4500 and moisture > 70 and humidity < 48):
+        triggered.add(85)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 8500 and moisture > 70 and humidity < 48):
+        triggered.add(86)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 40 and humidity < 48):
+        triggered.add(87)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 20 and humidity < 48):
+        triggered.add(88)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 70 and humidity < 38):
+        triggered.add(89)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 70 and humidity < 28):
+        triggered.add(90)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 or moisture > 70 and humidity < 48):
+        triggered.add(91)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 70 or humidity < 48):
+        triggered.add(92)
+    if (light > 6500 and moisture > 70 and humidity < 48) != (
+            light > 6500 and moisture > 70 and humidity > 48):
+        triggered.add(93)
+
+    if (light < 6800 and moisture < 42) != (light < 4800 and moisture < 42):
+        triggered.add(94)
+    if (light < 6800 and moisture < 42) != (light < 9800 and moisture < 42):
+        triggered.add(95)
+    if (light < 6800 and moisture < 42) != (light > 3800 and moisture < 42):
+        triggered.add(96)
+    if (light < 6800 and moisture < 42) != (light < 6800 or moisture < 42):
+        triggered.add(97)
+    if (light < 6800 and moisture < 42) != (light < 6800 and moisture < 62):
+        triggered.add(98)
+    if (light < 6800 and moisture < 42) != (light < 6800 and moisture < 72):
+        triggered.add(99)
+    if (light < 6800 and moisture < 42) != (light < 6800 and moisture < 82):
+        triggered.add(100)
 
     return triggered
 
 
+
 # === target path definitions ===
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    [3, 9, 10, 12, 16, 17, 18, 23, 25, 26, 34, 35, 36, 37, 47, 48, 49, 50, 57, 58, 59, 62, 63, 66, 70, 77, 80,
+     81, 82, 97, 98, 99, 100],
+    [2, 3, 8, 12, 13, 16, 17, 18, 20, 34, 36, 37, 57, 58, 59, 62, 63, 64, 66, 70, 77, 80, 81, 82, 97, 98, 99, 100],
+    [3, 9, 10, 12, 19, 23, 25, 26, 35, 36, 37, 47, 48, 49, 50, 56, 57, 58, 59, 62, 70, 74, 75, 79, 97, 98, 99, 100],
+    [2, 3, 8, 9, 12, 16, 17, 18, 23, 25, 26, 36, 37, 57, 58, 59, 62, 63, 66, 70, 77, 80, 81, 82, 97, 98, 99, 100],
+    [3, 9, 12, 13, 16, 17, 18, 21, 22, 26, 30, 31, 34, 35, 36, 37, 47, 48, 49, 50, 62, 63, 64, 66, 70, 97, 98, 99,
+     100],
+    [3, 9, 12, 16, 17, 18, 21, 22, 26, 35, 36, 37, 47, 48, 49, 50, 62, 63, 66, 70, 77, 80, 81, 82, 97, 98, 99, 100],
+    [3, 9, 12, 16, 17, 18, 21, 22, 26, 30, 31, 34, 35, 36, 37, 47, 48, 49, 50, 62, 63, 64, 66, 70, 97, 98, 99, 100],
+    [3, 9, 12, 13, 16, 17, 18, 21, 22, 26, 35, 36, 37, 62, 63, 64, 66, 70, 72, 77, 82, 83, 91, 97, 98, 99, 100],
+    [3, 11, 14, 19, 26, 32, 33, 34, 35, 36, 37, 47, 48, 49, 50, 62, 66, 67, 68, 70, 76, 77, 82, 97, 100],
+    [1, 2, 3, 7, 8, 9, 10, 12, 19, 23, 25, 26, 36, 37, 56, 57, 58, 59, 70, 74, 75, 79, 97, 98, 99, 100],
+    [3, 9, 12, 13, 14, 15, 24, 26, 47, 48, 49, 50, 52, 53, 58, 59, 62, 70, 77, 78, 82, 92, 97, 98, 99, 100],
+    [3, 12, 13, 18, 26, 34, 35, 36, 37, 47, 48, 49, 50, 58, 59, 62, 66, 69, 70, 77, 81, 82, 97, 98, 99, 100],
+    [1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15, 24, 26, 51, 58, 59, 70, 77, 78, 82, 92, 97, 98, 99, 100],
+    [3, 9, 12, 13, 19, 21, 22, 26, 35, 36, 37, 47, 48, 62, 63, 64, 66, 70, 73, 75, 79, 97, 98, 99, 100],
+    [3, 9, 10, 19, 23, 25, 26, 35, 36, 37, 47, 48, 49, 50, 56, 57, 58, 59, 62, 70, 74, 75, 79, 94],
+    [3, 11, 16, 17, 18, 26, 27, 28, 29, 32, 35, 36, 37, 62, 65, 66, 70, 91, 92, 93, 97, 100],
+    [3, 11, 14, 19, 26, 32, 33, 34, 35, 36, 37, 62, 66, 70, 77, 82, 84, 85, 91, 92, 97, 100],
+    [3, 4, 6, 7, 8, 12, 13, 16, 17, 18, 26, 37, 60, 62, 66, 70, 71, 79, 97, 98, 99, 100],
+    [3, 9, 10, 12, 14, 19, 23, 25, 26, 47, 48, 54, 62, 70, 77, 78, 82, 92, 97, 98, 99, 100],
+    [4, 5, 9, 10, 16, 17, 18, 26, 31, 34, 37, 38, 39, 40, 41, 45, 66, 70, 91, 95, 96, 97],
+    [4, 5, 9, 12, 13, 14, 19, 21, 26, 37, 38, 40, 41, 42, 70, 72, 77, 82, 87, 88, 91, 92],
+    [2, 3, 8, 11, 14, 19, 20, 43, 44, 55, 58, 59, 62, 66, 68, 70, 77, 92, 97, 99, 100],
+    [3, 11, 14, 15, 32, 33, 34, 45, 46, 58, 62, 66, 68, 70, 86, 89, 90, 93, 97, 100],
+    [4, 11, 16, 17, 18, 26, 32, 33, 34, 37, 40, 41, 42, 61, 62, 66, 70, 91, 92, 93]
 ]
 
 # 

@@ -14,100 +14,384 @@ def safe_divide(numerator, denominator, default=0.0):
         return default
     return numerator / denominator
 
-def execute_validation_rules(dx: int, dy: int, dz: int) -> Set[int]:
-    """Path """
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 50.0  # 50.0
-    INITIAL_BATTERY = 500.0  # 
-    BATTERY_PER_STEP = 1.0  # 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 50.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 45.0, 45.0, 20.0  # 
-
-    MIN_PLANNING_X = 5.0
-    MIN_PLANNING_Y = 7.5
-    MIN_PLANNING_Z = 4.0
-    CRITICAL_X_VELOCITY = 10.0
-    CRITICAL_Y_VELOCITY = 12.5
-    CRITICAL_Z_VELOCITY = 7.5
-
+def execute_validation_rules(moisture, co2, temp):
+    """检测低CO2极端条件下的分支触发情况"""
     triggered = set()
 
-    # , 1-50
-    current_x = random.uniform(1.0, MAX_GRID_SIZE)
-    current_y = random.uniform(1.0, MAX_GRID_SIZE)
-    current_z = random.uniform(1.0, MAX_GRID_SIZE)
-
-    # ''''
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
+    # Fixed: proper indentation and using triggered.add()
+    if (co2 < 1150) != (co2 < 1000):
         triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
+    if (co2 < 1150) != (co2 < 950):
         triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
+    if (co2 < 1150) != (co2 < 1400):
         triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
+
+    # 分支4-11: 调整到中间值区域
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1050 and moisture > 45 and temp > 20):
         triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1100 and moisture > 45 and temp > 20):
         triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20):
         triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 35 and temp > 20):
         triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20):
         triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20):
         triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 5:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 5):
         triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 15:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20):
         triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 20:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 25:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dx < 10:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dz < 10:
-        triggered.add(15)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
+    # 分支12-21: 调整到中间值
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 970 and moisture > 50) or (co2 < 1100 and temp < 22)):
+        triggered.add(12)
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1000 and moisture > 50) or (co2 < 1100 and temp < 22)):
+        triggered.add(13)
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 or moisture > 50) or (co2 < 1100 and temp < 22)):
+        triggered.add(14)
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 40) or (co2 < 1100 and temp < 22)):
+        triggered.add(15)
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 35) or (co2 < 1100 and temp < 22)):
         triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) and (co2 < 1100 and temp < 22)):
         triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 960 and temp < 22)):
         triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 18)):
         triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp > 22)):
         triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
+    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
+            (co2 < 1150 and moisture > 50) or (co2 > 1100 and temp < 22)):
         triggered.add(21)
 
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
+    # 分支22-25: 调整阈值到中间 - using safe_divide
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.04 and temp < 22):
         triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.03 and temp < 22):
         triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.06 or temp < 22):
         triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (moisture + safe_divide(100, co2 - 700) > 0.06 and temp < 22):
         triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
+
+    # 分支26-36: 调整到中间值
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1000 and moisture > 45 and temp > 20):
         triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1070 and moisture > 45 and temp > 20):
         triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 > 1150 and moisture > 45 and temp > 20):
         triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20):
         triggered.add(29)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 25 and temp > 20):
+        triggered.add(30)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20):
+        triggered.add(31)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20):
+        triggered.add(32)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 15):
+        triggered.add(33)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 12):
+        triggered.add(34)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 or temp > 20):
+        triggered.add(35)
+    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20):
+        triggered.add(36)
+
+    # 分支37-44: 调整到中间值
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 970 and moisture < 40 and temp < 22):
+        triggered.add(37)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1020 and moisture < 40 and temp < 22):
+        triggered.add(38)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 > 1150 and moisture < 40 and temp < 22):
+        triggered.add(39)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 or moisture < 40 and temp < 22):
+        triggered.add(40)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 50 and temp < 22):
+        triggered.add(41)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture > 40 and temp < 22):
+        triggered.add(42)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 27):
+        triggered.add(43)
+    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 32):
+        triggered.add(44)
+
+    # 分支45-55: 扩大范围
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1050 and 35 < moisture < 60 and 15 < temp < 28):
+        triggered.add(45)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1120 and 35 < moisture < 60 and 15 < temp < 28):
+        triggered.add(46)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1070 and 35 < moisture < 60 and 15 < temp < 28):
+        triggered.add(47)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 > 1150 and 35 < moisture < 60 and 15 < temp < 28):
+        triggered.add(48)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 25 < moisture < 60 and 15 < temp < 28):
+        triggered.add(49)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 20 < moisture < 60 and 15 < temp < 28):
+        triggered.add(50)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 52 and 15 < temp < 28):
+        triggered.add(51)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 or 15 < temp < 28):
+        triggered.add(52)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 10 < temp < 28):
+        triggered.add(53)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 20):
+        triggered.add(54)
+    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
+            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 33):
+        triggered.add(55)
+
+    # 分支56-65: 调整到中间值和扩大范围
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1020 and moisture < 40 and 15 < temp < 25):
+        triggered.add(56)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1070 and moisture < 40 and 15 < temp < 25):
+        triggered.add(57)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 > 1150 and moisture < 40 and 15 < temp < 25):
+        triggered.add(58)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 or moisture < 40 and 15 < temp < 25):
+        triggered.add(59)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 50 and 15 < temp < 25):
+        triggered.add(60)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 55 and 15 < temp < 25):
+        triggered.add(61)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 10 < temp < 25):
+        triggered.add(62)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 5 < temp < 25):
+        triggered.add(63)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30):
+        triggered.add(64)
+    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30):
+        triggered.add(65)
+
+    # 分支66-74: 调整比例和温度阈值
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 850) > 0.06 and temp > 20):
+        triggered.add(66)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 900) > 0.06 and temp > 20):
+        triggered.add(67)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 + 200) > 0.06 and temp > 20):
+        triggered.add(68)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.04 and temp > 20):
+        triggered.add(69)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.03 and temp > 20):
+        triggered.add(70)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 or temp > 20):
+        triggered.add(71)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 15):
+        triggered.add(72)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 12):
+        triggered.add(73)
+    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp < 20):
+        triggered.add(74)
+
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1100 and temp > 18):
+        triggered.add(75)
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1050 and temp > 18):
+        triggered.add(76)
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 15):
+        triggered.add(77)
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 12):
+        triggered.add(78)
+    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp < 18):
+        triggered.add(79)
+
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1000 and abs(moisture - 45) > 15 and abs(temp - 20) > 7):
+        triggered.add(80)
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1050 and abs(moisture - 45) > 15 and abs(temp - 20) > 7):
+        triggered.add(81)
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1150 and abs(moisture - 42) > 15 and abs(temp - 20) > 7):
+        triggered.add(82)
+    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
+            co2 < 1150 and abs(moisture - 45) > 12 and abs(temp - 20) > 7):
+        triggered.add(83)
+
+    # 分支84-87: 简化条件到中间值
+    if (co2 < 1150 and moisture < 40) != (co2 < 1000 and moisture < 40):
+        triggered.add(84)
+    if (co2 < 1150 and moisture < 40) != (co2 < 1050 and moisture < 40):
+        triggered.add(85)
+    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 50):
+        triggered.add(86)
+    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 55):
+        triggered.add(87)
+
+    # 分支88-92: 调整到中间范围
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1030 and 12 < temp < 25 and moisture > 45):
+        triggered.add(88)
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1080 and 12 < temp < 25 and moisture > 45):
+        triggered.add(89)
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 8 < temp < 25 and moisture > 45):
+        triggered.add(90)
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 30 and moisture > 45):
+        triggered.add(91)
+    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 25 and moisture > 35):
+        triggered.add(92)
+
+    # 分支93-96: 调整到中间值
+    if (moisture > 45 and temp > 20) != (moisture > 35 and temp > 20):
+        triggered.add(93)
+    if (moisture > 45 and temp > 20) != (moisture > 32 and temp > 20):
+        triggered.add(94)
+    if (moisture > 45 and temp > 20) != (moisture > 45 and temp > 15):
+        triggered.add(95)
+    if (moisture > 45 and temp > 20) != (moisture > 45 and temp < 20):
+        triggered.add(96)
+
+    # 分支97-102: 扩大范围
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            950 < co2 < 1250 and 35 < moisture < 55 and 15 < temp < 25):
+        triggered.add(97)
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            900 < co2 < 1300 and 35 < moisture < 55 and 15 < temp < 25):
+        triggered.add(98)
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 28 < moisture < 55 and 15 < temp < 25):
+        triggered.add(99)
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 62 and 15 < temp < 25):
+        triggered.add(100)
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 55 and 12 < temp < 25):
+        triggered.add(101)
+    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
+            1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 28):
+        triggered.add(102)
+
+    # 分支103-109: 调整条件和扩大范围
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1050 and 30 < moisture < 55 and (temp < 20 or temp > 22)):
+        triggered.add(103)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 22 < moisture < 55 and (temp < 20 or temp > 22)):
+        triggered.add(104)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 62 and (temp < 20 or temp > 22)):
+        triggered.add(105)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 16 or temp > 22)):
+        triggered.add(106)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 26)):
+        triggered.add(107)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 15 or temp > 22)):
+        triggered.add(108)
+    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
+            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 28)):
+        triggered.add(109)
+
+    # 分支110-114: 调整到中间值
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 38 and co2 < 1150 and temp < 22):
+        triggered.add(110)
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 35 and co2 < 1150 and temp < 22):
+        triggered.add(111)
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1000 and temp < 22):
+        triggered.add(112)
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 27):
+        triggered.add(113)
+    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 30):
+        triggered.add(114)
+
+    # 分支115-118: 调整条件
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 35 and temp > 20 and co2 < 1150):
+        triggered.add(115)
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture < 45 and temp > 20 and co2 < 1150):
+        triggered.add(116)
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 45 and temp > 15 and co2 < 1150):
+        triggered.add(117)
+    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
+            co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1070):
+        triggered.add(118)
+
+    # 分支119-124: 调整到中间值和扩大范围
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1000 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)):
+        triggered.add(119)
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 30 or moisture < 40) and (temp > 22 or temp < 18)):
+        triggered.add(120)
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 40 or moisture < 40) and (temp > 22 or temp < 18)):
+        triggered.add(121)
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 and moisture < 40) and (temp > 22 or temp < 18)):
+        triggered.add(122)
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 or moisture < 45) and (temp > 22 or temp < 18)):
+        triggered.add(123)
+    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
+            co2 < 1150 and (moisture > 50 or moisture < 40) or (temp > 22 or temp < 18)):
+        triggered.add(124)
+
+    # 分支125-131: 调整比例和阈值
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1050 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45):
+        triggered.add(125)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1100 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45):
+        triggered.add(126)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 5) > 0.5 and moisture < 45):
+        triggered.add(127)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.4 and moisture < 45):
+        triggered.add(128)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 or moisture < 45):
+        triggered.add(129)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 38):
+        triggered.add(130)
+    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
+            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 35):
+        triggered.add(131)
+
+    # 分支132-137: 调整范围到中间
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1000 and 35 <= moisture <= 50 and 15 <= temp <= 25):
+        triggered.add(132)
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 28 <= moisture <= 50 and 15 <= temp <= 25):
+        triggered.add(133)
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 32 <= moisture <= 50 and 15 <= temp <= 25):
+        triggered.add(134)
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 35 <= moisture <= 50 and 12 <= temp <= 25):
+        triggered.add(135)
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 28):
+        triggered.add(136)
+    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
+            co2 < 1050 and 35 <= moisture <= 50 and 15 <= temp <= 25):
+        triggered.add(137)
 
     return triggered
 
@@ -537,9 +821,73 @@ def main():
 
 
     target_paths = [
-        {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-        {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-        {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+        [1, 2, 6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 45, 47, 48, 54, 59, 60, 61, 68, 74, 75, 76, 86,
+         87, 92, 93, 94, 103, 107, 109, 113, 114, 115, 116, 120, 121, 123, 124, 125, 127, 130, 131, 132, 137],
+        [1, 2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 45, 47, 48, 54, 56, 57, 58, 68, 74, 75, 76,
+         84,
+         85, 92, 93, 94, 103, 107, 109, 113, 114, 115, 116, 119, 122, 125, 130, 131, 132, 137],
+        [1, 2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 45, 48, 54, 59, 64, 65, 68, 74, 76, 84, 85,
+         93,
+         94, 102, 103, 107, 109, 113, 114, 115, 116, 119, 122, 125, 131, 136],
+        [1, 2, 6, 7, 8, 9, 17, 18, 19, 20, 21, 29, 30, 31, 35, 36, 37, 38, 39, 42, 45, 47, 48, 54, 56, 57, 58, 68, 74,
+         75,
+         76, 84, 85, 92, 93, 94, 111, 112, 115, 116, 124, 125, 131, 132, 137],
+        [1, 2, 6, 7, 8, 9, 14, 15, 16, 21, 29, 30, 31, 35, 36, 40, 41, 42, 45, 47, 48, 54, 59, 60, 61, 68, 74, 75, 76,
+         86,
+         87, 92, 93, 94, 110, 111, 112, 115, 116, 128, 129, 132, 137],
+        [1, 2, 6, 14, 15, 16, 21, 36, 40, 41, 42, 45, 46, 47, 48, 59, 60, 61, 71, 72, 73, 74, 77, 78, 79, 86, 87, 92,
+         103,
+         106, 108, 110, 111, 112, 120, 121, 123, 124, 129, 132, 137],
+        [6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 60, 61, 68, 74, 86, 87, 92, 93, 94, 98,
+         107,
+         109, 113, 114, 115, 116, 120, 121, 123, 124, 127, 130, 131],
+        [1, 2, 4, 9, 11, 14, 15, 16, 20, 24, 26, 27, 28, 29, 32, 40, 45, 47, 48, 54, 59, 68, 74, 75, 76, 86, 87, 91, 96,
+         102, 103, 107, 109, 116, 118, 120, 121, 124, 129, 132, 137],
+        [1, 2, 6, 7, 8, 9, 14, 15, 16, 24, 29, 30, 31, 35, 36, 40, 52, 55, 59, 68, 74, 75, 76, 86, 87, 93, 94, 103, 109,
+         114, 115, 116, 120, 121, 123, 124, 125, 126, 130, 131, 136],
+        [1, 2, 6, 8, 9, 14, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 49, 50, 52, 59, 64, 65, 68, 74, 75, 76, 84, 85, 94,
+         103, 107, 109, 113, 114, 116, 119, 122, 125, 131, 132, 137],
+        [1, 2, 6, 8, 9, 17, 18, 19, 20, 21, 29, 30, 31, 35, 36, 37, 38, 39, 42, 49, 50, 52, 56, 57, 58, 68, 74, 75, 76,
+         84, 85, 94, 99, 111, 112, 116, 124, 125, 131, 132, 137],
+        [1, 2, 6, 10, 11, 17, 18, 19, 20, 21, 32, 33, 34, 35, 36, 40, 41, 42, 45, 47, 48, 59, 60, 61, 71, 72, 73, 74,
+         75,
+         76, 86, 87, 88, 95, 96, 103, 106, 108, 117, 132, 137],
+        [1, 2, 4, 5, 9, 11, 14, 15, 16, 24, 26, 27, 28, 29, 32, 40, 45, 46, 47, 48, 54, 59, 68, 74, 79, 86, 87, 91, 96,
+         102, 103, 107, 109, 116, 118, 120, 121, 124, 129, 136],
+        [2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 60, 61, 68, 74, 86, 87, 92, 93, 94, 97, 98,
+         107, 109, 113, 114, 115, 116, 120, 123, 124, 130, 131],
+        [1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 33, 34, 35, 36, 40, 41, 42, 45, 47, 48, 59, 60, 61, 71, 72, 73, 74, 79,
+         86,
+         87, 88, 89, 95, 96, 103, 106, 108, 117, 132, 137],
+        [1, 2, 6, 10, 11, 12, 13, 17, 32, 33, 34, 35, 36, 40, 42, 45, 46, 47, 48, 51, 59, 61, 71, 72, 73, 74, 77, 78,
+         79,
+         87, 88, 89, 95, 96, 103, 106, 108, 117, 119, 122],
+        [1, 2, 6, 8, 9, 14, 24, 29, 30, 31, 35, 36, 40, 43, 44, 49, 50, 52, 56, 57, 58, 68, 74, 79, 84, 85, 99, 103,
+         107,
+         109, 113, 114, 116, 119, 122, 125, 126, 133, 134],
+        [6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 66, 67, 68, 74, 86, 87, 93, 94, 107, 109,
+         113, 114, 115, 116, 120, 121, 123, 124, 130, 131],
+        [1, 2, 6, 9, 14, 21, 22, 23, 24, 25, 29, 35, 36, 37, 38, 39, 42, 50, 52, 56, 57, 58, 66, 67, 69, 70, 71, 75, 76,
+         84, 85, 112, 116, 124, 125, 126],
+        [1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 34, 35, 36, 40, 41, 42, 52, 53, 59, 71, 73, 74, 78, 79, 86, 87, 88, 89,
+         96,
+         101, 103, 120, 121, 124, 135],
+        [1, 2, 6, 14, 21, 36, 37, 38, 39, 42, 49, 50, 52, 56, 57, 58, 71, 72, 73, 74, 77, 78, 79, 84, 85, 99, 104, 112,
+         119, 122, 125, 126, 127, 133],
+        [1, 2, 4, 5, 9, 11, 12, 13, 17, 24, 26, 27, 28, 29, 32, 40, 45, 46, 47, 48, 51, 54, 59, 68, 74, 79, 88, 89, 96,
+         100, 105, 116, 118, 119, 122],
+        [1, 2, 6, 9, 14, 29, 35, 36, 40, 44, 59, 64, 65, 66, 67, 69, 70, 71, 75, 76, 80, 81, 84, 85, 104, 114, 116, 119,
+         122, 125, 126],
+        [1, 2, 6, 9, 14, 20, 24, 29, 30, 35, 36, 40, 44, 59, 64, 65, 68, 74, 75, 76, 80, 81, 82, 84, 85, 104, 114, 116,
+         119, 122, 125],
+        [1, 2, 6, 14, 16, 21, 36, 37, 38, 39, 42, 52, 53, 59, 62, 63, 71, 73, 74, 84, 85, 92, 101, 103, 111, 112, 119,
+         122, 129, 135],
+        [1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 35, 36, 40, 41, 42, 52, 53, 59, 71, 74, 79, 86, 87, 90, 96, 103, 120, 121,
+         124, 135],
+        [1, 2, 6, 9, 14, 24, 29, 30, 35, 36, 40, 44, 59, 64, 65, 68, 74, 75, 76, 83, 84, 85, 104, 114, 116, 119, 122,
+         125,
+         126],
+        [3, 21, 22, 23, 24, 25, 35, 39, 40, 52, 58, 59, 66, 67, 69, 70, 71, 79, 94, 129]
     ]
 
     print("=" * 70)
