@@ -26,12 +26,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # === three-dimensional range settings ===
 # Keep the current DQN state range used by the second script. To use a 0-500 range, modify this section only.
 LIGHT_MIN = 1
-LIGHT_MAX = 50
+LIGHT_MAX = 100
 MOISTURE_MIN = 1
-MOISTURE_MAX = 50
+MOISTURE_MAX = 100
 TEMP_MIN = 1
-TEMP_MAX = 50
-
+TEMP_MAX = 100
 BOUNDS = {
     "light": (LIGHT_MIN, LIGHT_MAX),
     "moisture": (MOISTURE_MIN, MOISTURE_MAX),

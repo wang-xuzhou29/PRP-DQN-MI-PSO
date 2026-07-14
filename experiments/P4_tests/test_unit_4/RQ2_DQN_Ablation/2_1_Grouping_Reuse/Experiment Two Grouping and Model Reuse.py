@@ -18,17 +18,18 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
+# === 全局取值范围配置 ===
+STATE_MIN_W, STATE_MAX_W = 2, 100
+STATE_MIN_T, STATE_MAX_T = 1, 150
+STATE_MIN_Z, STATE_MAX_Z = 1, 200
 # === / ===
 class StateNormalizer:
     """: [0,1]"""
-
     def __init__(self):
-        #  - 
         self.ranges = {
-            'weather': (1, 6),  # 
-            'time_period': (1, 6),  # 
-            'z': (1, 6)  # 
+            'weather': (STATE_MIN_W, STATE_MAX_W),
+            'time_period': (STATE_MIN_T, STATE_MAX_T),
+            'z': (STATE_MIN_Z, STATE_MAX_Z)
         }
 
     def normalize(self, state):
@@ -80,312 +81,148 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_validation_rules_block4(weather, time_period, z):
-    """ - weather, time_period, z"""
+def generate_input():
+    return [
+        random.randint(STATE_MIN_W, STATE_MAX_W),  # 改为 W
+        random.randint(STATE_MIN_T, STATE_MAX_T),  # 改为 T
+        random.randint(STATE_MIN_Z, STATE_MAX_Z)
+    ]
+
+def execute_Tr(x, y, z):
     triggered = set()
 
-    # z
-    x = z  # zx
-    y = (weather * time_period * 10 + z) % 100 + 1  # y
+    # --- 分支 1-11 (原 energy_y * energy_z / (energy_x + 1) > 140 的变异) ---
+    if ((y * z) / (x + 1) > 140) != ((y * y) / (x + 1) > 140): triggered.add(1)
+    if ((y * z) / (x + 1) > 140) != ((z * z) / (x + 1) > 140): triggered.add(2)
+    if ((y * z) / (x + 1) > 140) != ((y * x) / (x + 1) > 140): triggered.add(3)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 3) > 140): triggered.add(4)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x - 1) > 140): triggered.add(5)
+    if ((y * z) / (x + 1) > 140) != ((y * z * 2) / (y + 1) > 140): triggered.add(6)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 100): triggered.add(7)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 180): triggered.add(8)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 10) > 140): triggered.add(9)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x * 1) > 140): triggered.add(10)
+    if ((y * z) / (x + 1) > 140) != ((y * 30) / (x + 1) > 140): triggered.add(11)
 
-    # 1-7: (time_period == 1)
-    if time_period == 1:
-        if x < 60 and y > 75:
-            triggered.add(1)
-        if x > 60 and y > 70:
-            triggered.add(2)
-        if x < 50 and y < 40:
-            triggered.add(3)
-        if x > 78 and 45 < y < 70:
-            triggered.add(4)
-        if 45 < x < 70 and y > 78:
-            triggered.add(5)
-        if x < 55 and 50 < y < 75:
-            triggered.add(6)
-        if 50 < x < 75 and y < 55:
-            triggered.add(7)
+    # --- 分支 12-21 (原 (energy_z - energy_x) < 0.22 * energy_y 的变异) ---
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * x): triggered.add(12)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * z): triggered.add(13)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.32 * y): triggered.add(14)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.12 * y): triggered.add(15)
+    if ((z - x) < 0.22 * y) != ((z * 2 - x) < 0.22 * y): triggered.add(16)
+    if ((z - x) < 0.22 * y) != ((z - x * 1.2) < 0.22 * y): triggered.add(17)
+    if ((z - x) < 0.22 * y) != ((z + x) < 0.22 * y): triggered.add(18)
+    if ((z - x) < 0.22 * y) != ((z - 20) < 0.22 * y): triggered.add(19)
+    if ((z - x) < 0.22 * y) != ((90 - x) < 0.22 * y): triggered.add(20)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.4 * y): triggered.add(21)
 
-    # 8-14: (time_period == 2)
-    if time_period == 2:
-        if x < 60 and y > 75:
-            triggered.add(8)
-        if x > 60 and y > 70:
-            triggered.add(9)
-        if x < 55 and y < 45:
-            triggered.add(10)
-        if 45 < x < 70 and y > 78:
-            triggered.add(11)
-        if x > 78 and 45 < y < 70:
-            triggered.add(12)
-        if 55 < x < 75 and y < 50:
-            triggered.add(13)
-        if x < 50 and 55 < y < 75:
-            triggered.add(14)
+    # --- 分支 22-32 (原 (energy_x^3 + energy_y^3) < energy_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.7 + y ** 3) < z ** 2): triggered.add(22)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.6) < z ** 2): triggered.add(23)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1.8): triggered.add(24)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(25)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(26)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(27)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(28)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.5): triggered.add(32)
 
-    # 15-19: (time_period == 3)
-    if time_period == 3:
-        if x > 60 and 40 < y < 65:
-            triggered.add(15)
-        if 40 < x < 65 and y > 60:
-            triggered.add(16)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(17)
-        if x < 50 and y < 40:
-            triggered.add(18)
-        if x > 65 and y < 45:
-            triggered.add(19)
+    # --- 分支 33-42 (原 x/(y+0.01)>5 and y/(z+0.01)<0.2 的变异) ---
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (z + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(33)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (x + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(34)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((z / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(35)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((y / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(36)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (z / (z + 0.01)) < 0.2): triggered.add(37)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (x / (z + 0.01)) < 0.2): triggered.add(38)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (y + 0.01)) < 0.2): triggered.add(39)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (x + 0.01)) < 0.2): triggered.add(40)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.15): triggered.add(41)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 7 and (y / (z + 0.01)) < 0.2): triggered.add(42)
 
-    # 20-25: (time_period == 4)
-    if time_period == 4:
-        if x < 45 and y < 35:
-            triggered.add(20)
-        if x > 60 and y < 40:
-            triggered.add(21)
-        if x < 50 and y > 70:
-            triggered.add(22)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(23)
-        if x < 35 and y < 25:
-            triggered.add(24)
-        if 40 < x < 65 and y < 45:
-            triggered.add(25)
+    # --- 分支 43-52 (原 abs(x-y)>16 and abs(y-z)>18 and abs(x-z)<9 的变异) ---
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x * 1.2 - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9): triggered.add(43)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y * 2 - z) > 18 and abs(x - z) < 9): triggered.add(44)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 19 and abs(y - z) > 18 and abs(y - z) < 9): triggered.add(45)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(x - z) > 18 and abs(x - z) < 9): triggered.add(46)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 40 and abs(x - z) < 9): triggered.add(47)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 2 - z) < 9): triggered.add(48)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z * 0.2) > 18 and abs(x - z) < 9): triggered.add(49)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 1.5 - z) < 9): triggered.add(50)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z * 0.87) < 9): triggered.add(51)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 7.8): triggered.add(52)
 
-    # 26-28: (time_period == 5)
-    if time_period == 5:
-        if x < 60 and y < 50:
-            triggered.add(26)
-        if x > 65 and y > 75:
-            triggered.add(27)
-        if x > 60 and y < 45:
-            triggered.add(28)
+    # --- 分支 53-63 (原 (x>95 or x<5) and (y>90 or y<3) and (z>85 or z<2) 的变异) ---
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(53)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * x > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(54)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * z > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(55)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 80 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(56)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * y > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(57)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(58)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * z > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(59)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 50 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(60)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 40 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(61)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y > 90 or y < 3) and (z * z > 85 or z < 2)): triggered.add(62)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 40 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(63)
 
-    # 29-33: (time_period == 6)
-    if time_period == 6:
-        if 40 < x < 70 and 40 < y < 60:
-            triggered.add(29)
-        if x < 55 and y < 45:
-            triggered.add(30)
-        if x > 60 and y < 50:
-            triggered.add(31)
-        if x < 60 and y > 70:
-            triggered.add(32)
-        if x > 65 and y > 75:
-            triggered.add(33)
+    # --- 分支 64-75 (原 x^0.7+y^0.7>z^0.9 and x+y+z<180 的变异) ---
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.6 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(64)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(65)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.8 > z ** 0.9 and x + y + z < 180): triggered.add(66)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.8 and x + y + z < 180): triggered.add(67)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + z ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(68)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (y ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(69)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (z ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(70)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + x ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(71)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > x ** 0.9 and x + y + z < 180): triggered.add(72)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and y + y + z < 180): triggered.add(73)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(74)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + x + z < 180): triggered.add(75)
 
-    # 34-68: 
-    if weather == 1:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(34)
-        if time_period in [1, 2] and y > 70:
-            triggered.add(35)
-        if time_period in [3, 4] and x < 50:
-            triggered.add(36)
-        if time_period in [3, 4] and y < 50:
-            triggered.add(37)
-        if time_period in [5, 6] and 40 < x < 80:
-            triggered.add(38)
-        if time_period in [5, 6] and 40 < y < 80:
-            triggered.add(39)
-
-    if weather == 2:  # 
-        if time_period in [1, 2] and x > 75:
-            triggered.add(40)
-        if time_period in [1, 2] and y < 60:
-            triggered.add(41)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(42)
-        if time_period in [3, 4] and y > 65:
-            triggered.add(43)
-        if time_period in [5, 6] and 35 < x < 75:
-            triggered.add(44)
-        if time_period in [5, 6] and 35 < y < 75:
-            triggered.add(45)
-
-    if weather == 3:  # 
-        if time_period in [1, 2] and x > 60:
-            triggered.add(46)
-        if time_period in [1, 2] and y > 65:
-            triggered.add(47)
-        if time_period in [3, 4] and x < 55:
-            triggered.add(48)
-        if time_period in [3, 4] and y < 55:
-            triggered.add(49)
-        if time_period in [5, 6] and 30 < x < 70:
-            triggered.add(50)
-        if time_period in [5, 6] and 30 < y < 70:
-            triggered.add(51)
-
-    if weather == 4:  # 
-        if time_period in [1, 2] and x > 65:
-            triggered.add(52)
-        if time_period in [1, 2] and y < 55:
-            triggered.add(53)
-        if time_period in [3, 4] and x < 40:
-            triggered.add(54)
-        if time_period in [3, 4] and y > 60:
-            triggered.add(55)
-        if time_period in [5, 6] and 25 < x < 65:
-            triggered.add(56)
-        if time_period in [5, 6] and 25 < y < 65:
-            triggered.add(57)
-
-    if weather == 5:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(58)
-        if time_period in [1, 2] and y > 60:
-            triggered.add(59)
-        if time_period in [3, 4] and x < 35:
-            triggered.add(60)
-        if time_period in [3, 4] and y < 40:
-            triggered.add(61)
-        if time_period in [5, 6] and 20 < x < 60:
-            triggered.add(62)
-        if time_period in [5, 6] and 20 < y < 60:
-            triggered.add(63)
-
-    if weather == 6:  # 
-        if time_period in [1, 2] and x > 55:
-            triggered.add(64)
-        if time_period in [1, 2] and y > 55:
-            triggered.add(65)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(66)
-        if time_period in [3, 4] and y < 45:
-            triggered.add(67)
-        if time_period in [5, 6] and 15 < x < 55:
-            triggered.add(68)
-
-    # 69-78: ()
-    if weather + time_period > 6:
-        if x > 50 and y > 50:
-            triggered.add(69)
-        if x < 50 and y < 50:
-            triggered.add(70)
-        if x > y:
-            triggered.add(71)
-        if x < y:
-            triggered.add(72)
-        if abs(x - y) < 20:
-            triggered.add(73)
-
-    if weather + time_period <= 6:
-        if x > 60 or y > 60:
-            triggered.add(74)
-        if x < 40 or y < 40:
-            triggered.add(75)
-        if x + y > 100:
-            triggered.add(76)
-        if x + y < 80:
-            triggered.add(77)
-        if abs(x - y) > 30:
-            triggered.add(78)
-
-    # 79-88: Value
-    if weather % 2 == time_period % 2:  # 
-        if x % 10 < 5:
-            triggered.add(79)
-        if y % 10 >= 5:
-            triggered.add(80)
-        if (x + y) % 3 == 0:
-            triggered.add(81)
-        if (x * y) % 7 == 0:
-            triggered.add(82)
-        if x // 10 == y // 10:
-            triggered.add(83)
-
-    if weather % 2 != time_period % 2:  # 
-        if x > 75 or y > 75:
-            triggered.add(84)
-        if x < 25 or y < 25:
-            triggered.add(85)
-        if max(x, y) - min(x, y) > 40:
-            triggered.add(86)
-        if (x + y) // 2 > 50:
-            triggered.add(87)
-        if weather * time_period > 15:
-            triggered.add(88)
-
-    # 89-95: ()
-    if weather in [1, 3, 5]:  # 
-        if time_period in [1, 3, 5] and x > 40:
-            triggered.add(89)
-        if time_period in [2, 4, 6] and y > 40:
-            triggered.add(90)
-        if x % 20 < 10 and y % 20 < 10:
-            triggered.add(91)
-        if x + weather * 10 > 50:
-            triggered.add(92)
-        if y + time_period * 10 > 50:
-            triggered.add(93)
-        if time_period in [1, 3, 5] and x < 60:
-            triggered.add(94)
-        if time_period in [2, 4, 6] and y < 60:
-            triggered.add(95)
-
-    # 96-98: 
-    if weather in [2, 4, 6]:  # 
-        if (x + y) % weather == 0:
-            triggered.add(96)
-        if x * weather > 100:
-            triggered.add(97)
-        if y * time_period > 100:
-            triggered.add(98)
-
-    # 99-100: 
-    if (weather * time_period + z) % 7 == 0:
-        triggered.add(99)
-    if max(weather, time_period) * min(x, y) > 150:
-        triggered.add(100)
+    # --- 分支 76-85 (原 (x+y)^1.3<z^1.6 and x+y+z/3>35 的变异) ---
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((y + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(76)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((z + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(77)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + x) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(78)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + z) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(79)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + 20) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(80)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(81)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.7 and x + y + z / 3 > 35): triggered.add(82)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.2 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(83)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and y + y + z / 3 > 35): triggered.add(84)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and x + y - z / 3 > 35): triggered.add(85)
 
     return triggered
 
-
-def execute_Tr(weather, time_period, z):
-    """"""
-    return execute_validation_rules_block4(weather, time_period, z)
-
-
-# === target path definitions ===
-target_paths = [
-    [15, 16, 48, 49, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [16, 18, 19, 60, 61, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [1, 4, 6, 46, 47, 74, 75, 76, 77, 78, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [30, 31, 50, 51, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [18, 19, 36, 37, 74, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [20, 24, 25, 36, 37, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 99, 100],
-    [8, 12, 34, 35, 74, 75, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 100],
-    [8, 10, 58, 59, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [8, 14, 46, 47, 75, 76, 77, 78, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99, 100],
-    [1, 2, 6, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 100],
-    [39, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [20, 21, 60, 61, 70, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99],
-    [8, 9, 11, 13, 40, 41, 75, 76, 77, 78, 79, 80, 81, 83, 96, 97, 98, 100],
-    [18, 19, 54, 55, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [25, 48, 49, 69, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [26, 28, 62, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [32, 33, 68, 69, 71, 72, 73, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [1, 52, 53, 74, 75, 76, 77, 78, 84, 85, 86, 87, 88, 97, 98, 99, 100],
-    [8, 12, 14, 64, 65, 69, 71, 72, 73, 80, 81, 82, 83, 96, 97, 98, 100],
-    [1, 3, 64, 65, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [22, 36, 37, 76, 77, 78, 85, 86, 87, 88, 90, 91, 93, 95, 100],
-    [31, 45, 70, 71, 72, 73, 79, 80, 81, 83, 96, 97, 98, 99, 100],
-    [22, 66, 67, 69, 71, 72, 73, 79, 80, 82, 83, 97, 98, 100],
-    [44, 45, 69, 71, 72, 73, 79, 80, 83, 96, 97, 98, 99, 100],
-    [57, 71, 72, 73, 79, 80, 83, 97, 98, 100],
-    [15, 16, 17, 48, 49, 74, 75, 76, 77, 78, 79, 80, 82, 83, 89, 91, 92, 93, 94, 100],
-    [1, 2, 5, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [20, 21, 25, 42, 43, 74, 76, 77, 78, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [2, 5, 7, 40, 41, 75, 76, 77, 78, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 56, 57, 70, 71, 72, 73, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 38, 74, 76, 77, 78, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [30, 31, 62, 63, 70, 71, 72, 73, 84, 86, 87, 88, 90, 91, 92, 93, 95],
-    [29, 62, 63, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [23, 25, 60, 61, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100]
+targetPaths = [
+    {2,3,6,8,9,11,12,13,15,16,18,19,20,25,48,50,65,68,71,73,74,78,79,80,81,82,83},  # A1
+    {6,16,18,19,26,33,34,36,37,38,39,41,42,45,46,48,49,50,51,52,53,54,55,56,61},  # A2
+    {2,3,4,6,8,9,11,12,13,15,16,18,20,25,48,50,68,71,73,78,79,80,81,82,83},  # A3
+    {6,12,13,17,20,21,26,33,34,36,37,38,39,45,46,48,49,50,53,54,55,56,61},  # A4
+    {1,16,18,19,20,25,45,46,47,48,50,64,65,68,71,73,74,78,79,80,81,82,83},  # A5
+    {2,3,4,6,8,9,11,12,13,15,16,18,19,20,25,50,51,75,78,79,80,81,82,83},  # A6
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,49,50,51,57,58,59,60,63},  # A7
+    {16,18,19,20,25,43,45,46,47,48,50,51,52,65,74,75,78,79,80,81,82,83},  # A8
+    {16,18,19,20,25,43,45,46,47,48,50,64,68,71,73,77,78,79,80,81,82,83},  # A9
+    {2,3,6,8,9,11,14,17,21,25,48,64,65,68,71,73,74,78,79,80,81,82,83},  # A10
+    {1,7,12,13,16,18,19,20,25,50,51,65,68,71,73,74,78,79,80,81,82,83},  # A11
+    {1,5,7,10,12,13,15,16,18,20,25,48,50,51,68,71,73,78,79,80,81},  # A12
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,50,58,59,60,63,84},  # A13
+    {18,19,20,26,33,34,36,37,38,39,41,64,69,70,72,75,76,77,81,83},  # A14
+    {16,18,19,20,26,33,34,35,36,37,38,39,41,67,68,71,78,79,80,84},  # A15
+    {3,6,12,13,15,16,18,20,25,28,62,65,68,71,73,74,78,79,80,81},  # A16
+    {16,18,19,20,26,33,34,36,37,38,39,67,68,71,78,79,80,84,85},  # A17
+    {18,19,20,26,33,34,36,37,38,39,66,67,68,71,76,77,81,82,83},  # A18
+    {2,6,24,27,28,29,30,31,33,34,36,37,39,58,59,60,63,85},  # A19
+    {2,6,22,26,32,33,34,36,37,38,39,58,59,60,63,85},  # A20
+    {12,13,14,17,21,26,44,45,46,47,48,49,50,84,85},  # A21
+    {18,19,20,26,40,66,67,68,71,76,77,81,82,83},  # A22
+    {3,23,25,28,32,35,53,54,55,56,61,85}  # A23
 ]
 
+
 # 
-target_paths = [set(path) for path in target_paths]
+target_paths = [set(path) for path in targetPaths]
 
 
 def jaccard_similarity(set1, set2):
@@ -435,9 +272,9 @@ def compute_robustness(state, path):
             for dz in [-1, 0, 1]:
                 if dw == dt == dz == 0:
                     continue
-                # 
                 neighbor = np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                   [1, 1, 1], [6, 6, 6])
+                                    [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                    [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z])
                 neighbor = tuple(neighbor)
                 nw, nt, nz = neighbor
                 n_trig = execute_Tr(nw, nt, nz)
@@ -491,10 +328,10 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -550,10 +387,10 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -657,12 +494,15 @@ class GroupExperienceReplay:
 def load_path_data(file_path):
     """Path ()"""
     path_data = []
+    if not os.path.exists(file_path):
+        return path_data
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines[2:]:
             parts = line.strip().split("\t")
-            state = tuple(map(int, parts[0].split()))
-            path_data.append(state)
+            if parts:
+                state = tuple(map(int, parts[0].split()))
+                path_data.append(state)
     return path_data
 
 
@@ -802,8 +642,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
     replay_count = 0
 
     for path_idx in group_paths:
-        file_path = os.path.join(path_documents,
-                                 f"path{path_idx + 1}_{'similar' if group_name == '' else 'isolated'}.txt")
+        group_type = "similar" if group_name == "" else "isolated"
+        file_path = os.path.join(path_documents, f"path{path_idx + 1}_{group_type}.txt")
         if not os.path.exists(file_path):
             print(f"    : Path {path_idx + 1}, ")
             continue
@@ -848,7 +688,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                             dw, dt, dz = agent.decode_action(a)
                             # 
                             cand_next = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                      [1, 1, 1], [6, 6, 6]))
+                                                      [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                      [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
                             legal_actions.append(a)
 
                         if not legal_actions:
@@ -866,7 +707,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                         # ()
                         dw, dt, dz = agent.decode_action(action)
                         next_state = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                   [1, 1, 1], [6, 6, 6]))
+                                                   [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                   [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
 
                         # 
                         normalized_next_state = normalizer.normalize(next_state)
@@ -1166,7 +1008,7 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     sample_row = 2
     #  runPath 
     for run_idx, run_data in enumerate(all_runs_data, 1):
-        for path_id in range(1, 15):
+        for path_id in range(1, len(target_paths) + 1):
             samples = run_data['path_samples'].get(path_id, [])
 
             # Path 

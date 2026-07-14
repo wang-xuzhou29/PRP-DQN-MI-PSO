@@ -18,24 +18,17 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# ===  ===
-# 
+# === 全局状态范围配置 ===
 MIN_X = 1
-MAX_X = 100
+MAX_X = 200
 MIN_Y = 1
-MAX_Y = 100
-MIN_Z = 1
-MAX_Z = 60
-
-# 
-MIN_WEATHER = 1
-MAX_WEATHER = 6
-MIN_TIMEPERIOD = 1
-MAX_TIMEPERIOD = 6
+MAX_Y = 200
+MIN_Z = 2
+MAX_Z = 150
 
 
 def normalize_state(state):
-    """[0,1]"""
+    """将状态归一化到[0,1]"""
     x, y, z = state
     normalized_x = (x - MIN_X) / (MAX_X - MIN_X)
     normalized_y = (y - MIN_Y) / (MAX_Y - MIN_Y)
@@ -44,12 +37,23 @@ def normalize_state(state):
 
 
 def denormalize_state(normalized_state):
-    """"""
+    """将归一化状态还原为原始状态"""
     norm_x, norm_y, norm_z = normalized_state
     x = int(norm_x * (MAX_X - MIN_X) + MIN_X)
     y = int(norm_y * (MAX_Y - MIN_Y) + MIN_Y)
     z = int(norm_z * (MAX_Z - MIN_Z) + MIN_Z)
     return [x, y, z]
+
+
+def jaccard_similarity(set1, set2):
+    """计算Jaccard相似度"""
+    if not set1 or not set2:
+        return 0.0
+    intersection = len(set1 & set2)
+    union = len(set1 | set2)
+    if set2.issubset(set1):
+        return 1.0
+    return intersection / union if union != 0 else 0.0
 
 
 # === reward function ===
@@ -61,320 +65,231 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_validation_rules_block4(weather, time_period, z):
-    """ - weather, time_period, z"""
+def execute_Tr(x, y, z):
+    # 初始化分支覆盖数组
+    b = [0] * 99  # 根据分支数量调整大小
+
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 200): b[0] = 1
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * 2 + 1) > 150): b[1] = 2
+    if ((x * y) / (z + 1) > 150) != ((x * x) / (z + 1) > 150): b[2] = 3
+    if ((x * y) / (z + 1) > 150) != ((x * 2 * y) / (z + 1) > 150): b[3] = 4
+    if ((x * y) / (z + 1) > 150) != ((y * y) / (z + 1) > 150): b[4] = 5
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 500): b[5] = 6
+    if ((x * y) / (z + 1) > 150) != ((x * 0.5 * y) / (z + 1) > 150): b[6] = 7
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 10) > 150): b[7] = 8
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * z + 1) > 150): b[8] = 9
+    if ((x * y) / (z + 1) > 150) != ((x / y) / (z + 1) > 150): b[9] = 10
+
+    # 验证规则2：相对偏差检测
+    if ((y - x) < 0.2 * z) != ((y - x * 2) < 0.2 * z): b[10] = 11
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.1 * z): b[11] = 12
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.3 * z): b[12] = 13
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.5 * z): b[13] = 14
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.38 * z): b[14] = 15
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * z * x): b[15] = 16
+    if ((y - x) < 0.2 * z) != ((y * 1.3 - x) < 0.2 * z): b[16] = 17
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * x): b[17] = 18
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * y): b[18] = 19
+    if ((y - x) < 0.2 * z) != ((y * 2 - x) < 0.2 * z): b[19] = 20
+
+    # 验证规则3：立方根关系验证
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[20] = 21
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2): b[21] = 22
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2): b[22] = 23
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.9): b[23] = 24
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1.8 + y ** 3) < z ** 2): b[24] = 25
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2): b[25] = 26
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[26] = 27
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): b[27] = 28
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3): b[28] = 29
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3.2) < z ** 3): b[29] = 30
+
+    # 验证规则6：整数同余检查
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 2 == int(y) % 3 == int(z) % 3 == 0): b[30] = 31
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 2 == int(z) % 3 == 0): b[31] = 32
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 2 == 0): b[32] = 33
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 5 == int(y) % 3 == int(z) % 3 == 0): b[33] = 34
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 5 == int(z) % 3 == 0): b[34] = 35
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 5 == 0): b[35] = 36
+
+    # 验证规则7：比值范围检查
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (z + 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[36] = 37
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 1 and (y / (z + 0.1)) < 0.3): b[37] = 38
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[38] = 39
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.2 + 0.1)) < 0.3): b[39] = 40
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.5): b[40] = 41
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 0.1)) < 0.3): b[41] = 42
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y * 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[42] = 43
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x + (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[43] = 44
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.5 + 0.1)) < 0.3): b[44] = 45
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0)) < 0.3): b[45] = 46
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 or (y / (z + 0.1)) < 0.3): b[46] = 47
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 2)) > 3 and (y / (z + 0.1)) < 0.3): b[47] = 48
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 5)) < 0.3): b[48] = 49
+
+    # 验证规则8：差值阈值检查
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[49] = 50
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 20 and abs(y - z) > 20 and abs(x - z) < 8): b[50] = 51
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 30 and abs(y - z) > 20 and abs(x - z) < 8): b[51] = 52
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 40 and abs(x - z) < 8): b[52] = 53
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * z - z) > 20 and abs(x - z) < 8): b[53] = 54
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 12): b[54] = 55
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z * 2) < 8): b[55] = 56
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * 2 - z) < 8): b[56] = 57
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * 2 - z) > 20 and abs(x - z) < 8): b[57] = 58
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * 2 - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[58] = 59
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z * z) > 20 and abs(x - z) < 8): b[59] = 60
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * y - z) > 20 and abs(x - z) < 8): b[60] = 61
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * x - z) < 8): b[61] = 62
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * x - z) > 20 and abs(x - z) < 8): b[62] = 63
+
+    # 验证规则9：极值范围检查
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x * 2 > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[63] = 64
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 60 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[64] = 65
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 115 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[65] = 66
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 18) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[66] = 67
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 5) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[67] = 68
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 130 or y < 2) and (z > 180 or z < 40)): b[68] = 69
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * z > 180 or z < 40)): b[69] = 70
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 30)): b[70] = 71
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * 50 > 180 or z < 40)): b[71] = 72
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 60)): b[72] = 73
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 100 or y < 2) and (z > 180 or z < 40)): b[73] = 74
+
+    # 额外的复杂验证逻辑
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.3 + y ** 0.5 > z and x * y > z ** 1.5): b[74] = 75
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.6 + y ** 0.5 > z and x * y > z ** 1.5): b[75] = 76
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.7 > z and x * y > z ** 1.5): b[76] = 77
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.5 > z ** 1.5): b[77] = 78
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            (x ** 0.5) * 2 + y ** 0.5 > z and x * y > z ** 1.5): b[78] = 79
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y * 0.5 > z and x * y > z ** 1.5): b[79] = 80
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 2 and x * y > z ** 1.5): b[80] = 81
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 0.5 and x * y > z ** 1.5): b[81] = 82
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.3 * y > z ** 1.5): b[82] = 83
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.1 > z ** 1.5): b[83] = 84
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.2 * y > z ** 1.5): b[84] = 85
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.5 * y > z ** 1.5): b[85] = 86
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * y > z ** 8): b[86] = 87
+
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[87] = 88
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 3 and x > y): b[88] = 89
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 2 and x > y): b[89] = 90
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * x > y): b[90] = 91
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * 2 > y): b[91] = 92
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + 50) ** 2 < z ** 2 * 4 and x > y): b[92] = 93
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 3 * 4 and x > y): b[93] = 94
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[94] = 95
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 4 < z ** 2 * 4 and x > y): b[95] = 96
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 1 and x > y): b[96] = 97
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * x and x > y): b[97] = 98
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * y and x > y): b[98] = 99
+
+    # 返回触发的分支索引集合
     triggered = set()
-
-    # z
-    x = z  # zx
-    y = (weather * time_period * 10 + z) % 100 + 1  # y
-
-    # 1-7: (time_period == 1)
-    if time_period == 1:
-        if x < 60 and y > 75:
-            triggered.add(1)
-        if x > 60 and y > 70:
-            triggered.add(2)
-        if x < 50 and y < 40:
-            triggered.add(3)
-        if x > 78 and 45 < y < 70:
-            triggered.add(4)
-        if 45 < x < 70 and y > 78:
-            triggered.add(5)
-        if x < 55 and 50 < y < 75:
-            triggered.add(6)
-        if 50 < x < 75 and y < 55:
-            triggered.add(7)
-
-    # 8-14: (time_period == 2)
-    if time_period == 2:
-        if x < 60 and y > 75:
-            triggered.add(8)
-        if x > 60 and y > 70:
-            triggered.add(9)
-        if x < 55 and y < 45:
-            triggered.add(10)
-        if 45 < x < 70 and y > 78:
-            triggered.add(11)
-        if x > 78 and 45 < y < 70:
-            triggered.add(12)
-        if 55 < x < 75 and y < 50:
-            triggered.add(13)
-        if x < 50 and 55 < y < 75:
-            triggered.add(14)
-
-    # 15-19: (time_period == 3)
-    if time_period == 3:
-        if x > 60 and 40 < y < 65:
-            triggered.add(15)
-        if 40 < x < 65 and y > 60:
-            triggered.add(16)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(17)
-        if x < 50 and y < 40:
-            triggered.add(18)
-        if x > 65 and y < 45:
-            triggered.add(19)
-
-    # 20-25: (time_period == 4)
-    if time_period == 4:
-        if x < 45 and y < 35:
-            triggered.add(20)
-        if x > 60 and y < 40:
-            triggered.add(21)
-        if x < 50 and y > 70:
-            triggered.add(22)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(23)
-        if x < 35 and y < 25:
-            triggered.add(24)
-        if 40 < x < 65 and y < 45:
-            triggered.add(25)
-
-    # 26-28: (time_period == 5)
-    if time_period == 5:
-        if x < 60 and y < 50:
-            triggered.add(26)
-        if x > 65 and y > 75:
-            triggered.add(27)
-        if x > 60 and y < 45:
-            triggered.add(28)
-
-    # 29-33: (time_period == 6)
-    if time_period == 6:
-        if 40 < x < 70 and 40 < y < 60:
-            triggered.add(29)
-        if x < 55 and y < 45:
-            triggered.add(30)
-        if x > 60 and y < 50:
-            triggered.add(31)
-        if x < 60 and y > 70:
-            triggered.add(32)
-        if x > 65 and y > 75:
-            triggered.add(33)
-
-    # 34-68: 
-    if weather == 1:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(34)
-        if time_period in [1, 2] and y > 70:
-            triggered.add(35)
-        if time_period in [3, 4] and x < 50:
-            triggered.add(36)
-        if time_period in [3, 4] and y < 50:
-            triggered.add(37)
-        if time_period in [5, 6] and 40 < x < 80:
-            triggered.add(38)
-        if time_period in [5, 6] and 40 < y < 80:
-            triggered.add(39)
-
-    if weather == 2:  # 
-        if time_period in [1, 2] and x > 75:
-            triggered.add(40)
-        if time_period in [1, 2] and y < 60:
-            triggered.add(41)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(42)
-        if time_period in [3, 4] and y > 65:
-            triggered.add(43)
-        if time_period in [5, 6] and 35 < x < 75:
-            triggered.add(44)
-        if time_period in [5, 6] and 35 < y < 75:
-            triggered.add(45)
-
-    if weather == 3:  # 
-        if time_period in [1, 2] and x > 60:
-            triggered.add(46)
-        if time_period in [1, 2] and y > 65:
-            triggered.add(47)
-        if time_period in [3, 4] and x < 55:
-            triggered.add(48)
-        if time_period in [3, 4] and y < 55:
-            triggered.add(49)
-        if time_period in [5, 6] and 30 < x < 70:
-            triggered.add(50)
-        if time_period in [5, 6] and 30 < y < 70:
-            triggered.add(51)
-
-    if weather == 4:  # 
-        if time_period in [1, 2] and x > 65:
-            triggered.add(52)
-        if time_period in [1, 2] and y < 55:
-            triggered.add(53)
-        if time_period in [3, 4] and x < 40:
-            triggered.add(54)
-        if time_period in [3, 4] and y > 60:
-            triggered.add(55)
-        if time_period in [5, 6] and 25 < x < 65:
-            triggered.add(56)
-        if time_period in [5, 6] and 25 < y < 65:
-            triggered.add(57)
-
-    if weather == 5:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(58)
-        if time_period in [1, 2] and y > 60:
-            triggered.add(59)
-        if time_period in [3, 4] and x < 35:
-            triggered.add(60)
-        if time_period in [3, 4] and y < 40:
-            triggered.add(61)
-        if time_period in [5, 6] and 20 < x < 60:
-            triggered.add(62)
-        if time_period in [5, 6] and 20 < y < 60:
-            triggered.add(63)
-
-    if weather == 6:  # 
-        if time_period in [1, 2] and x > 55:
-            triggered.add(64)
-        if time_period in [1, 2] and y > 55:
-            triggered.add(65)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(66)
-        if time_period in [3, 4] and y < 45:
-            triggered.add(67)
-        if time_period in [5, 6] and 15 < x < 55:
-            triggered.add(68)
-
-    # 69-78: ()
-    if weather + time_period > 6:
-        if x > 50 and y > 50:
-            triggered.add(69)
-        if x < 50 and y < 50:
-            triggered.add(70)
-        if x > y:
-            triggered.add(71)
-        if x < y:
-            triggered.add(72)
-        if abs(x - y) < 20:
-            triggered.add(73)
-
-    if weather + time_period <= 6:
-        if x > 60 or y > 60:
-            triggered.add(74)
-        if x < 40 or y < 40:
-            triggered.add(75)
-        if x + y > 100:
-            triggered.add(76)
-        if x + y < 80:
-            triggered.add(77)
-        if abs(x - y) > 30:
-            triggered.add(78)
-
-    # 79-88: Value
-    if weather % 2 == time_period % 2:  # 
-        if x % 10 < 5:
-            triggered.add(79)
-        if y % 10 >= 5:
-            triggered.add(80)
-        if (x + y) % 3 == 0:
-            triggered.add(81)
-        if (x * y) % 7 == 0:
-            triggered.add(82)
-        if x // 10 == y // 10:
-            triggered.add(83)
-
-    if weather % 2 != time_period % 2:  # 
-        if x > 75 or y > 75:
-            triggered.add(84)
-        if x < 25 or y < 25:
-            triggered.add(85)
-        if max(x, y) - min(x, y) > 40:
-            triggered.add(86)
-        if (x + y) // 2 > 50:
-            triggered.add(87)
-        if weather * time_period > 15:
-            triggered.add(88)
-
-    # 89-95: ()
-    if weather in [1, 3, 5]:  # 
-        if time_period in [1, 3, 5] and x > 40:
-            triggered.add(89)
-        if time_period in [2, 4, 6] and y > 40:
-            triggered.add(90)
-        if x % 20 < 10 and y % 20 < 10:
-            triggered.add(91)
-        if x + weather * 10 > 50:
-            triggered.add(92)
-        if y + time_period * 10 > 50:
-            triggered.add(93)
-        if time_period in [1, 3, 5] and x < 60:
-            triggered.add(94)
-        if time_period in [2, 4, 6] and y < 60:
-            triggered.add(95)
-
-    # 96-98: 
-    if weather in [2, 4, 6]:  # 
-        if (x + y) % weather == 0:
-            triggered.add(96)
-        if x * weather > 100:
-            triggered.add(97)
-        if y * time_period > 100:
-            triggered.add(98)
-
-    # 99-100: 
-    if (weather * time_period + z) % 7 == 0:
-        triggered.add(99)
-    if max(weather, time_period) * min(x, y) > 150:
-        triggered.add(100)
-
+    for i, val in enumerate(b):
+        if val > 0:
+            triggered.add(val)
     return triggered
 
 
-def execute_Tr(weather, time_period, z):
-    """"""
-    return execute_validation_rules_block4(weather, time_period, z)
-
-
 # === target path definitions ===
-target_paths = [
-    [15, 16, 48, 49, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [16, 18, 19, 60, 61, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [1, 4, 6, 46, 47, 74, 75, 76, 77, 78, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [30, 31, 50, 51, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [18, 19, 36, 37, 74, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [20, 24, 25, 36, 37, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 99, 100],
-    [8, 12, 34, 35, 74, 75, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 100],
-    [8, 10, 58, 59, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [8, 14, 46, 47, 75, 76, 77, 78, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99, 100],
-    [1, 2, 6, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 100],
-    [39, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [20, 21, 60, 61, 70, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99],
-    [8, 9, 11, 13, 40, 41, 75, 76, 77, 78, 79, 80, 81, 83, 96, 97, 98, 100],
-    [18, 19, 54, 55, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [25, 48, 49, 69, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [26, 28, 62, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [32, 33, 68, 69, 71, 72, 73, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [1, 52, 53, 74, 75, 76, 77, 78, 84, 85, 86, 87, 88, 97, 98, 99, 100],
-    [8, 12, 14, 64, 65, 69, 71, 72, 73, 80, 81, 82, 83, 96, 97, 98, 100],
-    [1, 3, 64, 65, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [22, 36, 37, 76, 77, 78, 85, 86, 87, 88, 90, 91, 93, 95, 100],
-    [31, 45, 70, 71, 72, 73, 79, 80, 81, 83, 96, 97, 98, 99, 100],
-    [22, 66, 67, 69, 71, 72, 73, 79, 80, 82, 83, 97, 98, 100],
-    [44, 45, 69, 71, 72, 73, 79, 80, 83, 96, 97, 98, 99, 100],
-    [57, 71, 72, 73, 79, 80, 83, 97, 98, 100],
-    [15, 16, 17, 48, 49, 74, 75, 76, 77, 78, 79, 80, 82, 83, 89, 91, 92, 93, 94, 100],
-    [1, 2, 5, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [20, 21, 25, 42, 43, 74, 76, 77, 78, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [2, 5, 7, 40, 41, 75, 76, 77, 78, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 56, 57, 70, 71, 72, 73, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 38, 74, 76, 77, 78, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [30, 31, 62, 63, 70, 71, 72, 73, 84, 86, 87, 88, 90, 91, 92, 93, 95],
-    [29, 62, 63, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [23, 25, 60, 61, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100]
+targetPaths = [
+    {9, 10, 11, 13, 14, 15, 16, 18, 19, 31, 32, 33, 34, 36, 75, 78, 81, 83, 84, 85, 86, 87},
+    {25, 26, 27, 29, 30, 33, 37, 42, 52, 53, 56, 57, 58, 61, 62, 88, 93, 95, 96, 97},
+    {16, 31, 32, 33, 35, 36, 51, 52, 53, 57, 59, 62, 75, 78, 81, 83, 84, 85, 86, 87},
+    {2, 5, 6, 7, 9, 10, 31, 32, 33, 34, 35, 39, 44, 47, 75, 81, 83, 84, 85, 86, 87},
+    {2, 5, 6, 7, 8, 9, 10, 20, 31, 33, 34, 35, 75, 78, 81, 83, 84, 85, 86, 87, 98},
+    {6, 9, 10, 11, 14, 15, 16, 18, 19, 31, 34, 35, 36, 64, 65, 76, 77, 79, 80, 82},
+    {1, 2, 5, 6, 7, 8, 9, 10, 20, 31, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+    {21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 43, 47, 91, 92},
+    {21, 24, 25, 26, 27, 29, 30, 37, 42, 52, 53, 56, 57, 62, 63, 88, 93, 95, 96},
+    {3, 31, 32, 33, 34, 35, 36, 39, 40, 41, 44, 45, 47, 88, 89, 90, 95, 96, 97},
+    {1, 2, 6, 7, 9, 10, 17, 20, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+    {3, 4, 20, 33, 36, 54, 58, 60, 61, 63, 70, 72, 88, 89, 90, 95, 96, 97},
+    {6, 9, 10, 20, 31, 32, 34, 35, 69, 71, 74, 77, 79, 80, 82, 94, 98, 99},
+    {1, 2, 3, 6, 7, 8, 9, 10, 50, 56, 57, 60, 62, 67, 78, 81, 84, 85, 87},
+    {1, 2, 3, 6, 7, 8, 9, 10, 12, 17, 20, 51, 52, 53, 56, 57, 62, 70, 72},
+    {21, 24, 25, 26, 27, 29, 30, 31, 37, 39, 42, 44, 48, 57, 88, 95, 96},
+    {9, 10, 17, 20, 31, 33, 34, 35, 70, 72, 73, 77, 80, 82, 94, 98, 99},
+    {9, 10, 11, 16, 18, 19, 32, 66, 69, 75, 78, 81, 83, 84, 85, 86, 87},
+    {1, 2, 3, 6, 7, 9, 10, 11, 13, 14, 15, 16, 18, 19, 32, 55, 70, 72},
+    {21, 24, 25, 26, 27, 29, 30, 32, 34, 35, 38, 43, 47, 88, 95, 96},
+    {3, 32, 39, 40, 41, 44, 45, 47, 49, 88, 89, 90, 95, 96, 97},
+    {3, 31, 32, 34, 37, 42, 46, 88, 90, 95, 96, 97},
+    {2, 3, 6, 7, 8, 9, 10, 57, 62, 68, 78, 84}
 ]
 
-# 
-target_paths = [set(path) for path in target_paths]
-
-
-def jaccard_similarity(set1, set2):
-    intersection = len(set1 & set2)
-    union = len(set1 | set2)
-    if set2.issubset(set1):
-        return 1.0
-    return intersection / union if union != 0 else 0.0
+# 转换为目标路径列表
+target_paths = [set(path) for path in targetPaths]
 
 
 # === Path Similarity ===
@@ -404,7 +319,7 @@ def group_paths_by_similarity(paths):
     return similar_group, isolated_group
 
 
-# === Sample generation(screening)===
+# === 鲁棒性计算 ===
 def compute_robustness(state, path):
     base = execute_Tr(state[0], state[1], state[2])
     if not base:
@@ -417,7 +332,7 @@ def compute_robustness(state, path):
                 if dx == dy == dz == 0:
                     continue
                 neighbor = [state[0] + dx, state[1] + dy, state[2] + dz]
-                # 
+                # 边界裁剪
                 neighbor[0] = max(MIN_X, min(MAX_X, neighbor[0]))
                 neighbor[1] = max(MIN_Y, min(MAX_Y, neighbor[1]))
                 neighbor[2] = max(MIN_Z, min(MAX_Z, neighbor[2]))
@@ -431,12 +346,11 @@ def compute_robustness(state, path):
 
 
 def compute_q_value_score(state, similar_model):
-    """Q: 1-Q"""
+    """使用相似模型计算Q值分数: 1-归一化Q值"""
     if similar_model is None:
         return 0.0
 
     try:
-        # 
         normalized_state = normalize_state(state)
         state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -449,8 +363,9 @@ def compute_q_value_score(state, similar_model):
         return 0.0
 
 
+# === 样本生成和筛选 ===
 def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k=200, run_id=1):
-    """Similar path group(3)"""
+    """为相似路径组生成样本（使用3维权重）"""
     SIMILAR_WEIGHTS = [0.55, 0.39, 0.06]
 
     def save_samples(path_id, samples, base_dir):
@@ -474,9 +389,9 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = np.random.randint(MIN_WEATHER, MAX_WEATHER + 1)
-            time_period = np.random.randint(MIN_TIMEPERIOD, MAX_TIMEPERIOD + 1)
+
+            weather = np.random.randint(MIN_X, MAX_X + 1)
+            time_period = np.random.randint(MIN_Y, MAX_Y + 1)
             z = np.random.randint(MIN_Z, MAX_Z + 1)
             state = (weather, time_period, z)
             triggered = execute_Tr(weather, time_period, z)
@@ -509,7 +424,7 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
 
 
 def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candidates=2000, top_k=200, run_id=1):
-    """Path (4, Q)"""
+    """为孤立路径组生成样本（使用4维权重，包含Q值）"""
     ISOLATED_WEIGHTS = [0.18, 0.21, 0.32, 0.29]
 
     def save_samples(path_id, samples, base_dir):
@@ -533,9 +448,9 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = np.random.randint(MIN_WEATHER, MAX_WEATHER + 1)
-            time_period = np.random.randint(MIN_TIMEPERIOD, MAX_TIMEPERIOD + 1)
+
+            weather = np.random.randint(MIN_X, MAX_X + 1)
+            time_period = np.random.randint(MIN_Y, MAX_Y + 1)
             z = np.random.randint(MIN_Z, MAX_Z + 1)
             state = (weather, time_period, z)
             triggered = execute_Tr(weather, time_period, z)
@@ -570,7 +485,7 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
             save_samples(path_id=path_id, samples=selected_samples, base_dir=base_dir)
 
 
-# === ()===
+# === 分组经验回放(优先级经验回放) ===
 class GroupExperienceReplay:
     def __init__(self, capacity=20000):
         self.capacity = capacity
@@ -579,14 +494,13 @@ class GroupExperienceReplay:
 
     def append(self, experience):
         self.buffer.append(experience)
-        self.priorities.append(experience[-1])
+        self.priorities.append(experience[-1])  # TD-error作为优先级
 
     def sample(self, batch_size, alpha=0.6):
-        """"""
+        """优先级经验回放采样"""
         priorities = np.array(self.priorities) ** alpha
         probabilities = priorities / np.sum(priorities)
 
-        # 
         batch_size = min(batch_size, len(self.buffer))
         batch_indices = np.random.choice(len(self.buffer), batch_size, replace=False, p=probabilities)
         batch = [self.buffer[idx] for idx in batch_indices]
@@ -601,20 +515,18 @@ class GroupExperienceReplay:
         return len(self.buffer)
 
     def get_high_reward_samples(self, target_path, num_samples=20):
-        """()"""
+        """获取每个路径的高奖励样本（取前20个）"""
         if len(self.buffer) == 0:
             return []
 
         samples_with_recalculated_scores = []
-        seen_states = set()  # 
+        seen_states = set()
 
         for experience in self.buffer:
             state_tensor = experience[0]
-            # 
             normalized_state = state_tensor.cpu().numpy().flatten()
             state_tuple = tuple(denormalize_state(normalized_state))
 
-            # 
             if state_tuple in seen_states:
                 continue
             seen_states.add(state_tuple)
@@ -639,7 +551,7 @@ def load_path_data(file_path):
     return path_data
 
 
-# === DQN ===
+# === DQN模型定义 ===
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(DQN, self).__init__()
@@ -653,7 +565,7 @@ class DQN(nn.Module):
         return self.fc3(x)
 
 
-# === DQN Agent()===
+# === DQN Agent(优先级经验回放) ===
 class DQNAgentWithPER:
     def __init__(self, state_dim, action_dim, replay_buffer, gamma=0.99, epsilon=1.0, epsilon_decay=0.995,
                  epsilon_min=0.1, learning_rate=0.001, alpha=0.6, beta=0.4):
@@ -686,7 +598,7 @@ class DQNAgentWithPER:
             return (0, 0, delta)
 
     def act(self, state):
-        """"""
+        """根据epsilon-greedy策略选择动作"""
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
 
@@ -697,7 +609,7 @@ class DQNAgentWithPER:
         return torch.argmax(q_values, dim=1).item()
 
     def store_transition(self, state, action, reward, next_state, done):
-        """"""
+        """存储转换并计算TD-error"""
         normalized_state = normalize_state(state)
         normalized_next_state = normalize_state(next_state)
 
@@ -753,18 +665,18 @@ class DQNAgentWithPER:
         self.target_model.load_state_dict(self.model.state_dict())
 
 
-# ===  ===
+# === 分组训练 ===
 def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group_name=""):
-    """Path  - : 4x50x3x5"""
+    """对一组路径进行训练 - 参数: 4x50x3x5"""
     state_dim = 3
-    action_dim = 24  # 3 x 8delta
+    action_dim = 24  # 3维 x 8个delta值
 
     agent = DQNAgentWithPER(state_dim, action_dim, replay_buffer)
 
     global_steps = 0
     path_rewards = {}
 
-    print(f"Start training{group_name}, Included Paths: {[idx + 1 for idx in group_paths]}")
+    print(f"Start training {group_name}, Included Paths: {[idx + 1 for idx in group_paths]}")
     start_time = time.time()
 
     N_SAMPLES = 200
@@ -776,9 +688,9 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
 
     for path_idx in group_paths:
         file_path = os.path.join(path_documents,
-                                 f"path{path_idx + 1}_{'similar' if group_name == '' else 'isolated'}.txt")
+                                 f"path{path_idx + 1}_{'similar' if group_name == 'Similar Group' else 'isolated'}.txt")
         if not os.path.exists(file_path):
-            print(f"  : Path {path_idx + 1}, ")
+            print(f"  文件不存在: Path {path_idx + 1}, 跳过训练")
             continue
 
         path_data = load_path_data(file_path)
@@ -787,10 +699,10 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
         if path_idx not in path_rewards:
             path_rewards[path_idx] = 0
 
-        print(f"\n  Start training path {path_idx + 1}, : {len(path_data)}")
+        print(f"\n  开始训练路径 {path_idx + 1}, 数据量: {len(path_data)}")
 
         for repeat in range(N_REPEATS):
-            print(f"    Run {repeat + 1}/{N_REPEATS}")
+            print(f"    第 {repeat + 1}/{N_REPEATS} 轮重复训练")
 
             batch_count = 0
 
@@ -799,10 +711,10 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                 batch_end = min(batch_start + BATCH_SIZE, N_SAMPLES)
 
                 if batch_start >= len(path_data):
-                    print(f"      Run {batch_idx + 1}: , ")
+                    print(f"      批次 {batch_idx + 1}: 数据不足, 跳过")
                     break
 
-                print(f"      Run {batch_idx + 1}/{N_BATCHES} ( {batch_start}-{batch_end})")
+                print(f"      批次 {batch_idx + 1}/{N_BATCHES} (样本 {batch_start}-{batch_end})")
 
                 for sample_idx in range(batch_start, batch_end):
                     if sample_idx >= len(path_data):
@@ -813,13 +725,14 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                     prev_triggered = None
 
                     for step in range(N_STEPS):
+                        # 找到合法的动作
                         legal_actions = []
                         for a in range(agent.action_dim):
                             dw, dt, dz = agent.decode_action(a)
                             cand_next = (state[0] + dw, state[1] + dt, state[2] + dz)
-                            # 
-                            if (MIN_WEATHER <= cand_next[0] <= MAX_WEATHER and
-                                    MIN_TIMEPERIOD <= cand_next[1] <= MAX_TIMEPERIOD and
+                            # 检查是否在边界内
+                            if (MIN_X <= cand_next[0] <= MAX_X and
+                                    MIN_Y <= cand_next[1] <= MAX_Y and
                                     MIN_Z <= cand_next[2] <= MAX_Z):
                                 legal_actions.append(a)
 
@@ -844,7 +757,7 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
 
                         done = (step == N_STEPS - 1)
 
-                        td_error = agent.store_transition(state, action, reward, next_state, done)
+                        agent.store_transition(state, action, reward, next_state, done)
 
                         prev_state = state
                         prev_triggered = triggered
@@ -853,7 +766,7 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                         path_rewards[path_idx] += reward
                         global_steps += 1
 
-                print(f"        {batch_idx + 1}completed, ()...")
+                print(f"        批次 {batch_idx + 1} 完成, 开始训练模型...")
                 if len(agent.replay_buffer) >= batch_size:
                     agent.train(batch_size)
 
@@ -861,61 +774,65 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
 
                 if batch_count % TARGET_UPDATE_EVERY_N_BATCHES == 0:
                     agent.update_target_model()
-                    print(f"        completed{batch_count}, ")
+                    print(f"        目标网络已更新 (批次 {batch_count})")
 
-        print(f"  Path {path_idx + 1}completed, : {path_rewards[path_idx]:.2f}")
+        print(f"  路径 {path_idx + 1} 训练完成, 累积奖励: {path_rewards[path_idx]:.2f}")
 
     training_time = time.time() - start_time
-    print(f"\n{group_name}completed, : {training_time:.2f} seconds")
-    print(f": {len(replay_buffer)}")
+    print(f"\n{group_name} 训练完成, 训练时间: {training_time:.2f} 秒")
+    print(f"经验池大小: {len(replay_buffer)}")
 
     return agent, path_rewards, training_time
 
 
-# ===  ===
+# === 主流程 ===
 def generate_and_train_grouped_paths_staged(path_documents, similar_group, isolated_group, batch_size=32, run_id=1):
-    """: , , """
+    """分阶段执行: 样本生成, 相似组训练, 隔离组样本生成, 隔离组训练"""
 
-    print(f"\n===  {run_id}/20  ===")
+    print(f"\n=== 第 {run_id}/20 轮实验 ===")
     similar_group_paths = [idx + 1 for idx in similar_group]
     isolated_group_paths = [idx + 1 for idx in isolated_group]
 
-    print(f"Path : {similar_group_paths}")
-    print(f"Path : {isolated_group_paths}")
+    print(f"相似路径组: {similar_group_paths}")
+    print(f"孤立路径组: {isolated_group_paths}")
 
     total_start_time = time.time()
 
-    print(f"\n[1] ...")
+    # 阶段1: 生成相似路径组样本
+    print(f"\n[阶段1] 生成相似路径组样本...")
     generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k=200, run_id=run_id)
 
-    print(f"\n[2] ...")
+    # 阶段2: 训练相似路径组
+    print(f"\n[阶段2] 训练相似路径组...")
     similar_replay_buffer = GroupExperienceReplay(capacity=20000)
     similar_agent, similar_path_rewards, similar_training_time = train_group(
-        similar_group, path_documents, similar_replay_buffer, batch_size=batch_size, group_name=""
+        similar_group, path_documents, similar_replay_buffer, batch_size=batch_size, group_name="Similar Group"
     )
 
-    print(f"\n[3] ...")
+    # 阶段3: 使用相似组模型生成隔离路径组样本
+    print(f"\n[阶段3] 使用相似组模型生成隔离路径组样本...")
     generate_samples_for_isolated_paths(isolated_group, similar_agent.model, num_candidates=2000, top_k=200,
                                         run_id=run_id)
 
-    print(f"\n[4] ...")
+    # 阶段4: 训练隔离路径组
+    print(f"\n[阶段4] 训练隔离路径组...")
     isolated_replay_buffer = GroupExperienceReplay(capacity=20000)
     isolated_agent, isolated_path_rewards, isolated_training_time = train_group(
-        isolated_group, path_documents, isolated_replay_buffer, batch_size=batch_size, group_name=""
+        isolated_group, path_documents, isolated_replay_buffer, batch_size=batch_size, group_name="Isolated Group"
     )
 
     total_path_rewards = {**similar_path_rewards, **isolated_path_rewards}
     total_cumulative_reward = sum(total_path_rewards.values())
     total_training_time = time.time() - total_start_time
 
-    print(f"\n===  {run_id}/20 completed, : {total_training_time:.2f} seconds ===")
+    print(f"\n=== 第 {run_id}/20 轮实验完成, 总训练时间: {total_training_time:.2f} 秒 ===")
 
     return similar_agent, isolated_agent, similar_replay_buffer, isolated_replay_buffer, total_cumulative_reward, total_path_rewards, total_training_time
 
 
-# Excel
+# Excel报告生成
 def create_consolidated_excel_report(all_runs_data, similar_group, isolated_group, output_dir):
-    """20 runExcel"""
+    """创建20轮实验的合并Excel报告"""
     os.makedirs(output_dir, exist_ok=True)
 
     similar_group_paths = [idx + 1 for idx in similar_group]
@@ -935,12 +852,12 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     isolated_group_color = "FCE4D6"
     stats_color = "FFF2CC"
 
-    # === 1: Path  ===
+    # === 工作表1: 路径相似度报告 ===
     ws_paths = wb.active
-    ws_paths.title = "Path "
+    ws_paths.title = "路径相似度报告"
 
-    path_headers = ['Path ID', ''] + [f'Run {i}' for i in range(1, 21)] + ['Average Similarity', 'Maximum Similarity',
-                                                                                    'Minimum Similarity', 'Standard deviation']
+    path_headers = ['路径ID', '分组类型'] + [f'第{i}轮' for i in range(1, 21)] + ['平均相似度', '最大相似度',
+                                                                                    '最小相似度', '标准差']
     for col, header in enumerate(path_headers, 1):
         cell = ws_paths.cell(row=1, column=col, value=header)
         cell.font = Font(bold=True, size=11, color="FFFFFF")
@@ -954,16 +871,16 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
         row = path_id + 1
 
         if path_id in similar_group_paths:
-            group_type = "High-correlation path group"
+            group_type = "高相关路径组"
             row_color = similar_group_color
         elif path_id in isolated_group_paths:
-            group_type = "Low-correlation path group"
+            group_type = "低相关路径组"
             row_color = isolated_group_color
         else:
-            group_type = "Ungrouped"
+            group_type = "未分组"
             row_color = "FFFFFF"
 
-        cell = ws_paths.cell(row=row, column=1, value=f"Path {path_id}")
+        cell = ws_paths.cell(row=row, column=1, value=f"路径 {path_id}")
         cell.font = Font(bold=True, size=10)
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.fill = PatternFill(start_color=row_color, end_color=row_color, fill_type="solid")
@@ -1006,10 +923,10 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     for col in range(23, 27):
         ws_paths.column_dimensions[get_column_letter(col)].width = 13
 
-    # === 2:  ===
-    ws_groups = wb.create_sheet("")
+    # === 工作表2: 分组比较报告 ===
+    ws_groups = wb.create_sheet("分组比较报告")
 
-    group_headers = ['Group Name', 'Included Paths'] + [f'Run {i}' for i in range(1, 21)] + ['Average Similarity', 'Standard deviation']
+    group_headers = ['组名', '包含路径'] + [f'第{i}轮' for i in range(1, 21)] + ['平均相似度', '标准差']
     for col, header in enumerate(group_headers, 1):
         cell = ws_groups.cell(row=1, column=col, value=header)
         cell.font = Font(bold=True, size=11, color="FFFFFF")
@@ -1021,7 +938,8 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     row = 2
 
-    cell = ws_groups.cell(row=row, column=1, value="High-correlation path group")
+    # 相似组
+    cell = ws_groups.cell(row=row, column=1, value="高相关路径组")
     cell.font = Font(bold=True, size=11)
     cell.alignment = Alignment(horizontal="center", vertical="center")
     cell.fill = PatternFill(start_color=similar_group_color, end_color=similar_group_color, fill_type="solid")
@@ -1059,8 +977,9 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     row += 1
 
+    # 孤立组
     if isolated_group_paths:
-        cell = ws_groups.cell(row=row, column=1, value="Low-correlation path group")
+        cell = ws_groups.cell(row=row, column=1, value="低相关路径组")
         cell.font = Font(bold=True, size=11)
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.fill = PatternFill(start_color=isolated_group_color, end_color=isolated_group_color, fill_type="solid")
@@ -1103,10 +1022,10 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     ws_groups.column_dimensions[get_column_letter(23)].width = 14
     ws_groups.column_dimensions[get_column_letter(24)].width = 12
 
-    # === 3: Detailed Sample Data ===
-    ws_samples = wb.create_sheet("Detailed Sample Data")
+    # === 工作表3: 详细样本数据 ===
+    ws_samples = wb.create_sheet("详细样本数据")
 
-    sample_headers = ['Run', 'Path ID', 'Sample ID', 'Weather', 'TimePeriod', 'Z', 'Similarity', 'Triggered Rule Set']
+    sample_headers = ['轮次', '路径ID', '样本ID', 'Weather', 'TimePeriod', 'Z', '相似度', '触发规则集']
     for col, header in enumerate(sample_headers, 1):
         cell = ws_samples.cell(row=1, column=col, value=header)
         cell.font = Font(bold=True, size=11, color="FFFFFF")
@@ -1132,12 +1051,12 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
                 weather, time_period, z = state_tuple
                 triggered_str = ','.join(map(str, sorted(triggered)))
 
-                cell = ws_samples.cell(row=sample_row, column=1, value=f"Run {run_idx}")
+                cell = ws_samples.cell(row=sample_row, column=1, value=f"第{run_idx}轮")
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.fill = PatternFill(start_color=path_color, end_color=path_color, fill_type="solid")
                 cell.border = thin_border
 
-                cell = ws_samples.cell(row=sample_row, column=2, value=f"Path {path_id}")
+                cell = ws_samples.cell(row=sample_row, column=2, value=f"路径{path_id}")
                 cell.font = Font(bold=True)
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.fill = PatternFill(start_color=path_color, end_color=path_color, fill_type="solid")
@@ -1167,13 +1086,13 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     for i, width in enumerate(sample_widths, 1):
         ws_samples.column_dimensions[get_column_letter(i)].width = width
 
-    output_path = os.path.join(output_dir, "20 run_.xlsx")
+    output_path = os.path.join(output_dir, "20轮实验合并报告.xlsx")
     wb.save(output_path)
-    print(f"\n Consolidated Excel report generated: {output_path}")
+    print(f"\n合并Excel报告已生成: {output_path}")
 
 
 def run_20_times_training():
-    """20()"""
+    """运行20次实验（分阶段：先相似组后孤立组）"""
     model_path_base = r"D:\Experiment\CNN\DQNNEW\saved_models_traffic"
     path_documents = r"D:\Experiment\CNN\DQNNEW\path_samples_grouped"
     output_dir = r"D:\Experiment\CNN\ComparisonExperiment2\excel_reports_traffic"
@@ -1186,14 +1105,14 @@ def run_20_times_training():
     isolated_group_display = [idx + 1 for idx in isolated_group]
 
     print("=" * 60)
-    print("20 - ")
+    print("20轮实验 - 分阶段训练（先相似组后孤立组）")
     print(
-        f": weather[{MIN_WEATHER},{MAX_WEATHER}], time_period[{MIN_TIMEPERIOD},{MAX_TIMEPERIOD}], z[{MIN_Z},{MAX_Z}]")
-    print(":  ->  ->  -> ")
+        f"状态范围: weather[{MIN_X},{MAX_X}], time_period[{MIN_Y},{MAX_Y}], z[{MIN_Z},{MAX_Z}]")
+    print("策略: 相似组生成样本 -> 相似组训练 -> 孤立组生成样本 -> 孤立组训练")
     print("=" * 60)
-    print(f"\nAutomatic grouping results:")
-    print(f"Similar path group: {similar_group_display}")
-    print(f"Path : {isolated_group_display}")
+    print(f"\n自动分组结果:")
+    print(f"相似路径组: {similar_group_display}")
+    print(f"孤立路径组: {isolated_group_display}")
     print("\n" + "=" * 60)
 
     all_runs_data = []
@@ -1201,13 +1120,14 @@ def run_20_times_training():
 
     for run_id in range(1, 21):
         print(f"\n{'=' * 60}")
-        print(f"Start run  {run_id}/20  run")
+        print(f"开始第 {run_id}/20 轮实验")
         print(f"{'=' * 60}")
 
         similar_agent, isolated_agent, similar_buffer, isolated_buffer, total_cumulative_reward, path_rewards, training_time = \
             generate_and_train_grouped_paths_staged(path_documents, similar_group, isolated_group, batch_size=32,
                                                     run_id=run_id)
 
+        # 保存模型
         similar_model_path = os.path.join(model_path_base, f"similar_group_model_run_{run_id}.pth")
         isolated_model_path = os.path.join(model_path_base, f"isolated_group_model_run_{run_id}.pth")
 
@@ -1216,8 +1136,8 @@ def run_20_times_training():
             'optimizer_state_dict': similar_agent.optimizer.state_dict(),
             'epsilon': similar_agent.epsilon,
             'normalization': {
-                'x_range': (MIN_WEATHER, MAX_WEATHER),
-                'y_range': (MIN_TIMEPERIOD, MAX_TIMEPERIOD),
+                'x_range': (MIN_X, MAX_X),
+                'y_range': (MIN_Y, MAX_Y),
                 'z_range': (MIN_Z, MAX_Z)
             },
             'run_id': run_id,
@@ -1232,8 +1152,8 @@ def run_20_times_training():
             'optimizer_state_dict': isolated_agent.optimizer.state_dict(),
             'epsilon': isolated_agent.epsilon,
             'normalization': {
-                'x_range': (MIN_WEATHER, MAX_WEATHER),
-                'y_range': (MIN_TIMEPERIOD, MAX_TIMEPERIOD),
+                'x_range': (MIN_X, MAX_X),
+                'y_range': (MIN_Y, MAX_Y),
                 'z_range': (MIN_Z, MAX_Z)
             },
             'run_id': run_id,
@@ -1243,8 +1163,9 @@ def run_20_times_training():
             'pool_capacity': 20000,
         }, isolated_model_path)
 
-        print(f"[Run {run_id}] Model saved()")
+        print(f"[第{run_id}轮] 模型已保存 (相似组和孤立组)")
 
+        # 收集本轮数据
         run_data = {
             'run_id': run_id,
             'training_time': training_time,
@@ -1298,30 +1219,30 @@ def run_20_times_training():
 
         all_runs_data.append(run_data)
 
-        print(f"[Run {run_id}] completed! Overall Average Similarity: {run_data['overall_avg_similarity']:.4f}")
+        print(f"[第{run_id}轮] 完成! 总体平均相似度: {run_data['overall_avg_similarity']:.4f}")
         print(f"{'=' * 60}\n")
 
     total_time = time.time() - total_start_time
 
-    print("\nGenerating consolidated Excel report...")
+    print("\n正在生成合并Excel报告...")
     create_consolidated_excel_report(all_runs_data, similar_group, isolated_group, output_dir)
 
     print("\n" + "=" * 60)
-    print("20All completed! - ")
+    print("20轮实验全部完成! - 分阶段训练策略")
     print("=" * 60)
-    print(f":")
-    print(f"  weather (): [{MIN_WEATHER}, {MAX_WEATHER}]")
-    print(f"  time_period (): [{MIN_TIMEPERIOD}, {MAX_TIMEPERIOD}]")
-    print(f"  z (): [{MIN_Z}, {MAX_Z}]")
-    print(f"\nTotal elapsed time: {total_time:.2f} seconds ({total_time / 60:.2f} minutes)")
-    print(f"Average elapsed time per run: {total_time / 20:.2f} seconds")
-    print(f"\nAverage similarity statistics:")
+    print(f"状态范围:")
+    print(f"  weather (X): [{MIN_X}, {MAX_X}]")
+    print(f"  time_period (Y): [{MIN_Y}, {MAX_Y}]")
+    print(f"  z (Z): [{MIN_Z}, {MAX_Z}]")
+    print(f"\n总耗时: {total_time:.2f} 秒 ({total_time / 60:.2f} 分钟)")
+    print(f"平均每轮耗时: {total_time / 20:.2f} 秒")
+    print(f"\n相似度统计:")
     avg_similarities = [r['overall_avg_similarity'] for r in all_runs_data]
-    print(f"  Overall average: {np.mean(avg_similarities):.4f}")
-    print(f"  Maximum: {np.max(avg_similarities):.4f}")
-    print(f"  Minimum: {np.min(avg_similarities):.4f}")
-    print(f"  Standard deviation: {np.std(avg_similarities):.4f}")
-    print(f"\nAll results have been saved to: {output_dir}")
+    print(f"  总体平均值: {np.mean(avg_similarities):.4f}")
+    print(f"  最大值: {np.max(avg_similarities):.4f}")
+    print(f"  最小值: {np.min(avg_similarities):.4f}")
+    print(f"  标准差: {np.std(avg_similarities):.4f}")
+    print(f"\n所有结果已保存到: {output_dir}")
     print("=" * 60)
 
 

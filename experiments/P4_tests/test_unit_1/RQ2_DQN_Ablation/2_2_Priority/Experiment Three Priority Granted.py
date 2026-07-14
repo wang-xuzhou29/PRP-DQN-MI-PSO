@@ -14,20 +14,20 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment
 
-# === device setup ===
+# === 设备设置 ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# ===  ===
-dx_min, dx_max = 1, 50  # dx
-dy_min, dy_max = 1, 50  # dy
-dz_min, dz_max = 1, 50  # dz
+# === 状态空间范围 ===
+dx_min, dx_max = 2, 100  # dx范围
+dy_min, dy_max = 1, 105  # dy范围
+dz_min, dz_max = 1, 110  # dz范围
 
 
-# ===  ===
+# === 状态归一化函数 ===
 def normalize_state(state):
     """
-    [0,1]
+    将状态归一化到[0,1]范围
     state: (dx, dy, dz)
     """
     dx, dy, dz = state
@@ -39,7 +39,7 @@ def normalize_state(state):
 
 def denormalize_state(normalized_state):
     """
-    
+    将归一化状态还原为原始范围
     """
     norm_dx, norm_dy, norm_dz = normalized_state
     dx = int(norm_dx * (dx_max - dx_min) + dx_min)
@@ -49,7 +49,7 @@ def denormalize_state(normalized_state):
 
 
 def is_valid_state(state):
-    """"""
+    """检查状态是否在有效范围内"""
     dx, dy, dz = state
     return (dx_min <= dx <= dx_max and
             dy_min <= dy <= dy_max and
@@ -57,7 +57,7 @@ def is_valid_state(state):
 
 
 def clip_state(state):
-    """"""
+    """将状态裁剪到有效范围内"""
     dx, dy, dz = state
     return (
         max(dx_min, min(dx_max, dx)),
@@ -66,14 +66,14 @@ def clip_state(state):
     )
 
 
-# === Metric ===
+# === 指标收集器 ===
 class PrioritizedMetricsCollector:
     def __init__(self, experiment_name="Prioritized_DQN"):
         self.experiment_name = experiment_name
         self.start_time = None
         self.end_time = None
 
-        # Metric
+        # 步骤级指标
         self.total_reward = 0
         self.td_errors = []
         self.final_output_similarities = []
@@ -82,41 +82,41 @@ class PrioritizedMetricsCollector:
         self.memory_check_count = 0
         self.step_count = 0
 
-        # Metric
+        # 回合级指标
         self.episode_rewards = []
         self.episode_similarities = []
         self.episode_td_errors = []
         self.episode_epsilon_values = []
         self.episode_memory_usage = []
 
-        # Metric
+        # 优先级相关指标
         self.priority_statistics = []
         self.importance_weights = []
         self.high_priority_samples_ratio = []
         self.priority_distribution_stats = []
 
-        # Path Metric
+        # 路径分组性能
         self.similar_paths_performance = []
         self.isolated_paths_performance = []
 
-        # 
+        # 里程碑数据
         self.milestone_data = {}
 
-        # 
+        # 收敛检测
         self.convergence_window = 20
         self.convergence_threshold = 0.02
         self.convergence_detected_episode = None
 
-        # Metric
+        # 样本效率
         self.sample_efficiency_data = []
         self.performance_milestones = [0.6, 0.7, 0.75, 0.8]
 
-        # 
+        # 学习曲线特征
         self.learning_curve_characteristics = {}
         self.early_vs_late_performance = {}
 
     def reset(self):
-        """Metric, """
+        """重置所有指标，用于多次运行"""
         self.start_time = None
         self.end_time = None
         self.total_reward = 0
@@ -150,7 +150,7 @@ class PrioritizedMetricsCollector:
         self.end_time = time.time()
 
     def record_step_metrics(self, reward, td_error, triggered, target_path, priority=None, is_weight=None):
-        """Metric, """
+        """记录步骤级指标"""
         self.step_count += 1
         self.total_reward += reward
         self.td_errors.append(td_error)
@@ -167,7 +167,7 @@ class PrioritizedMetricsCollector:
 
     def record_episode_metrics(self, episode, episode_reward, avg_similarity, avg_td_error, epsilon,
                                path_group="similar", priority_stats=None):
-        """episodeMetric, """
+        """记录回合级指标"""
         self.episode_rewards.append(episode_reward)
         self.episode_similarities.append(avg_similarity)
         self.episode_td_errors.append(avg_td_error)
@@ -217,20 +217,20 @@ class PrioritizedMetricsCollector:
         self._check_performance_milestones(episode, avg_similarity)
 
     def _check_convergence(self, episode):
-        """"""
+        """检查是否收敛"""
         if len(self.episode_similarities) >= self.convergence_window and self.convergence_detected_episode is None:
             recent_similarities = self.episode_similarities[-self.convergence_window:]
             if np.std(recent_similarities) < self.convergence_threshold:
                 self.convergence_detected_episode = episode
 
     def _check_performance_milestones(self, episode, similarity):
-        """"""
+        """检查性能里程碑"""
         for milestone in self.performance_milestones:
             if similarity >= milestone and not any(data[1] == milestone for data in self.sample_efficiency_data):
                 self.sample_efficiency_data.append((episode, milestone, self.step_count))
 
     def record_final_output_sample(self, triggered, target_path):
-        """final samplesSimilarity"""
+        """记录最终输出样本的相似度"""
         if len(triggered | target_path) > 0:
             similarity = len(triggered & target_path) / len(triggered | target_path)
         else:
@@ -238,17 +238,17 @@ class PrioritizedMetricsCollector:
         self.final_output_similarities.append(similarity)
 
     def record_action_improvement(self, current_reward, prev_reward):
-        """"""
+        """记录动作改进情况"""
         if prev_reward is not None:
             improvement = current_reward - prev_reward
             self.action_improvements.append(1 if improvement > 0 else 0)
 
 
-# Metric
+# 全局指标收集器
 prioritized_metrics = PrioritizedMetricsCollector("Prioritized_DQN_Enhanced")
 
 
-# === reward function ===
+# === 奖励函数 ===
 def compute_reward(state, target_path, triggered, prev_triggered=None, prev_state=None):
     sim = jaccard_similarity(triggered, target_path)
     reward = sim * 10
@@ -257,87 +257,206 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    """"""
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
+def execute_Tr(x, y, z):
+    """执行测试需求，返回触发的分支集合"""
+    # 初始化分支覆盖数组
+    b = [0] * 105  # 根据分支数量调整大小
 
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
+    # --- 分支 1-14 ---
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 120): b[0] = 1
+    if ((y * z) / (x + 1) > 100) != ((y * y) / (x + 1) > 100): b[1] = 2
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 8) > 100): b[2] = 3
+    if ((y * z) / (x + 1) > 100) != ((y + z) / (x + 1) > 100): b[3] = 4
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x * 3 + 1) > 100): b[4] = 5
+    if ((y * z) / (x + 1) > 100) != ((z * z) / (x + 1) > 100): b[5] = 6
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 80): b[6] = 7
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + y) > 100): b[7] = 8
+    if ((y * z) / (x + 1) > 100) != ((y * 10) / (x + 1) > 100): b[8] = 9
+    if ((y * z) / (x + 1) > 100) != ((x * z) / (x + 1) > 100): b[9] = 10
+    if ((y * z) / (x + 1) > 100) != ((y * z * 2) / (x + 1) > 100): b[10] = 11
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 5) > 100): b[11] = 12
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 200): b[12] = 13
+    if ((y * z) / (x + 1) > 100) != ((5 * z) / (x + 1) > 100): b[13] = 14
 
+    # --- 分支 15-22 ---
+    if ((z - x) < 0.3 * y) != ((z * 1.2 - x) < 0.3 * y): b[14] = 15
+    if ((z - x) < 0.3 * y) != ((z - x * 1.1) < 0.3 * y): b[15] = 16
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.5 * y): b[16] = 17
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * z): b[17] = 18
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * y * y): b[18] = 19
+    if ((z - x) < 0.3 * y) != ((z - y) < 0.3 * y): b[19] = 20
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.8 * y): b[20] = 21
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * x): b[21] = 22
+
+    # --- 分支 23-36 ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3): b[22] = 23
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 * y ** 3) < z ** 4): b[23] = 24
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[24] = 25
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2): b[25] = 26
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < (z ** 2)): b[26] = 27
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * x ** 3) < z ** 2): b[27] = 28
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2): b[28] = 29
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2): b[29] = 30
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[30] = 31
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[31] = 32
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): b[32] = 33
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** x + y ** 3) < z ** 2): b[33] = 34
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[34] = 35
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1.5): b[35] = 36
+
+    # --- 分支 37-54 ---
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 or (y / (z + 0.001) < 0.2)): b[
+        36] = 37
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y % (z + 0.001) < 0.2)): b[
+        37] = 38
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z - 0.001) < 0.4)): b[
+        38] = 39
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.3)): b[
+        39] = 40
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.1)): b[
+        40] = 41
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 8 and (y / (z + 0.001) < 0.2)): b[
+        41] = 42
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 2 and (y / (z + 0.001) < 0.2)): b[
+        42] = 43
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 1 and (y / (z + 0.001) < 0.2)): b[
+        43] = 44
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 10 and (y / (z + 0.001) < 0.2)): b[
+        44] = 45
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x * y / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)):
+        b[45] = 46
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x * x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)):
+        b[46] = 47
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * x / (z + 0.001) < 0.2)):
+        b[47] = 48
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * y / (z + 0.001) < 0.2)):
+        b[48] = 49
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * z / (z + 0.001) < 0.2)):
+        b[49] = 50
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.5)): b[
+        50] = 51
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y - (z + 0.001) < 0.2)): b[
+        51] = 52
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x + (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)): b[
+        52] = 53
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x - (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)): b[
+        53] = 54
+
+    # --- 分支 55-75 ---
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 20): b[54] = 55
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 12.9): b[55] = 56
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(20 - z) < 5): b[56] = 57
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - 80) > 10 and abs(x - z) < 5): b[57] = 58
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x + z) < 5): b[58] = 59
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 7): b[59] = 60
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 15 and abs(10 - z) < 10): b[60] = 61
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - 8) < 5): b[61] = 62
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - 2) < 5): b[62] = 63
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * 4 - z) < 5): b[63] = 64
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * z) < 5): b[64] = 65
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x + z) < 5): b[65] = 66
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * y - z) < 5): b[66] = 67
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 2): b[67] = 68
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - y) < 5): b[68] = 69
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 15): b[69] = 70
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * 2 - z) < 5): b[70] = 71
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(y - z) < 5): b[71] = 72
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * z - z) < 5): b[72] = 73
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z * 2) < 5): b[73] = 74
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * x - z) < 5): b[74] = 75
+
+    # --- 分支 76-85 ---
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[75] = 76
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * y > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[76] = 77
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * z > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[77] = 78
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * y > 80 or y < 3) and (z > 75 or z < 2)): b[78] = 79
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * z > 80 or y < 3) and (z > 75 or z < 2)): b[79] = 80
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * x > 80 or y < 3) and (z > 75 or z < 2)): b[80] = 81
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * 10 > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[81] = 82
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * 15 > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[82] = 83
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 50 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[83] = 84
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y > 80 or y < 3) and (z * 40 > 75 or z < 2)): b[84] = 85
+
+    # --- 分支 86-100 ---
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * x) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[85] = 86
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * 60) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[86] = 87
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((y * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[87] = 88
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((70 * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[88] = 89
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) + (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[89] = 90
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 70 and x ** 2 + y ** 2 > z ** 2):
+        b[90] = 91
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 80 and x ** 2 + y ** 2 > z ** 2):
+        b[91] = 92
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 1.5 + y ** 2 > z ** 2):
+        b[92] = 93
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2.2):
+        b[93] = 94
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2.5):
+        b[94] = 95
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 1.5 > z ** 2):
+        b[95] = 96
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 80 and x ** 2 + y ** 2 > z ** 2):
+        b[96] = 97
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 65 and x ** 2 + y ** 2 > z ** 2):
+        b[97] = 98
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 1.2 + y ** 2 > z ** 2):
+        b[98] = 99
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 1.2 > z ** 2):
+        b[99] = 100
+
+    # --- 分支 101-105 ---
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.7 > (x + y) / 2 and x * y * z > 1000): b[100] = 101
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (x + y) / 6 and x * y * z > 1000): b[101] = 102
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.8 > (x + y) / 2 and x * y * z > 1000): b[102] = 103
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (x + x) / 2 and x * y * z > 1000): b[103] = 104
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (y + y) / 2 and x * y * z > 1000): b[104] = 105
+
+    # 返回触发的分支集合
     triggered = set()
-
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
-
+    for i, val in enumerate(b):
+        if val > 0:
+            triggered.add(i + 1)  # 分支编号从1开始
     return triggered
 
 
 def jaccard_similarity(set1, set2):
-    """Compute Jaccard similarity"""
+    """计算Jaccard相似度"""
     intersection = len(set1 & set2)
     union = len(set1 | set2)
     if set2.issubset(set1):
@@ -345,9 +464,9 @@ def jaccard_similarity(set1, set2):
     return intersection / union if union != 0 else 0.0
 
 
-# === Path Similarity ===
+# === 路径相似度计算 ===
 def compute_path_similarity_matrix(paths):
-    """Path Similarity"""
+    """计算路径相似度矩阵"""
     n = len(paths)
     matrix = np.zeros((n, n))
     for i in range(n):
@@ -359,13 +478,41 @@ def compute_path_similarity_matrix(paths):
 
 
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {15, 20, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 79,
+     80, 81, 86, 87, 90},  # A1
+    {6, 10, 15, 20, 23, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73,
+     74, 75, 79, 80, 81},  # A2
+    {1, 3, 4, 5, 6, 8, 9, 10, 13, 14, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 77, 78, 82,
+     83, 84, 94, 95, 100},  # A3
+    {16, 17, 18, 19, 21, 22, 23, 29, 31, 32, 38, 41, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72,
+     73, 74, 75, 105},  # A4
+    {6, 7, 10, 11, 15, 57, 58, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 79, 80, 81, 92, 93, 94, 95,
+     96, 97, 99, 100},  # A5
+    {1, 2, 3, 4, 5, 8, 9, 10, 13, 14, 16, 17, 18, 19, 20, 21, 23, 76, 77, 78, 82, 83, 84, 87, 91, 92, 93, 94, 95, 96,
+     97, 98, 99, 100},  # A6
+    {11, 15, 20, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74, 75, 79, 80, 81, 88, 89, 91, 92, 93, 94, 95, 97,
+     98, 99, 100},  # A7
+    {1, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 18, 22, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 86, 87,
+     91, 92, 97, 98},  # A8
+    {16, 18, 19, 21, 22, 23, 24, 25, 29, 31, 32, 35, 38, 48, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74,
+     75, 105},  # A9
+    {15, 20, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 59, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 87, 90,
+     102, 105},  # A10
+    {1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 19, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 35, 37, 46, 47, 53, 101, 102,
+     103},  # A11
+    {3, 4, 5, 6, 8, 10, 12, 13, 14, 18, 22, 57, 59, 62, 64, 65, 66, 67, 68, 69, 72, 73, 74, 85, 86, 87, 91, 92, 97, 98},
+    # A12
+    {15, 20, 23, 29, 31, 32, 37, 43, 44, 46, 47, 53, 54, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74, 75},
+    # A13
+    {6, 10, 16, 18, 19, 21, 22, 23, 25, 29, 31, 32, 35, 38, 45, 48, 49, 50, 55, 56, 60, 70, 79, 80, 81, 105},  # A14
+    {3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 17, 19, 20, 21, 27, 30, 33, 55, 57, 61, 63, 64, 70, 88, 89, 90, 104},  # A15
+    {2, 3, 4, 5, 8, 9, 10, 14, 19, 23, 24, 26, 27, 28, 30, 33, 62, 63, 67, 101, 102, 103, 104},  # A16
+    {1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 19, 28, 34, 36, 37, 46, 47, 53, 101, 102, 103},  # A17
+    {15, 20, 29, 31, 32, 37, 39, 40, 51, 52, 55, 56, 70, 79, 80, 81, 86, 87, 90}  # A18
 ]
 
 
-# === Path  ===
+# === 路径分组 ===
 def group_paths_by_similarity(paths):
     sim_matrix = compute_path_similarity_matrix(paths)
     avg_sim_scores = np.mean(sim_matrix, axis=1)
@@ -381,7 +528,7 @@ def group_paths_by_similarity(paths):
     return similar_group, isolated_group
 
 
-# === ()===
+# === 优先经验回放 ===
 class PrioritizedExperienceReplay:
     def __init__(self, capacity=10000, alpha=0.6, beta_start=0.4, beta_frames=100000):
         self.capacity = capacity
@@ -399,11 +546,11 @@ class PrioritizedExperienceReplay:
         self.min_priority = 1.0
 
     def beta(self):
-        """beta()"""
+        """计算当前的beta值"""
         return min(1.0, self.beta_start + (1.0 - self.beta_start) * self.frame / self.beta_frames)
 
     def append(self, experience):
-        """, """
+        """添加经验到缓冲区"""
         if len(self.buffer) < self.capacity:
             self.buffer.append(experience)
         else:
@@ -415,7 +562,7 @@ class PrioritizedExperienceReplay:
         self.size = min(self.size + 1, self.capacity)
 
     def sample(self, batch_size):
-        """, """
+        """从缓冲区采样"""
         if self.size < batch_size:
             return [], [], []
 
@@ -423,10 +570,10 @@ class PrioritizedExperienceReplay:
         probs = priorities ** self.alpha
         probs /= probs.sum()
 
-        # replace=False
+        # 不重复采样
         indices = np.random.choice(self.size, batch_size, p=probs, replace=False)
 
-        # : 
+        # 去重：确保批次中没有重复状态
         unique_batch = []
         unique_indices = []
         seen_states = set()
@@ -434,7 +581,7 @@ class PrioritizedExperienceReplay:
         for idx in indices:
             experience = self.buffer[idx]
             state_tensor = experience[0]
-            # 
+            # 将tensor转换为元组用于去重
             state_tuple = tuple(state_tensor.cpu().numpy().flatten())
 
             if state_tuple not in seen_states:
@@ -442,7 +589,7 @@ class PrioritizedExperienceReplay:
                 unique_batch.append(experience)
                 unique_indices.append(idx)
 
-        # , 
+        # 如果去重后样本不够，补充新样本
         if len(unique_batch) < batch_size:
             remaining_indices = [i for i in range(self.size) if i not in unique_indices]
             if remaining_indices:
@@ -477,7 +624,7 @@ class PrioritizedExperienceReplay:
         return unique_batch, unique_indices, weights
 
     def update_priorities(self, indices, priorities):
-        """"""
+        """更新经验优先级"""
         for idx, priority in zip(indices, priorities):
             if idx < self.size:
                 self.priorities[idx] = priority
@@ -485,7 +632,7 @@ class PrioritizedExperienceReplay:
                 self.min_priority = min(self.min_priority, priority)
 
     def get_priority_statistics(self):
-        """"""
+        """获取优先级统计信息"""
         if self.size == 0:
             return None
 
@@ -507,7 +654,7 @@ class PrioritizedExperienceReplay:
         return self.size
 
     def get_high_reward_samples(self, target_path, num_samples=20):
-        """"""
+        """获取高奖励样本"""
         if len(self.buffer) == 0:
             return []
 
@@ -515,7 +662,7 @@ class PrioritizedExperienceReplay:
         for experience in self.buffer:
             state_tensor = experience[0]
             state_tuple = tuple(state_tensor.cpu().numpy().flatten().astype(int))
-            triggered = execute_Tr(*state_tuple)  #  dx, dy, dz
+            triggered = execute_Tr(*state_tuple)
             new_reward = compute_reward(state_tuple, target_path, triggered, None, None)
             sim = jaccard_similarity(triggered, target_path)
             samples_with_recalculated_scores.append((state_tuple, new_reward, sim, triggered))
@@ -535,7 +682,7 @@ def load_path_data(file_path):
     return path_data
 
 
-# === DQN ===
+# === DQN网络 ===
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(DQN, self).__init__()
@@ -549,7 +696,7 @@ class DQN(nn.Module):
         return self.fc3(x)
 
 
-# === DQN Agent()===
+# === 优先级DQN智能体 ===
 class PrioritizedDQNAgent:
     def __init__(self, state_dim, action_dim, replay_buffer, gamma=0.99, epsilon=1.0,
                  epsilon_decay=0.995, epsilon_min=0.1, learning_rate=0.001):
@@ -569,16 +716,18 @@ class PrioritizedDQNAgent:
 
     def decode_action(self, action_idx):
         """
+        解码动作索引为状态变化值
         
-        : 30 = 3 x 10
-        - 0: dx (1-50)
-        - 1: dy (1-50)
-        - 2: dz (1-50)
+        动作空间: 30个动作 = 3个维度 x 10个变化值
+        - 维度0: dx (1-50)
+        - 维度1: dy (1-50)
+        - 维度2: dz (1-50)
 
-        : 
-        - dx, dy, dz: +/-35(70%), +/-25(50%), +/-10(20%), +/-5(10%), +/-2(5%)(50)
+        每个维度的变化值: 
+        - 正向: 35(70%), 25(50%), 10(20%), 5(10%), 2(5%) (共5个正向变化)
+        - 负向: -2(5%), -5(10%), -10(20%), -25(50%), -35(70%) (共5个负向变化)
         """
-        # : 50
+        # 10个变化值：5个正向，5个负向
         delta_values = [35, 25, 10, 5, 2, -2, -5, -10, -25, -35]
 
         dim = action_idx // 10
@@ -596,7 +745,7 @@ class PrioritizedDQNAgent:
     def act(self, state):
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
-        # act
+        # 贪婪动作选择
         normalized_state = normalize_state(state)
         state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -604,8 +753,8 @@ class PrioritizedDQNAgent:
         return torch.argmax(q_values, dim=1).item()
 
     def store_transition(self, state, action, reward, next_state, done):
-        """, TD()"""
-        # 
+        """存储转换并返回TD误差用于优先级更新"""
+        # 归一化状态
         normalized_state = normalize_state(state)
         normalized_next_state = normalize_state(next_state)
 
@@ -623,7 +772,7 @@ class PrioritizedDQNAgent:
         return td_error
 
     def train(self, batch_size=32):
-        """()"""
+        """训练模型（优先级经验回放版本）"""
         if len(self.replay_buffer) < batch_size:
             return
 
@@ -633,7 +782,7 @@ class PrioritizedDQNAgent:
 
         states, actions, rewards, next_states, dones, _ = zip(*batch)
 
-        # tensor, 
+        # 转换为tensor并移到设备
         states = torch.tensor(np.array([s.cpu().numpy().flatten() for s in states]), dtype=torch.float32).to(device)
         actions = torch.tensor(actions, dtype=torch.long).to(device)
         rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
@@ -663,7 +812,7 @@ class PrioritizedDQNAgent:
         self.target_model.load_state_dict(self.model.state_dict())
 
 
-# === Sample generation===
+# === 相似路径样本生成 ===
 def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, top_k=200):
     def jaccard_similarity_local(a, b):
         if not a and not b:
@@ -671,7 +820,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
         return len(a & b) / len(a | b) if a | b else 0.0
 
     def compute_robustness(state, path):
-        base = execute_Tr(*state)  #  dx, dy, dz
+        base = execute_Tr(*state)
         if not base:
             return 0.0
         rob, neighbors = 0.0, 0
@@ -684,7 +833,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
                     if not is_valid_state(neighbor_state):
                         continue
                     neighbor = clip_state(neighbor_state)
-                    n_trig = execute_Tr(*neighbor)  #  dx, dy, dz
+                    n_trig = execute_Tr(*neighbor)
                     if not n_trig:
                         continue
                     rob += jaccard_similarity_local(base, n_trig)
@@ -713,7 +862,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
                 np.random.randint(dy_min, dy_max + 1),
                 np.random.randint(dz_min, dz_max + 1)
             )
-            triggered = execute_Tr(*state)  #  dx, dy, dz
+            triggered = execute_Tr(*state)
             if not triggered:
                 continue
             sim = jaccard_similarity_local(triggered, path)
@@ -726,7 +875,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
             save_samples(path_id=path_idx + 1, samples=samples[:top_k], base_dir=base_dir)
 
 
-# === Run ===
+# === 相似路径训练 ===
 def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_documents, episodes=500,
                                                      batch_size=32, steps_per_test=3, replay_times=1,
                                                      is_isolated=False):
@@ -747,7 +896,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
             path_data = load_path_data(file_path)
             target_path = targetPaths[path_idx]
 
-            # 
+            # 训练参数设置
             BATCH_SIZE = 50
             N_SAMPLES = 200
             N_STEPS = 3
@@ -781,7 +930,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
                             if random.random() < agent.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                # 
+                                # 贪婪动作选择
                                 normalized_state = normalize_state(state)
                                 state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                     device)
@@ -792,7 +941,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
                             ddx, ddy, ddz = agent.decode_action(action)
                             next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                            triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                            triggered = execute_Tr(*next_state)
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
                             done = (step == N_STEPS - 1)
 
@@ -840,8 +989,8 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
 
 def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_group_indices, num_total=2000, top_k=200):
     def compute_q_value_normalized_complement(state, agent):
-        """Q"""
-        # 
+        """计算归一化Q值补数"""
+        # 归一化状态
         normalized_state = normalize_state(state)
         state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -862,7 +1011,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
         return complement_q
 
     def compute_robustness(state, path):
-        base = execute_Tr(*state)  #  dx, dy, dz
+        base = execute_Tr(*state)
         if not base:
             return 0.0
         rob, neighbors = 0.0, 0
@@ -875,7 +1024,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
                     if not is_valid_state(neighbor_state):
                         continue
                     neighbor = clip_state(neighbor_state)
-                    n_trig = execute_Tr(*neighbor)  #  dx, dy, dz
+                    n_trig = execute_Tr(*neighbor)
                     if not n_trig:
                         continue
                     rob += jaccard_similarity(base, n_trig)
@@ -904,7 +1053,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
                 np.random.randint(dy_min, dy_max + 1),
                 np.random.randint(dz_min, dz_max + 1)
             )
-            triggered = execute_Tr(*state)  #  dx, dy, dz
+            triggered = execute_Tr(*state)
             if not triggered:
                 continue
             sim = jaccard_similarity(triggered, path)
@@ -918,7 +1067,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
             save_samples(path_id=path_idx + 1, samples=samples[:top_k], base_dir=base_dir)
 
 
-# === Run ===
+# === 孤立路径训练 ===
 def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isolated, similar_group,
                                                       isolated_group, path_documents, episodes=500, batch_size=32,
                                                       is_isolated=True):
@@ -945,7 +1094,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
             stage1_samples = stage1_samples_pool.get(path_idx, [])
             target_path = targetPaths[path_idx]
 
-            # 
+            # 训练参数设置
             BATCH_SIZE = 50
             N_SAMPLES_STAGE2 = min(140, len(stage2_path_data))
             N_SAMPLES_STAGE1 = min(60, len(stage1_samples))
@@ -955,7 +1104,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
             PATH_REPEAT = 5
 
             for repeat in range(PATH_REPEAT):
-                # Stage2
+                # 阶段2：使用新生成的孤立路径样本
                 for batch_idx in range(N_BATCHES_STAGE2):
                     batch_start = batch_idx * BATCH_SIZE
                     batch_end = min(batch_start + BATCH_SIZE, N_SAMPLES_STAGE2)
@@ -983,7 +1132,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                             if random.random() < agent_isolated.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                # 
+                                # 贪婪动作选择
                                 normalized_state = normalize_state(state)
                                 state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                     device)
@@ -994,7 +1143,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                             ddx, ddy, ddz = agent_isolated.decode_action(action)
                             next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                            triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                            triggered = execute_Tr(*next_state)
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
 
                             if target_path.issubset(triggered):
@@ -1029,7 +1178,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                         if global_replay_count % 2 == 0:
                             agent_isolated.update_target_model()
 
-                # Stage1
+                # 阶段1：使用相似路径智能体的高奖励样本
                 if stage1_samples:
                     for batch_idx in range(N_BATCHES_STAGE1):
                         batch_start = batch_idx * BATCH_SIZE
@@ -1059,7 +1208,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                                 if random.random() < agent_isolated.epsilon:
                                     action = random.choice(legal_actions)
                                 else:
-                                    # 
+                                    # 贪婪动作选择
                                     normalized_state = normalize_state(state)
                                     state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                         device)
@@ -1070,7 +1219,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                                 ddx, ddy, ddz = agent_isolated.decode_action(action)
                                 next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                                triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                                triggered = execute_Tr(*next_state)
                                 reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
                                 reward *= 0.8
 
@@ -1118,9 +1267,9 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
     return agent_isolated
 
 
-# === Excel()===
+# === Excel保存函数 ===
 def append_performance_metrics_to_excel(metrics_collector, filepath, run_number):
-    """MetricExcel"""
+    """将性能指标追加到Excel文件"""
     avg_td_error = np.mean(metrics_collector.td_errors) if metrics_collector.td_errors else 0
     total_reward = metrics_collector.total_reward
     action_improvement_rate = np.mean(
@@ -1137,35 +1286,35 @@ def append_performance_metrics_to_excel(metrics_collector, filepath, run_number)
 
     new_row = {
         'Run': f"Run {run_number}",
-        'final samplesAverage Similarity': f"{avg_final_similarity:.4f}",
-        '': f"{total_reward:,.2f}",
-        'episode': f"{avg_episode_reward:,.4f}",
-        'Standard deviation': f"{reward_std:,.4f}",
-        'TD': f"{avg_td_error:.4f}",
-        '': f"{action_improvement_rate:.4f}",
-        '(%)': f"{action_improvement_rate * 100:.2f}%",
-        '': f"{metrics_collector.step_count:,}",
-        'final samples': f"{len(metrics_collector.final_output_similarities)}",
-        'Training Total Time( seconds)': f"{training_time:.2f}",
-        'Training Total Time( minutes)': f"{training_time / 60:.2f}",
-        '(MB)': f"{avg_memory_usage:.2f}",
-        '(ms)': f"{per_step_time:.2f}",
-        '': f"{avg_priority:.4f}",
-        '': f"{avg_importance_weight:.4f}"
+        '最终样本平均相似度': f"{avg_final_similarity:.4f}",
+        '总奖励': f"{total_reward:,.2f}",
+        '平均回合奖励': f"{avg_episode_reward:,.4f}",
+        '奖励标准差': f"{reward_std:,.4f}",
+        '平均TD误差': f"{avg_td_error:.4f}",
+        '动作改进率': f"{action_improvement_rate:.4f}",
+        '动作改进率(%)': f"{action_improvement_rate * 100:.2f}%",
+        '总步数': f"{metrics_collector.step_count:,}",
+        '最终样本数': f"{len(metrics_collector.final_output_similarities)}",
+        '训练总时间(秒)': f"{training_time:.2f}",
+        '训练总时间(分钟)': f"{training_time / 60:.2f}",
+        '平均内存使用(MB)': f"{avg_memory_usage:.2f}",
+        '每步时间(ms)': f"{per_step_time:.2f}",
+        '平均优先级': f"{avg_priority:.4f}",
+        '平均重要性权重': f"{avg_importance_weight:.4f}"
     }
 
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
     if os.path.exists(filepath):
-        df = pd.read_excel(filepath, sheet_name='Metric')
+        df = pd.read_excel(filepath, sheet_name='性能指标')
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     else:
         df = pd.DataFrame([new_row])
 
     with pd.ExcelWriter(filepath, engine='openpyxl', mode='w') as writer:
-        df.to_excel(writer, sheet_name='Metric', index=False)
+        df.to_excel(writer, sheet_name='性能指标', index=False)
         workbook = writer.book
-        worksheet = writer.sheets['Metric']
+        worksheet = writer.sheets['性能指标']
 
         worksheet.column_dimensions['A'].width = 15
         for col in ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']:
@@ -1180,12 +1329,12 @@ def append_performance_metrics_to_excel(metrics_collector, filepath, run_number)
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
-    print(f"Run {run_number} runMetric: {filepath}")
+    print(f"运行 {run_number} 的性能指标已保存到: {filepath}")
 
 
 def append_final_samples_to_excel(agent_similar, agent_isolated, similar_group, isolated_group, targetPaths, filepath,
                                   run_number):
-    """Excel"""
+    """将最终样本追加到Excel文件"""
     new_samples = []
 
     for path_idx in similar_group:
@@ -1195,17 +1344,17 @@ def append_final_samples_to_excel(agent_similar, agent_isolated, similar_group, 
         for state_tuple, reward, sim, triggered in high_reward_samples:
             new_samples.append({
                 'Run': f"Run {run_number}",
-                'Path ': 'Similar path group',
-                'Path ID': path_idx + 1,
+                '路径分组': '相似路径组',
+                '路径ID': path_idx + 1,
                 'dx': state_tuple[0],
                 'dy': state_tuple[1],
                 'dz': state_tuple[2],
-                'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                '相似度': f"{sim:.4f}",
+                '奖励': f"{reward:.2f}",
+                '触发分支数': len(triggered),
+                '目标分支数': len(target_path),
+                '触发分支': str(sorted(triggered)),
+                '目标分支': str(sorted(target_path))
             })
 
     for path_idx in isolated_group:
@@ -1215,31 +1364,31 @@ def append_final_samples_to_excel(agent_similar, agent_isolated, similar_group, 
         for state_tuple, reward, sim, triggered in high_reward_samples:
             new_samples.append({
                 'Run': f"Run {run_number}",
-                'Path ': 'Isolated path group',
-                'Path ID': path_idx + 1,
+                '路径分组': '孤立路径组',
+                '路径ID': path_idx + 1,
                 'dx': state_tuple[0],
                 'dy': state_tuple[1],
                 'dz': state_tuple[2],
-                'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                '相似度': f"{sim:.4f}",
+                '奖励': f"{reward:.2f}",
+                '触发分支数': len(triggered),
+                '目标分支数': len(target_path),
+                '触发分支': str(sorted(triggered)),
+                '目标分支': str(sorted(target_path))
             })
 
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
     if os.path.exists(filepath):
-        df = pd.read_excel(filepath, sheet_name='final samples')
+        df = pd.read_excel(filepath, sheet_name='最终样本')
         df = pd.concat([df, pd.DataFrame(new_samples)], ignore_index=True)
     else:
         df = pd.DataFrame(new_samples)
 
     with pd.ExcelWriter(filepath, engine='openpyxl', mode='w') as writer:
-        df.to_excel(writer, sheet_name='final samples', index=False)
+        df.to_excel(writer, sheet_name='最终样本', index=False)
         workbook = writer.book
-        worksheet = writer.sheets['final samples']
+        worksheet = writer.sheets['最终样本']
 
         column_widths = {
             'A': 12, 'B': 15, 'C': 12, 'D': 10, 'E': 10, 'F': 10,
@@ -1257,17 +1406,17 @@ def append_final_samples_to_excel(agent_similar, agent_isolated, similar_group, 
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-    print(f"Run {run_number} run: {filepath}")
+    print(f"运行 {run_number} 的最终样本已保存到: {filepath}")
 
 
-# ===  run ===
+# === 单次实验运行 ===
 def run_single_experiment(run_number, results_save_dir):
-    """"""
+    """运行单次实验"""
     print(f"\n{'=' * 80}")
-    print(f"Start run  {run_number}  run(DQN)")
+    print(f"开始运行第 {run_number} 次实验（优先级DQN）")
     print(f"{'=' * 80}\n")
 
-    # Metric
+    # 重置指标收集器
     prioritized_metrics.reset()
     prioritized_metrics.start_training()
 
@@ -1277,9 +1426,22 @@ def run_single_experiment(run_number, results_save_dir):
 
     similar_group, isolated_group = group_paths_by_similarity(targetPaths)
 
-    # Run : Path 
-    if run_number == 1:
+    # 确保样本目录存在
+    os.makedirs(path_documents, exist_ok=True)
+
+    # 检查相似路径样本文件是否已存在
+    samples_exist = True
+    for path_idx in similar_group:
+        file_path = os.path.join(path_documents, f"prioritized_path{path_idx + 1}.txt")
+        if not os.path.exists(file_path):
+            samples_exist = False
+            break
+
+    if not samples_exist:
+        print("生成相似路径样本...")
         generate_samples_for_similar_paths(similar_group, num_total=2000, top_k=200)
+    else:
+        print("相似路径样本文件已存在，跳过生成...")
 
     replay_buffer = PrioritizedExperienceReplay(capacity=10000, alpha=0.6, beta_start=0.4, beta_frames=100000)
     state_dim = 3
@@ -1296,11 +1458,21 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent.epsilon
     }, model_path_similar)
 
-    # Run : Path 
-    if run_number == 1:
-        generate_samples_for_isolated_paths_prioritized(agent, isolated_group, num_total=2000, top_k=200)
+    # 检查孤立路径样本文件是否已存在
+    isolated_samples_exist = True
+    for path_idx in isolated_group:
+        file_path = os.path.join(path_documents, f"prioritized_path{path_idx + 1}_isolated.txt")
+        if not os.path.exists(file_path):
+            isolated_samples_exist = False
+            break
 
-    # Run : Path 
+    if not isolated_samples_exist:
+        print("生成孤立路径样本...")
+        generate_samples_for_isolated_paths_prioritized(agent, isolated_group, num_total=2000, top_k=200)
+    else:
+        print("孤立路径样本文件已存在，跳过生成...")
+
+    # 初始化孤立路径智能体
     isolated_replay_buffer = PrioritizedExperienceReplay(capacity=15000, alpha=0.6, beta_start=0.4, beta_frames=100000)
     agent_isolated = PrioritizedDQNAgent(state_dim, action_dim, isolated_replay_buffer)
 
@@ -1330,10 +1502,10 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent_isolated.epsilon
     }, model_path_isolated)
 
-    # 
+    # 结束训练计时
     prioritized_metrics.end_training()
 
-    # final samples
+    # 记录最终样本
     for path_idx in similar_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
@@ -1346,48 +1518,48 @@ def run_single_experiment(run_number, results_save_dir):
         for state_tuple, _, sim, triggered in high_reward_samples:
             prioritized_metrics.record_final_output_sample(triggered, target_path)
 
-    # Excel
-    performance_excel_path = os.path.join(results_save_dir, "Metric_.xlsx")
-    samples_excel_path = os.path.join(results_save_dir, "final samples_.xlsx")
+    # 保存到Excel
+    performance_excel_path = os.path.join(results_save_dir, "性能指标.xlsx")
+    samples_excel_path = os.path.join(results_save_dir, "最终样本.xlsx")
 
     append_performance_metrics_to_excel(prioritized_metrics, performance_excel_path, run_number)
     append_final_samples_to_excel(agent, agent_isolated, similar_group, isolated_group, targetPaths, samples_excel_path,
                                   run_number)
 
-    #  runMetric
+    # 输出本次运行指标
     avg_similarity = np.mean(
         prioritized_metrics.final_output_similarities) if prioritized_metrics.final_output_similarities else 0
     training_time = prioritized_metrics.end_time - prioritized_metrics.start_time
     avg_priority = np.mean(prioritized_metrics.priority_statistics) if prioritized_metrics.priority_statistics else 0
-    print(f"\nRun  {run_number}  runcompleted:")
-    print(f"  Average Similarity: {avg_similarity:.4f}")
-    print(f"  Training Time: {training_time:.2f} seconds")
-    print(f"  : {prioritized_metrics.step_count}")
-    print(f"  : {avg_priority:.4f}")
+    print(f"\n第 {run_number} 次运行完成:")
+    print(f"  平均相似度: {avg_similarity:.4f}")
+    print(f"  训练时间: {training_time:.2f} 秒")
+    print(f"  总步数: {prioritized_metrics.step_count}")
+    print(f"  平均优先级: {avg_priority:.4f}")
 
 
 if __name__ == "__main__":
     results_save_dir = r"D:\Experiment\CNN\DQNNEW\results\prioritized_results"
     os.makedirs(results_save_dir, exist_ok=True)
 
-    # 20
+    # 设置运行次数
     NUM_RUNS = 20
 
     print("=" * 80)
-    print(f" {NUM_RUNS} DQN")
+    print(f"开始 {NUM_RUNS} 次优先级DQN实验")
     print("=" * 80)
 
     for run in range(1, NUM_RUNS + 1):
         try:
             run_single_experiment(run, results_save_dir)
         except Exception as e:
-            print(f"\nRun  {run}  run: {str(e)}")
+            print(f"\n第 {run} 次运行出错: {str(e)}")
             import traceback
 
             traceback.print_exc()
             continue
 
     print("\n" + "=" * 80)
-    print(f" {NUM_RUNS}  runcompleted")
-    print(f": {results_save_dir}")
+    print(f"所有 {NUM_RUNS} 次运行完成")
+    print(f"结果保存在: {results_save_dir}")
     print("=" * 80)

@@ -13,32 +13,30 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import sys
 
-NUM_RUNS = 20  # Experiment Runs, 
+NUM_RUNS = 20  # Experiment Runs
 
 # === device setup ===
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# === new three-dimensional range settings ===
+# === three-dimensional range settings ===
+# x(1, 200), y(1, 200), z(2, 150)
 LIGHT_MIN = 1
-LIGHT_MAX = 50
+LIGHT_MAX = 200
 MOISTURE_MIN = 1
-MOISTURE_MAX = 50
-TEMP_MIN = 1
-TEMP_MAX = 50
+MOISTURE_MAX = 200
+TEMP_MIN = 2
+TEMP_MAX = 150
 
 BOUNDS = {
-    'light': (LIGHT_MIN, LIGHT_MAX),  # x: light intensity
-    'temp': (TEMP_MIN, TEMP_MAX),    # y: temperature
-    'moisture': (MOISTURE_MIN, MOISTURE_MAX)  # z: moisture
+    'light': (LIGHT_MIN, LIGHT_MAX),      # x: light intensity (1, 200)
+    'temp': (TEMP_MIN, TEMP_MAX),          # y: temperature (2, 150)
+    'moisture': (MOISTURE_MIN, MOISTURE_MAX)  # z: moisture (1, 200)
 }
 
-# === action-increment settings(5%10%20%50%70%)===
-# light (1-50, 49): 5%about 2, 10%about 5, 20%about 10, 50%about 25, 70%about 35
+# === action-increment settings ===
 DELTA_LIGHT = [35, 25, 10, 5, 2, -2, -5, -10, -25, -35]
-# temp (1-50, 49): 5%about 2, 10%about 5, 20%about 10, 50%about 25, 70%about 35
 DELTA_TEMP = [35, 25, 10, 5, 2, -2, -5, -10, -25, -35]
-# moisture (1-50, 49): 5%about 2, 10%about 5, 20%about 10, 50%about 25, 70%about 35
 DELTA_MOISTURE = [35, 25, 10, 5, 2, -2, -5, -10, -25, -35]
 
 
@@ -46,10 +44,7 @@ DELTA_MOISTURE = [35, 25, 10, 5, 2, -2, -5, -10, -25, -35]
 # ========== state normalization functions ==========
 # ========================================
 def normalize_state(state):
-    """
-    [0, 1]interval
-    state: (light, temp, moisture)
-    """
+    """[0, 1]interval. state: (light, temp, moisture)"""
     normalized = np.array([
         (state[0] - BOUNDS['light'][0]) / (BOUNDS['light'][1] - BOUNDS['light'][0]),
         (state[1] - BOUNDS['temp'][0]) / (BOUNDS['temp'][1] - BOUNDS['temp'][0]),
@@ -59,10 +54,7 @@ def normalize_state(state):
 
 
 def denormalize_state(normalized_state):
-    """
-    
-    normalized_state: (norm_light, norm_temp, norm_moisture) [0,1]interval
-    """
+    """normalized_state: (norm_light, norm_temp, norm_moisture) [0,1]interval"""
     state = np.array([
         normalized_state[0] * (BOUNDS['light'][1] - BOUNDS['light'][0]) + BOUNDS['light'][0],
         normalized_state[1] * (BOUNDS['temp'][1] - BOUNDS['temp'][0]) + BOUNDS['temp'][0],
@@ -71,11 +63,8 @@ def denormalize_state(normalized_state):
     return state
 
 
-# ========================================
-
-
 def generate_random_state():
-    """"""
+    """生成随机状态"""
     light = np.random.randint(BOUNDS['light'][0], BOUNDS['light'][1] + 1)
     temp = np.random.randint(BOUNDS['temp'][0], BOUNDS['temp'][1] + 1)
     moisture = np.random.randint(BOUNDS['moisture'][0], BOUNDS['moisture'][1] + 1)
@@ -83,7 +72,7 @@ def generate_random_state():
 
 
 def clip_state(state):
-    """"""
+    """将状态裁剪到边界范围内"""
     return np.array([
         np.clip(state[0], BOUNDS['light'][0], BOUNDS['light'][1]),
         np.clip(state[1], BOUNDS['temp'][0], BOUNDS['temp'][1]),
@@ -92,18 +81,215 @@ def clip_state(state):
 
 
 def is_state_valid(state):
-    """"""
+    """检查状态是否在有效范围内"""
     return (BOUNDS['light'][0] <= state[0] <= BOUNDS['light'][1] and
             BOUNDS['temp'][0] <= state[1] <= BOUNDS['temp'][1] and
             BOUNDS['moisture'][0] <= state[2] <= BOUNDS['moisture'][1])
 
 
-def execute_Tr(position):
-    """Execute the objective function and return triggered paths"""
-    x = int(np.clip(position[0], BOUNDS['light'][0], BOUNDS['light'][1]))
-    temp = int(np.clip(position[1], BOUNDS['temp'][0], BOUNDS['temp'][1]))
-    z = int(np.clip(position[2], BOUNDS['moisture'][0], BOUNDS['moisture'][1]))
-    return category1_multivariable_control(x, temp, z)
+# ========================================
+# ========== 99分支执行逻辑 ==========
+# ========================================
+def execute_Tr(state):
+    """执行分支逻辑，state可以是tuple或numpy array"""
+    if isinstance(state, np.ndarray):
+        x, y, z = state[0], state[1], state[2]
+    else:
+        x, y, z = state
+    
+    # 初始化分支覆盖数组
+    b = [0] * 99
+
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 200): b[0] = 1
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * 2 + 1) > 150): b[1] = 2
+    if ((x * y) / (z + 1) > 150) != ((x * x) / (z + 1) > 150): b[2] = 3
+    if ((x * y) / (z + 1) > 150) != ((x * 2 * y) / (z + 1) > 150): b[3] = 4
+    if ((x * y) / (z + 1) > 150) != ((y * y) / (z + 1) > 150): b[4] = 5
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 500): b[5] = 6
+    if ((x * y) / (z + 1) > 150) != ((x * 0.5 * y) / (z + 1) > 150): b[6] = 7
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 10) > 150): b[7] = 8
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * z + 1) > 150): b[8] = 9
+    if ((x * y) / (z + 1) > 150) != ((x / y) / (z + 1) > 150): b[9] = 10
+
+    # 验证规则2：相对偏差检测
+    if ((y - x) < 0.2 * z) != ((y - x * 2) < 0.2 * z): b[10] = 11
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.1 * z): b[11] = 12
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.3 * z): b[12] = 13
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.5 * z): b[13] = 14
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.38 * z): b[14] = 15
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * z * x): b[15] = 16
+    if ((y - x) < 0.2 * z) != ((y * 1.3 - x) < 0.2 * z): b[16] = 17
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * x): b[17] = 18
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * y): b[18] = 19
+    if ((y - x) < 0.2 * z) != ((y * 2 - x) < 0.2 * z): b[19] = 20
+
+    # 验证规则3：立方根关系验证
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[20] = 21
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2): b[21] = 22
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2): b[22] = 23
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.9): b[23] = 24
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1.8 + y ** 3) < z ** 2): b[24] = 25
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2): b[25] = 26
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[26] = 27
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): b[27] = 28
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3): b[28] = 29
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3.2) < z ** 3): b[29] = 30
+
+    # 验证规则6：整数同余检查
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 2 == int(y) % 3 == int(z) % 3 == 0): b[30] = 31
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 2 == int(z) % 3 == 0): b[31] = 32
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 2 == 0): b[32] = 33
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 5 == int(y) % 3 == int(z) % 3 == 0): b[33] = 34
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 5 == int(z) % 3 == 0): b[34] = 35
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 5 == 0): b[35] = 36
+
+    # 验证规则7：比值范围检查
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (z + 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[36] = 37
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 1 and (y / (z + 0.1)) < 0.3): b[37] = 38
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[38] = 39
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.2 + 0.1)) < 0.3): b[39] = 40
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.5): b[40] = 41
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 0.1)) < 0.3): b[41] = 42
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y * 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[42] = 43
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x + (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[43] = 44
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.5 + 0.1)) < 0.3): b[44] = 45
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0)) < 0.3): b[45] = 46
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 or (y / (z + 0.1)) < 0.3): b[46] = 47
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 2)) > 3 and (y / (z + 0.1)) < 0.3): b[47] = 48
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 5)) < 0.3): b[48] = 49
+
+    # 验证规则8：差值阈值检查
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[49] = 50
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 20 and abs(y - z) > 20 and abs(x - z) < 8): b[50] = 51
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 30 and abs(y - z) > 20 and abs(x - z) < 8): b[51] = 52
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 40 and abs(x - z) < 8): b[52] = 53
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * z - z) > 20 and abs(x - z) < 8): b[53] = 54
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 12): b[54] = 55
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z * 2) < 8): b[55] = 56
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * 2 - z) < 8): b[56] = 57
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * 2 - z) > 20 and abs(x - z) < 8): b[57] = 58
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * 2 - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[58] = 59
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z * z) > 20 and abs(x - z) < 8): b[59] = 60
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * y - z) > 20 and abs(x - z) < 8): b[60] = 61
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * x - z) < 8): b[61] = 62
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * x - z) > 20 and abs(x - z) < 8): b[62] = 63
+
+    # 验证规则9：极值范围检查
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x * 2 > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[63] = 64
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 60 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[64] = 65
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 115 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[65] = 66
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 18) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[66] = 67
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 5) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[67] = 68
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 130 or y < 2) and (z > 180 or z < 40)): b[68] = 69
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * z > 180 or z < 40)): b[69] = 70
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 30)): b[70] = 71
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * 50 > 180 or z < 40)): b[71] = 72
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 60)): b[72] = 73
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 100 or y < 2) and (z > 180 or z < 40)): b[73] = 74
+
+    # 额外的复杂验证逻辑
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.3 + y ** 0.5 > z and x * y > z ** 1.5): b[74] = 75
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.6 + y ** 0.5 > z and x * y > z ** 1.5): b[75] = 76
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.7 > z and x * y > z ** 1.5): b[76] = 77
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.5 > z ** 1.5): b[77] = 78
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            (x ** 0.5) * 2 + y ** 0.5 > z and x * y > z ** 1.5): b[78] = 79
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y * 0.5 > z and x * y > z ** 1.5): b[79] = 80
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 2 and x * y > z ** 1.5): b[80] = 81
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 0.5 and x * y > z ** 1.5): b[81] = 82
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.3 * y > z ** 1.5): b[82] = 83
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.1 > z ** 1.5): b[83] = 84
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.2 * y > z ** 1.5): b[84] = 85
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.5 * y > z ** 1.5): b[85] = 86
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * y > z ** 8): b[86] = 87
+
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[87] = 88
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 3 and x > y): b[88] = 89
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 2 and x > y): b[89] = 90
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * x > y): b[90] = 91
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * 2 > y): b[91] = 92
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + 50) ** 2 < z ** 2 * 4 and x > y): b[92] = 93
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 3 * 4 and x > y): b[93] = 94
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[94] = 95
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 4 < z ** 2 * 4 and x > y): b[95] = 96
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 1 and x > y): b[96] = 97
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * x and x > y): b[97] = 98
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * y and x > y): b[98] = 99
+
+    # 返回触发的分支索引集合
+    triggered = set()
+    for i, val in enumerate(b):
+        if val > 0:
+            triggered.add(val)
+    return triggered
 
 
 # === enhanced metrics collector ===
@@ -118,8 +304,6 @@ class MetricsCollector:
         self.total_memory_usage = 0
         self.memory_check_count = 0
         self.step_count = 0
-
-        # === PSO stage statistics ===
         self.pso_start_time = None
         self.pso_end_time = None
         self.perfect_solutions_count = 0
@@ -148,7 +332,6 @@ class MetricsCollector:
         self.total_paths_count += 1
         self.pso_reset_counts.append(reset_count)
         self.path_execution_times.append(execution_time)
-
         if is_perfect_match:
             self.perfect_solutions_count += 1
             if method == 'PSO' and convergence_iter is not None:
@@ -165,7 +348,6 @@ class MetricsCollector:
         self.step_count += 1
         self.total_reward += reward
         self.td_errors.append(td_error)
-
         try:
             process = psutil.Process(os.getpid())
             current_memory = process.memory_info().rss / 1024 / 1024
@@ -188,145 +370,53 @@ class MetricsCollector:
 def compute_reward(state, target_path, triggered, prev_triggered=None, prev_state=None):
     sim = jaccard_similarity(triggered, target_path)
     reward = sim * 10
-
     if target_path.issubset(triggered):
         reward += 1
-
     return reward
-
-
-def category1_multivariable_control(dx, dy, dz):
-    """Execute the objective function and return triggered paths"""
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
-    triggered = set()
-
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
-        triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
-        triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
-        triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
-        triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
-        triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
-        triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
-        triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
-        triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
-        triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
-        triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
-        triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
-        triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
-        triggered.add(29)
-
-    return triggered
 
 
 # target path definitions
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {9, 10, 11, 13, 14, 15, 16, 18, 19, 31, 32, 33, 34, 36, 75, 78, 81, 83, 84, 85, 86, 87},
+    {25, 26, 27, 29, 30, 33, 37, 42, 52, 53, 56, 57, 58, 61, 62, 88, 93, 95, 96, 97},
+    {16, 31, 32, 33, 35, 36, 51, 52, 53, 57, 59, 62, 75, 78, 81, 83, 84, 85, 86, 87},
+    {2, 5, 6, 7, 9, 10, 31, 32, 33, 34, 35, 39, 44, 47, 75, 81, 83, 84, 85, 86, 87},
+    {2, 5, 6, 7, 8, 9, 10, 20, 31, 33, 34, 35, 75, 78, 81, 83, 84, 85, 86, 87, 98},
+    {6, 9, 10, 11, 14, 15, 16, 18, 19, 31, 34, 35, 36, 64, 65, 76, 77, 79, 80, 82},
+    {1, 2, 5, 6, 7, 8, 9, 10, 20, 31, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+    {21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 43, 47, 91, 92},
+    {21, 24, 25, 26, 27, 29, 30, 37, 42, 52, 53, 56, 57, 62, 63, 88, 93, 95, 96},
+    {3, 31, 32, 33, 34, 35, 36, 39, 40, 41, 44, 45, 47, 88, 89, 90, 95, 96, 97},
+    {1, 2, 6, 7, 9, 10, 17, 20, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+    {3, 4, 20, 33, 36, 54, 58, 60, 61, 63, 70, 72, 88, 89, 90, 95, 96, 97},
+    {6, 9, 10, 20, 31, 32, 34, 35, 69, 71, 74, 77, 79, 80, 82, 94, 98, 99},
+    {1, 2, 3, 6, 7, 8, 9, 10, 50, 56, 57, 60, 62, 67, 78, 81, 84, 85, 87},
+    {1, 2, 3, 6, 7, 8, 9, 10, 12, 17, 20, 51, 52, 53, 56, 57, 62, 70, 72},
+    {21, 24, 25, 26, 27, 29, 30, 31, 37, 39, 42, 44, 48, 57, 88, 95, 96},
+    {9, 10, 17, 20, 31, 33, 34, 35, 70, 72, 73, 77, 80, 82, 94, 98, 99},
+    {9, 10, 11, 16, 18, 19, 32, 66, 69, 75, 78, 81, 83, 84, 85, 86, 87},
+    {1, 2, 3, 6, 7, 9, 10, 11, 13, 14, 15, 16, 18, 19, 32, 55, 70, 72},
+    {21, 24, 25, 26, 27, 29, 30, 32, 34, 35, 38, 43, 47, 88, 95, 96},
+    {3, 32, 39, 40, 41, 44, 45, 47, 49, 88, 89, 90, 95, 96, 97},
+    {3, 31, 32, 34, 37, 42, 46, 88, 90, 95, 96, 97},
+    {2, 3, 6, 7, 8, 9, 10, 57, 62, 68, 78, 84}
 ]
 
 
 def jaccard_similarity(set1, set2):
-    """
-    Compute Jaccard similarity
-    **If set1 contains set2(set2set1), return 1.0**
-    """
-    # set1set2(target paths), Similarity1
+    """Compute Jaccard similarity. If set1 contains set2, return 1.0"""
     if set2.issubset(set1):
         return 1.0
-
-    # Otherwise compute standard Jaccard similarity
     intersection = len(set1 & set2)
     union = len(set1 | set2)
     return intersection / union if union != 0 else 0.0
 
 
 def calculate_fitness(position, target_path):
-    """(JaccardSimilarity)"""
+    """计算适应度(Jaccard相似度)"""
     triggered = execute_Tr(position)
-
-    # Path target paths, Maximum
     if target_path.issubset(triggered):
         return 1.0
-
-    # Compute Jaccard similarity
     intersection = len(triggered & target_path)
     union = len(triggered | target_path)
     return intersection / union if union > 0 else 0.0
@@ -344,47 +434,42 @@ def compute_path_similarity_matrix(paths):
     return matrix
 
 
-# === Path  ===
+# === Path Grouping ===
 def group_paths_by_similarity(paths):
     sim_matrix = compute_path_similarity_matrix(paths)
     avg_sim_scores = np.mean(sim_matrix, axis=1)
     threshold = np.mean(avg_sim_scores)
-
     center_idx = np.argmax(avg_sim_scores)
     similar_group = [center_idx]
     for i in range(len(paths)):
         if i != center_idx and sim_matrix[center_idx][i] > threshold:
             similar_group.append(i)
-
     isolated_group = [i for i in range(len(paths)) if i not in similar_group]
     return similar_group, isolated_group
 
 
-# === Sample generation===
+# === Sample generation ===
+def compute_robustness(state, path):
+    """计算鲁棒性"""
+    base = execute_Tr(state)
+    if not base:
+        return 0.0
+    rob, neighbors = 0.0, 0
+    for dx in [-1, 0, 1]:
+        for dy in [-1, 0, 1]:
+            for dz in [-1, 0, 1]:
+                if dx == dy == dz == 0:
+                    continue
+                neighbor = clip_state(state + np.array([dx, dy, dz]))
+                n_trig = execute_Tr(neighbor)
+                if not n_trig:
+                    continue
+                rob += jaccard_similarity(base, n_trig)
+                neighbors += 1
+    return rob / neighbors if neighbors > 0 else 0.0
+
+
 def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, top_k=200):
-    def jaccard_similarity_local(a, b):
-        if not a and not b:
-            return 1.0
-        return len(a & b) / len(a | b) if a | b else 0.0
-
-    def compute_robustness(state, path):
-        base = execute_Tr(state)
-        if not base:
-            return 0.0
-        rob, neighbors = 0.0, 0
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    if dx == dy == dz == 0:
-                        continue
-                    neighbor = clip_state(state + np.array([dx, dy, dz]))
-                    n_trig = execute_Tr(neighbor)
-                    if not n_trig:
-                        continue
-                    rob += jaccard_similarity_local(base, n_trig)
-                    neighbors += 1
-        return rob / neighbors if neighbors > 0 else 0.0
-
     def save_samples(path_id, samples, base_dir):
         os.makedirs(base_dir, exist_ok=True)
         filepath = os.path.join(base_dir, f"path{path_id}.txt")
@@ -395,7 +480,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
                 light, temp, moisture = int(s[0][0]), int(s[0][1]), int(s[0][2])
                 f.write(f"{light} {temp} {moisture}\t{s[1]:.4f}\t{s[2]:.4f}\t{s[3]:.4f}\t{s[4]:.4f}\n")
 
-    print("Similar path group...")
+    print("Generating similar path samples...")
     base_dir = os.path.join(os.getcwd(), "path_samples")
     for path_idx in similar_group_indices:
         path = targetPaths[path_idx]
@@ -407,7 +492,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
             triggered = execute_Tr(state)
             if not triggered:
                 continue
-            sim = jaccard_similarity_local(triggered, path)
+            sim = jaccard_similarity(triggered, path)
             len_diff = 1 - abs(len(triggered) - len(path)) / max(len(triggered), len(path))
             rob = compute_robustness(state, path)
             score = 0.55 * sim + 0.25 * len_diff + 0.2 * rob
@@ -417,7 +502,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
             save_samples(path_id=path_idx + 1, samples=samples[:top_k], base_dir=base_dir)
 
 
-# === ===
+# === Shared Experience Replay ===
 class SharedExperienceReplay:
     def __init__(self, capacity=10000):
         self.capacity = capacity
@@ -431,14 +516,12 @@ class SharedExperienceReplay:
     def sample(self, batch_size, alpha=0.6):
         if len(self.buffer) == 0:
             return [], [], []
-
         priorities = np.array(self.priorities) ** alpha
         sum_priorities = np.sum(priorities)
         if sum_priorities == 0:
             probabilities = np.ones(len(self.buffer)) / len(self.buffer)
         else:
             probabilities = priorities / sum_priorities
-
         batch_indices = np.random.choice(len(self.buffer), batch_size, p=probabilities)
         batch = [self.buffer[idx] for idx in batch_indices]
         return batch, batch_indices, probabilities[batch_indices]
@@ -447,24 +530,18 @@ class SharedExperienceReplay:
         return len(self.buffer)
 
     def get_high_reward_samples(self, target_path, num_samples=20):
-        """target pathsSimilarityMaximum"""
+        """获取相似度最高的样本"""
         if len(self.buffer) == 0:
             return []
-
         samples_with_similarity = []
         for experience in self.buffer:
             state_tensor = experience[0]
             state_tuple = tuple(state_tensor.cpu().numpy().flatten().astype(int))
             triggered = execute_Tr(state_tuple)
             sim = jaccard_similarity(triggered, target_path)
-
-            # (Similarity1), 
             if sim >= 1.0:
                 return [(state_tuple, 0, sim, triggered)]
-
             samples_with_similarity.append((state_tuple, 0, sim, triggered))
-
-        # Similarity, num_samples
         samples_with_similarity.sort(key=lambda x: x[2], reverse=True)
         return samples_with_similarity[:num_samples]
 
@@ -473,7 +550,6 @@ def load_path_data(file_path):
     path_data = []
     if not os.path.exists(file_path):
         return path_data
-
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines[2:]:
@@ -484,7 +560,7 @@ def load_path_data(file_path):
     return path_data
 
 
-# === DQN ===
+# === DQN Network ===
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(DQN, self).__init__()
@@ -498,7 +574,7 @@ class DQN(nn.Module):
         return self.fc3(x)
 
 
-# === DQN Agent===
+# === DQN Agent with PER ===
 class DQNAgentWithPER:
     def __init__(self, state_dim, action_dim, replay_buffer, gamma=0.99, epsilon=1.0, epsilon_decay=0.995,
                  epsilon_min=0.1, learning_rate=0.001, alpha=0.6, beta=0.4):
@@ -512,24 +588,21 @@ class DQNAgentWithPER:
         self.replay_buffer = replay_buffer
         self.alpha = alpha
         self.beta = beta
-
         self.model = DQN(state_dim, action_dim).to(device)
         self.target_model = DQN(state_dim, action_dim).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.target_model.load_state_dict(self.model.state_dict())
 
     def decode_action(self, action_idx):
-        """"""
-        dim = action_idx // 10  # : 0=light, 1=temp, 2=moisture
-        delta_idx = action_idx % 10  # : 0-9
-
-        if dim == 0:  # light
+        dim = action_idx // 10
+        delta_idx = action_idx % 10
+        if dim == 0:
             delta = DELTA_LIGHT[delta_idx]
             return (delta, 0, 0)
-        elif dim == 1:  # temp
+        elif dim == 1:
             delta = DELTA_TEMP[delta_idx]
             return (0, delta, 0)
-        elif dim == 2:  # moisture
+        elif dim == 2:
             delta = DELTA_MOISTURE[delta_idx]
             return (0, 0, delta)
 
@@ -544,41 +617,33 @@ class DQNAgentWithPER:
     def store_transition(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
         next_state = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0).to(device)
-
         with torch.no_grad():
             q_values = self.model(state)
             next_q_values = self.target_model(next_state)
             max_next_q_values = next_q_values.max(1)[0]
             target_q_values = reward + (self.gamma * max_next_q_values * (1 - done))
             td_error = torch.abs(q_values[0][action] - target_q_values).item()
-
         self.replay_buffer.append((state, action, reward, next_state, done, td_error))
         return td_error
 
     def train(self, batch_size=32):
         if len(self.replay_buffer) < batch_size:
             return
-
         batch, batch_indices, probabilities = self.replay_buffer.sample(batch_size, alpha=self.alpha)
         states, actions, rewards, next_states, dones, _ = zip(*batch)
-
         states = torch.tensor(np.array([s.cpu().numpy().flatten() for s in states]), dtype=torch.float32).to(device)
         actions = torch.tensor(actions, dtype=torch.long).to(device)
         rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
         next_states = torch.tensor(np.array([ns.cpu().numpy().flatten() for ns in next_states]),
                                    dtype=torch.float32).to(device)
         dones = torch.tensor(dones, dtype=torch.float32).to(device)
-
         current_q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_max_q_values = self.target_model(next_states).max(1)[0].detach()
         target_q_values = rewards + (self.gamma * next_max_q_values * (1 - dones))
-
         loss = nn.MSELoss()(current_q_values, target_q_values)
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
@@ -586,138 +651,83 @@ class DQNAgentWithPER:
         self.target_model.load_state_dict(self.model.state_dict())
 
 
-# === Run ===
+# === Training for similar paths ===
 def generate_and_train_for_similar_paths(agent, similar_group, path_documents, run_metrics, episodes=500, batch_size=32,
                                          steps_per_test=5, replay_times=10, is_isolated=False):
     trained_paths = set()
-
     for episode in range(episodes):
         for path_idx in similar_group:
             if path_idx in trained_paths:
                 continue
-
             file_path = os.path.join(path_documents, f"path{path_idx + 1}{'_isolated' if is_isolated else ''}.txt")
             path_data = load_path_data(file_path)
             if not path_data:
                 trained_paths.add(path_idx)
                 continue
-
             target_path = targetPaths[path_idx]
-
-            # ===  ===
-            BATCH_SIZE = 50  # 50
-            N_SAMPLES = 200  # 200
-            N_STEPS = 3  # 3
-            N_EPOCHS = 5  # 5
-
-            replay_count = 0  # , 
-
-            # 5
+            BATCH_SIZE = 50
+            N_SAMPLES = 200
+            N_STEPS = 3
+            N_EPOCHS = 5
+            replay_count = 0
             for epoch in range(N_EPOCHS):
-                print(f"  Path {path_idx + 1} - Run {epoch + 1}/{N_EPOCHS}")
-
-                # 2004, 50
+                print(f"  Path {path_idx + 1} - Epoch {epoch + 1}/{N_EPOCHS}")
                 for batch_start in range(0, N_SAMPLES, BATCH_SIZE):
                     batch_end = min(batch_start + BATCH_SIZE, N_SAMPLES)
-
-                    # 50
                     for test_data_idx in range(batch_start, batch_end):
                         if test_data_idx >= len(path_data):
                             break
-
-                        state = path_data[test_data_idx]
+                        state = np.array(path_data[test_data_idx], dtype=float)
                         prev_state = None
                         prev_triggered = None
                         prev_reward = None
-
-                        # 3
                         for step in range(N_STEPS):
-                            # 
                             legal_actions = []
                             for a in range(agent.action_dim):
                                 dx, dy, dz = agent.decode_action(a)
                                 cand_next = (state[0] + dx, state[1] + dy, state[2] + dz)
                                 if is_state_valid(cand_next):
                                     legal_actions.append(a)
-
                             if not legal_actions:
                                 break
-
-                            # 
                             if random.random() < agent.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+                                state_tensor = torch.tensor(normalize_state(state), dtype=torch.float32).unsqueeze(0).to(device)
                                 with torch.no_grad():
                                     q_values = agent.model(state_tensor)[0]
                                 action = legal_actions[torch.argmax(q_values[legal_actions]).item()]
-
-                            # 
                             dx, dy, dz = agent.decode_action(action)
                             next_state = (state[0] + dx, state[1] + dy, state[2] + dz)
-
-                            # 
                             triggered = execute_Tr(next_state)
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
                             done = (step == N_STEPS - 1)
-
-                            # 
-                            td_error = agent.store_transition(state, action, reward, next_state, done)
+                            td_error = agent.store_transition(normalize_state(state), action, reward, normalize_state(next_state), done)
                             run_metrics.record_step_metrics(reward, td_error, triggered, target_path)
-
                             if prev_reward is not None:
                                 run_metrics.record_action_improvement(reward, prev_reward)
-
-                            # 
                             prev_state = state
                             prev_triggered = triggered
                             prev_reward = reward
                             state = next_state
-
-                    # 50, 
                     if len(agent.replay_buffer) >= batch_size:
                         agent.train(batch_size)
                         replay_count += 1
-
-                        # 2
                         if replay_count % 2 == 0:
                             agent.update_target_model()
-                            print(
-                                f"     {batch_start // BATCH_SIZE + 1}/4 completed |  {replay_count}  | ")
-
             trained_paths.add(path_idx)
             print(f"  Path {path_idx + 1} completed\n")
-
         if len(trained_paths) == len(similar_group):
             break
-
     return agent
 
 
 def generate_samples_for_isolated_paths(agent_similar, isolated_group_indices, num_total=2000, top_k=200):
     def compute_q_value(state, agent):
-        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+        state_tensor = torch.tensor(normalize_state(state), dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
             q_values = agent.model(state_tensor)
         return q_values.max().item()
-
-    def compute_robustness(state, path):
-        base = execute_Tr(state)
-        if not base:
-            return 0.0
-        rob, neighbors = 0.0, 0
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    if dx == dy == dz == 0:
-                        continue
-                    neighbor = clip_state(state + np.array([dx, dy, dz]))
-                    n_trig = execute_Tr(neighbor)
-                    if not n_trig:
-                        continue
-                    rob += jaccard_similarity(base, n_trig)
-                    neighbors += 1
-        return rob / neighbors if neighbors > 0 else 0.0
 
     def save_samples(path_id, samples, base_dir):
         os.makedirs(base_dir, exist_ok=True)
@@ -730,166 +740,115 @@ def generate_samples_for_isolated_paths(agent_similar, isolated_group_indices, n
                 f.write(f"{light} {temp} {moisture}\t{s[1]:.4f}\t{s[2]:.4f}\t{s[3]:.4f}\t{s[4]:.4f}\t{s[5]:.4f}\n")
 
     base_dir = os.path.join(os.getcwd(), "path_samples")
-
     for path_idx in isolated_group_indices:
         path = targetPaths[path_idx]
         candidate_samples = []
         attempts = 0
-
         while len(candidate_samples) < num_total and attempts < num_total * 5:
             attempts += 1
             state = generate_random_state()
             triggered = execute_Tr(state)
             if not triggered:
                 continue
-
             sim = jaccard_similarity(triggered, path)
             len_diff = 1 - abs(len(triggered) - len(path)) / max(len(triggered), len(path))
             rob = compute_robustness(state, path)
             q_value = compute_q_value(state, agent_similar)
-
             candidate_samples.append((state, sim, len_diff, rob, q_value))
-
         if not candidate_samples:
             continue
-
         q_values = [sample[4] for sample in candidate_samples]
         q_min = min(q_values)
         q_max = max(q_values)
-
         normalized_samples = []
         for state, sim, len_diff, rob, q_value in candidate_samples:
             if q_max - q_min > 0:
                 q_normalized = (q_value - q_min) / (q_max - q_min)
             else:
                 q_normalized = 0.5
-
             q_complement = 1.0 - q_normalized
             score = 0.28 * sim + 0.1 * len_diff + 0.19 * rob + 0.43 * q_complement
-
             normalized_samples.append((state, score, sim, len_diff, rob, q_complement))
-
         normalized_samples.sort(key=lambda x: x[1], reverse=True)
         top_samples = normalized_samples[:top_k]
-
         save_samples(path_id=path_idx + 1, samples=top_samples, base_dir=base_dir)
 
 
-# === Run ===
+# === Training for isolated paths ===
 def generate_and_train_for_isolated_paths_enhanced(agent_similar, agent_isolated, similar_group, isolated_group,
                                                    path_documents, run_metrics, episodes=500, batch_size=32,
                                                    is_isolated=True):
     trained_paths = set()
-
     for episode in range(episodes):
         for path_idx in isolated_group:
             if path_idx in trained_paths:
                 continue
-
             file_path = os.path.join(path_documents, f"path{path_idx + 1}_isolated.txt")
             stage2_path_data = load_path_data(file_path)
             if not stage2_path_data:
                 trained_paths.add(path_idx)
                 continue
-
             target_path = targetPaths[path_idx]
-
-            # ===  ===
-            BATCH_SIZE = 50  # 50
-            N_SAMPLES = 200  # 200
-            N_STEPS = 3  # 3
-            N_EPOCHS = 5  # 5
-
-            replay_count = 0  # 
-
-            # 5
+            BATCH_SIZE = 50
+            N_SAMPLES = 200
+            N_STEPS = 3
+            N_EPOCHS = 5
+            replay_count = 0
             for epoch in range(N_EPOCHS):
-                print(f"  Path {path_idx + 1} - Run {epoch + 1}/{N_EPOCHS}")
-
-                # 2004,50
+                print(f"  Path {path_idx + 1} - Epoch {epoch + 1}/{N_EPOCHS}")
                 for batch_start in range(0, N_SAMPLES, BATCH_SIZE):
                     batch_end = min(batch_start + BATCH_SIZE, N_SAMPLES)
-
-                    # 50
                     for test_data_idx in range(batch_start, batch_end):
                         if test_data_idx >= len(stage2_path_data):
                             break
-
-                        state = stage2_path_data[test_data_idx]
+                        state = np.array(stage2_path_data[test_data_idx], dtype=float)
                         prev_state = None
                         prev_triggered = None
                         prev_reward = None
-
-                        # 3
                         for step in range(N_STEPS):
-                            # 
                             legal_actions = []
                             for a in range(agent_isolated.action_dim):
                                 dx, dy, dz = agent_isolated.decode_action(a)
                                 cand_next = (state[0] + dx, state[1] + dy, state[2] + dz)
                                 if is_state_valid(cand_next):
                                     legal_actions.append(a)
-
                             if not legal_actions:
                                 break
-
-                            # 
                             if random.random() < agent_isolated.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+                                state_tensor = torch.tensor(normalize_state(state), dtype=torch.float32).unsqueeze(0).to(device)
                                 with torch.no_grad():
                                     q_values = agent_isolated.model(state_tensor)[0]
                                 action = legal_actions[torch.argmax(q_values[legal_actions]).item()]
-
-                            # 
                             dx, dy, dz = agent_isolated.decode_action(action)
                             next_state = (state[0] + dx, state[1] + dy, state[2] + dz)
-
-                            # 
                             triggered = execute_Tr(next_state)
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
-
-                            # Path 
                             if target_path.issubset(triggered):
                                 reward += 2.0
-
                             done = (step == N_STEPS - 1)
-
-                            # 
-                            td_error = agent_isolated.store_transition(state, action, reward, next_state, done)
+                            td_error = agent_isolated.store_transition(normalize_state(state), action, reward, normalize_state(next_state), done)
                             run_metrics.record_step_metrics(reward, td_error, triggered, target_path)
-
                             if prev_reward is not None:
                                 run_metrics.record_action_improvement(reward, prev_reward)
-
-                            # 
                             prev_state = state
                             prev_triggered = triggered
                             prev_reward = reward
                             state = next_state
-
-                    # 50, 
                     if len(agent_isolated.replay_buffer) >= batch_size:
                         agent_isolated.train(batch_size)
                         replay_count += 1
-
-                        # 2
                         if replay_count % 2 == 0:
                             agent_isolated.update_target_model()
-                            print(
-                                f"     {batch_start // BATCH_SIZE + 1}/4 completed |  {replay_count}  | ")
-
             trained_paths.add(path_idx)
             print(f"  Path {path_idx + 1} completed\n")
-
         if len(trained_paths) == len(isolated_group):
             break
-
     return agent_isolated
 
 
-# === PSO ===
+# === PSO Particle ===
 class Particle:
     def __init__(self, initial_position=None):
         if initial_position is not None:
@@ -900,19 +859,17 @@ class Particle:
                 np.random.uniform(BOUNDS['temp'][0], BOUNDS['temp'][1]),
                 np.random.uniform(BOUNDS['moisture'][0], BOUNDS['moisture'][1])
             ])
-
         self.velocity = np.array([
             np.random.uniform(-5, 5),
             np.random.uniform(-3, 3),
             np.random.uniform(-5, 5)
         ])
-
         self.best_position = self.position.copy()
         self.best_fitness = 0
         self.fitness = 0
 
 
-# === standard PSO ===
+# === Standard PSO ===
 class PSO:
     def __init__(self, target_path, swarm_size=20, dqn_samples=None):
         self.target_path = target_path
@@ -921,14 +878,12 @@ class PSO:
         self.global_best_position = None
         self.global_best_fitness = 0
         self.reset_count = 0
-
         if dqn_samples is not None and len(dqn_samples) > 0:
             num_direct = min(len(dqn_samples), swarm_size)
             for i in range(num_direct):
                 state_tuple, reward, sim, triggered = dqn_samples[i]
-                particle = Particle(initial_position=state_tuple)
+                particle = Particle(initial_position=list(state_tuple))
                 self.particles.append(particle)
-
             if len(self.particles) < swarm_size:
                 remaining = swarm_size - len(self.particles)
                 for i in range(remaining):
@@ -940,7 +895,6 @@ class PSO:
                     self.particles.append(particle)
         else:
             self.particles = [Particle() for _ in range(swarm_size)]
-
         for particle in self.particles:
             particle.fitness = self.fitness_function(particle.position)
             if particle.fitness > particle.best_fitness:
@@ -953,11 +907,8 @@ class PSO:
     def fitness_function(self, position):
         try:
             triggered = execute_Tr(position)
-            # : target pathsPath , 1
             if self.target_path.issubset(triggered):
                 return 1.0
-
-            # Compute Jaccard similarity
             intersection = len(triggered & self.target_path)
             union = len(triggered | self.target_path)
             return intersection / union if union > 0 else 0.0
@@ -965,84 +916,59 @@ class PSO:
             return 0.0
 
     def update(self, iteration, max_iterations):
-        # PSO
-        w = 0.7  # 
-        c1 = 1.5  # 
-        c2 = 1.5  # 
-
+        w = 0.7
+        c1 = 1.5
+        c2 = 1.5
         for particle in self.particles:
             r1 = np.random.random(3)
             r2 = np.random.random(3)
-
-            # 
             particle.velocity = (w * particle.velocity +
                                  c1 * r1 * (particle.best_position - particle.position) +
                                  c2 * r2 * (self.global_best_position - particle.position))
-
-            # 
             max_velocity = np.array([
                 (BOUNDS['light'][1] - BOUNDS['light'][0]) * 0.2,
                 (BOUNDS['temp'][1] - BOUNDS['temp'][0]) * 0.2,
                 (BOUNDS['moisture'][1] - BOUNDS['moisture'][0]) * 0.2
             ])
             particle.velocity = np.clip(particle.velocity, -max_velocity, max_velocity)
-
-            # 
             particle.position += particle.velocity
             particle.position = clip_state(particle.position)
-
-            # 
             particle.fitness = self.fitness_function(particle.position)
-
-            # 
             if particle.fitness > particle.best_fitness:
                 particle.best_fitness = particle.fitness
                 particle.best_position = particle.position.copy()
-
-            # 
             if particle.fitness > self.global_best_fitness:
                 self.global_best_fitness = particle.fitness
                 self.global_best_position = particle.position.copy()
 
 
-# === Excel ===
+# === Excel Export ===
 def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, filename=None):
-    """ runExcel"""
-
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"DQN_PSO_{num_runs}Runs_{timestamp}.xlsx"
-
     wb = Workbook()
-
-    # 
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
     header_font = Font(name='Microsoft YaHei', size=11, bold=True, color="FFFFFF")
-
     success_fill = PatternFill(start_color="C6E0B4", end_color="C6E0B4", fill_type="solid")
     fail_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     alternate_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
     dqn_fill = PatternFill(start_color="FFE699", end_color="FFE699", fill_type="solid")
-
     border = Border(
         left=Side(style='thin', color='000000'),
         right=Side(style='thin', color='000000'),
         top=Side(style='thin', color='000000'),
         bottom=Side(style='thin', color='000000')
     )
-
     center_align = Alignment(horizontal='center', vertical='center')
     left_align = Alignment(horizontal='left', vertical='center')
 
-    # ========== 1:  ==========
+    # Sheet 1: Run Summary
     ws1 = wb.active
-    ws1.title = ""
+    ws1.title = "Run Summary"
     ws1.sheet_view.showGridLines = False
-
-    # 
-    headers = ["Run", "", "", "", "Average Iterations", "(s)", "DQN"]
+    headers = ["Run", "Success Rate", "Solved/Total", "Avg Fitness", "Avg Iterations", "Time(s)", "DQN Solved"]
     col_widths = [12, 12, 12, 14, 14, 14, 12]
-
     for col, (header, width) in enumerate(zip(headers, col_widths), 1):
         cell = ws1.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -1050,14 +976,10 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
         cell.border = border
         cell.alignment = center_align
         ws1.column_dimensions[get_column_letter(col)].width = width
-
-    # 
     for run_idx, (results, run_metrics) in enumerate(zip(all_run_results, all_run_metrics), start=1):
         success_count = sum(1 for r in results if r['perfect_match'])
         success_rate = (success_count / len(targetPaths)) * 100
         avg_fitness = np.mean([r['fitness'] for r in results])
-
-        # Average Iterations
         iterations_list = []
         for r in results:
             if r.get('method') == 'DQN':
@@ -1067,51 +989,34 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
             else:
                 iterations_list.append(10000)
         avg_iterations = np.mean(iterations_list)
-
-        # DQN
         dqn_solved_count = sum(1 for r in results if r.get('method') == 'DQN')
-
-        # 
         total_time = run_metrics.pso_end_time - run_metrics.pso_start_time if run_metrics.pso_end_time else 0
-
         row_data = [
-            f" {run_idx}",
-            f"{success_rate:.1f}%",
-            f"{success_count}/{len(targetPaths)}",
-            f"{avg_fitness:.4f}",
-            f"{avg_iterations:.1f}",
-            f"{total_time:.2f}",
+            f"Run {run_idx}", f"{success_rate:.1f}%", f"{success_count}/{len(targetPaths)}",
+            f"{avg_fitness:.4f}", f"{avg_iterations:.1f}", f"{total_time:.2f}",
             f"{dqn_solved_count}/{len(targetPaths)}"
         ]
-
         for col, value in enumerate(row_data, 1):
             cell = ws1.cell(row=run_idx + 1, column=col, value=value)
             cell.border = border
             cell.alignment = center_align
-
             if run_idx % 2 == 0:
                 cell.fill = alternate_fill
-
             if col == 2:
                 if success_rate == 100.0:
                     cell.fill = success_fill
                 elif success_rate < 50.0:
                     cell.fill = fail_fill
-
             if col == 7 and dqn_solved_count > 0:
                 cell.fill = dqn_fill
-
     ws1.freeze_panes = 'A2'
     ws1.auto_filter.ref = f"A1:G{len(all_run_results) + 1}"
 
-    # ========== 2: Path  ==========
-    ws2 = wb.create_sheet(title="Path ")
+    # Sheet 2: Path Statistics
+    ws2 = wb.create_sheet(title="Path Statistics")
     ws2.sheet_view.showGridLines = False
-
-    headers2 = ["Path ID", "", "", "", "Average Iterations", "Minimum Iterations", "Maximum Iterations",
-                "DQN"]
+    headers2 = ["Path ID", "Success/Total", "Success Rate", "Avg Fitness", "Avg Iterations", "Min Iterations", "Max Iterations", "DQN Solved"]
     col_widths2 = [12, 12, 12, 14, 14, 14, 14, 14]
-
     for col, (header, width) in enumerate(zip(headers2, col_widths2), 1):
         cell = ws2.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -1119,13 +1024,11 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
         cell.border = border
         cell.alignment = center_align
         ws2.column_dimensions[get_column_letter(col)].width = width
-
     num_paths = len(targetPaths)
     for path_idx in range(num_paths):
         success_count = sum(1 for results in all_run_results if results[path_idx]['perfect_match'])
         success_rate = (success_count / num_runs) * 100
         avg_fitness = np.mean([results[path_idx]['fitness'] for results in all_run_results])
-
         iterations_list = []
         for results in all_run_results:
             r = results[path_idx]
@@ -1135,52 +1038,36 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
                 iterations_list.append(r['convergence_iteration'])
             else:
                 iterations_list.append(10000)
-
         avg_iterations = np.mean(iterations_list) if iterations_list else 0
         min_iterations = np.min(iterations_list) if iterations_list else 0
         max_iterations = np.max(iterations_list) if iterations_list else 0
-
-        dqn_solved_count = sum(1 for results in all_run_results
-                               if results[path_idx].get('method') == 'DQN')
-
+        dqn_solved_count = sum(1 for results in all_run_results if results[path_idx].get('method') == 'DQN')
         row_data = [
-            f"Path  {path_idx + 1}",
-            f"{success_count}/{num_runs}",
-            f"{success_rate:.1f}%",
-            f"{avg_fitness:.4f}",
-            f"{avg_iterations:.1f}",
-            f"{min_iterations}",
-            f"{max_iterations}",
-            f"{dqn_solved_count}/{num_runs}"
+            f"Path {path_idx + 1}", f"{success_count}/{num_runs}", f"{success_rate:.1f}%",
+            f"{avg_fitness:.4f}", f"{avg_iterations:.1f}", f"{min_iterations}",
+            f"{max_iterations}", f"{dqn_solved_count}/{num_runs}"
         ]
-
         for col, value in enumerate(row_data, 1):
             cell = ws2.cell(row=path_idx + 2, column=col, value=value)
             cell.border = border
             cell.alignment = center_align
-
             if (path_idx + 1) % 2 == 0:
                 cell.fill = alternate_fill
-
             if col == 3:
                 if success_rate == 100.0:
                     cell.fill = success_fill
                 elif success_rate < 50.0:
                     cell.fill = fail_fill
-
             if col == 8 and dqn_solved_count > 0:
                 cell.fill = dqn_fill
-
     ws2.freeze_panes = 'A2'
     ws2.auto_filter.ref = f"A1:H{len(targetPaths) + 1}"
 
-    # ========== 3:  ==========
-    ws3 = wb.create_sheet(title="")
+    # Sheet 3: Detailed Results
+    ws3 = wb.create_sheet(title="Detailed Results")
     ws3.sheet_view.showGridLines = False
-
-    headers3 = ["Path ", "", "(light,temp,moisture)", "", "Iterations", "", "Path "]
+    headers3 = ["Path ID", "Run", "Position(light,temp,moisture)", "Fitness", "Iterations", "Method", "Triggered Paths"]
     col_widths3 = [10, 10, 25, 12, 12, 12, 50]
-
     for col, (header, width) in enumerate(zip(headers3, col_widths3), 1):
         cell = ws3.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -1188,7 +1075,6 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
         cell.border = border
         cell.alignment = center_align
         ws3.column_dimensions[get_column_letter(col)].width = width
-
     row_idx = 2
     for path_idx in range(num_paths):
         for run_idx, results in enumerate(all_run_results, start=1):
@@ -1197,36 +1083,26 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
             fitness = result['fitness']
             triggered = result['triggered']
             method = result.get('method', 'PSO')
-
             if method == 'DQN':
                 convergence_iter = 0
             elif result.get('convergence_iteration') is not None:
                 convergence_iter = result['convergence_iteration']
             else:
                 convergence_iter = 10000
-
             particle_str = f"({int(best_position[0])}, {int(best_position[1])}, {int(best_position[2])})"
             path_str = str(sorted(list(triggered)))
-
             row_data = [
-                f"Path {path_idx + 1}",
-                f"{run_idx}",
-                particle_str,
-                f"{fitness:.4f}",
-                convergence_iter if convergence_iter < 10000 else "-",
-                method,
-                path_str
+                f"Path {path_idx + 1}", f"Run {run_idx}", particle_str,
+                f"{fitness:.4f}", convergence_iter if convergence_iter < 10000 else "-",
+                method, path_str
             ]
-
             for col, value in enumerate(row_data, 1):
                 cell = ws3.cell(row=row_idx, column=col, value=value)
                 cell.border = border
-
                 if col == 7:
                     cell.alignment = left_align
                 else:
                     cell.alignment = center_align
-
                 if fitness == 1.0:
                     if method == 'DQN':
                         cell.fill = dqn_fill
@@ -1236,19 +1112,15 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
                     cell.fill = fail_fill
                 elif row_idx % 2 == 0:
                     cell.fill = alternate_fill
-
             row_idx += 1
-
     ws3.freeze_panes = 'A2'
     ws3.auto_filter.ref = f"A1:G{row_idx - 1}"
 
-    # ========== 4: target paths ==========
-    ws4 = wb.create_sheet(title="target paths")
+    # Sheet 4: Target Paths
+    ws4 = wb.create_sheet(title="Target Paths")
     ws4.sheet_view.showGridLines = False
-
-    headers4 = ["Path ID", "target paths", ""]
+    headers4 = ["Path ID", "Target Paths", "Count"]
     col_widths4 = [12, 60, 12]
-
     for col, (header, width) in enumerate(zip(headers4, col_widths4), 1):
         cell = ws4.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -1256,129 +1128,84 @@ def export_multiple_runs_to_excel(all_run_results, all_run_metrics, num_runs, fi
         cell.border = border
         cell.alignment = center_align
         ws4.column_dimensions[get_column_letter(col)].width = width
-
     for path_idx, target_path in enumerate(targetPaths):
         path_str = str(sorted(list(target_path)))
-
-        row_data = [
-            f"Path  {path_idx + 1}",
-            path_str,
-            len(target_path)
-        ]
-
+        row_data = [f"Path {path_idx + 1}", path_str, len(target_path)]
         for col, value in enumerate(row_data, 1):
             cell = ws4.cell(row=path_idx + 2, column=col, value=value)
             cell.border = border
-
             if col == 2:
                 cell.alignment = left_align
             else:
                 cell.alignment = center_align
-
             if (path_idx + 1) % 2 == 0:
                 cell.fill = alternate_fill
-
     ws4.freeze_panes = 'A2'
 
-    # 
     output_dir = os.path.join(os.getcwd(), "results")
     os.makedirs(output_dir, exist_ok=True)
     filepath = os.path.join(output_dir, filename)
     wb.save(filepath)
-
     print(f"\n{'=' * 70}")
-    print(f" : {filepath}")
+    print(f"Excel saved: {filepath}")
     print(f"{'=' * 70}")
-    print(f":")
-    print(f"  1.        - {num_runs} run(DQN)")
-    print(f"  2. Path        - Path (DQN)")
-    print(f"  3.    -  runPath ()")
-    print(f"  4. target paths       - target paths")
-    print(f"{'=' * 70}\n")
-
     return filepath
 
 
 def run_single_experiment(run_num, similar_group, isolated_group):
-    """Run oneDQN-PSO"""
+    """Run one DQN-PSO experiment"""
     print(f"\n{'=' * 100}")
-    print(f"Start run  {run_num}  run")
+    print(f"Start Run {run_num}")
     print(f"{'=' * 100}")
-
     run_metrics = MetricsCollector()
     run_metrics.start_training()
-
     path_documents = os.path.join(os.getcwd(), "path_samples")
-
     if run_num == 1:
-        print("Path ...")
+        print("Generating similar path samples...")
         generate_samples_for_similar_paths(similar_group, num_total=2000, top_k=200)
-
     replay_buffer = SharedExperienceReplay(capacity=10000)
     state_dim = 3
     action_dim = 30
     agent = DQNAgentWithPER(state_dim, action_dim, replay_buffer)
-
-    print(f"{run_num} - Run : Path ")
+    print(f"Run {run_num} - Training similar paths...")
     generate_and_train_for_similar_paths(agent, similar_group, path_documents, run_metrics, episodes=500, batch_size=32,
                                          is_isolated=False)
-
     if run_num == 1:
-        print("Path ...")
+        print("Generating isolated path samples...")
         generate_samples_for_isolated_paths(agent, isolated_group, num_total=2000, top_k=200)
-
-    print(f"{run_num} - Run : Path ")
+    print(f"Run {run_num} - Training isolated paths...")
     isolated_replay_buffer = SharedExperienceReplay(capacity=15000)
     agent_isolated = DQNAgentWithPER(state_dim, action_dim, isolated_replay_buffer)
-
     agent_isolated.model.load_state_dict(agent.model.state_dict())
     agent_isolated.target_model.load_state_dict(agent.model.state_dict())
-
     agent_isolated = generate_and_train_for_isolated_paths_enhanced(
-        agent_similar=agent,
-        agent_isolated=agent_isolated,
-        similar_group=similar_group,
-        isolated_group=isolated_group,
-        path_documents=path_documents,
-        run_metrics=run_metrics,
-        episodes=500,
-        batch_size=32,
-        is_isolated=True
+        agent_similar=agent, agent_isolated=agent_isolated, similar_group=similar_group,
+        isolated_group=isolated_group, path_documents=path_documents, run_metrics=run_metrics,
+        episodes=500, batch_size=32, is_isolated=True
     )
-
     run_metrics.end_training()
-
-    # final samples
     dqn_best_samples = {}
-
     for path_idx in similar_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
         dqn_best_samples[path_idx] = high_reward_samples
         for state_tuple, _, sim, triggered in high_reward_samples:
             run_metrics.record_final_output_sample(triggered, target_path)
-
     for path_idx in isolated_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent_isolated.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
         dqn_best_samples[path_idx] = high_reward_samples
         for state_tuple, _, sim, triggered in high_reward_samples:
             run_metrics.record_final_output_sample(triggered, target_path)
-
-    # PSO
-    print(f"{run_num} - PSO")
+    print(f"Run {run_num} - PSO phase")
     run_metrics.start_pso_phase()
-
     max_iterations = 3000
     pso_results = []
-
     for i, target_path in enumerate(targetPaths):
         path_start_time = time.time()
         dqn_samples_for_path = dqn_best_samples.get(i, [])
-
         perfect_solution_found = False
         perfect_solution_state = None
-
         if dqn_samples_for_path:
             for sample in dqn_samples_for_path:
                 state_tuple, reward, sim, triggered = sample
@@ -1386,141 +1213,100 @@ def run_single_experiment(run_num, similar_group, isolated_group):
                     perfect_solution_found = True
                     perfect_solution_state = state_tuple
                     break
-
         if perfect_solution_found:
             path_execution_time = time.time() - path_start_time
             pso_results.append({
-                'target_path': target_path,
-                'best_position': np.array(perfect_solution_state),
-                'fitness': 1.0,
-                'triggered': triggered,
-                'perfect_match': True,
-                'method': 'DQN',
-                'convergence_iteration': 0,
-                'early_stopped': False,
-                'reset_count': 0
+                'target_path': target_path, 'best_position': np.array(perfect_solution_state),
+                'fitness': 1.0, 'triggered': triggered, 'perfect_match': True,
+                'method': 'DQN', 'convergence_iteration': 0, 'early_stopped': False, 'reset_count': 0
             })
             run_metrics.record_pso_result(1.0, True, convergence_iter=0, path_id=i + 1,
                                           method='DQN', reset_count=0, execution_time=path_execution_time)
-            status = "(DQN)"
+            status = "(DQN solved)"
         else:
             pso = PSO(target_path, swarm_size=20, dqn_samples=dqn_samples_for_path)
-
             converged_at_iteration = max_iterations
             early_stop = False
-
             for iteration in range(max_iterations):
                 pso.update(iteration, max_iterations)
-
                 if pso.global_best_fitness >= 1.0:
                     converged_at_iteration = iteration + 1
                     early_stop = True
                     break
-
             path_execution_time = time.time() - path_start_time
             best_position = pso.global_best_position
             triggered = execute_Tr(best_position)
-
             is_perfect = target_path.issubset(triggered)
-
             pso_results.append({
-                'target_path': target_path,
-                'best_position': best_position,
-                'fitness': pso.global_best_fitness,
-                'triggered': triggered,
-                'perfect_match': is_perfect,
-                'method': 'PSO',
-                'convergence_iteration': converged_at_iteration,
-                'early_stopped': early_stop,
+                'target_path': target_path, 'best_position': best_position,
+                'fitness': pso.global_best_fitness, 'triggered': triggered,
+                'perfect_match': is_perfect, 'method': 'PSO',
+                'convergence_iteration': converged_at_iteration, 'early_stopped': early_stop,
                 'reset_count': pso.reset_count
             })
-
             run_metrics.record_pso_result(
-                fitness=pso.global_best_fitness,
-                is_perfect_match=is_perfect,
+                fitness=pso.global_best_fitness, is_perfect_match=is_perfect,
                 convergence_iter=converged_at_iteration if early_stop else None,
-                path_id=i + 1,
-                method='PSO',
-                reset_count=pso.reset_count,
+                path_id=i + 1, method='PSO', reset_count=pso.reset_count,
                 execution_time=path_execution_time
             )
-
-            status = "(PSO)" if is_perfect else f"({pso.global_best_fitness:.3f})"
-
-        print(f"  Path {i + 1}: {status} |  {path_execution_time:.2f}s")
-
+            status = "(PSO solved)" if is_perfect else f"(fitness: {pso.global_best_fitness:.3f})"
+        print(f"  Path {i + 1}: {status} | time: {path_execution_time:.2f}s")
     run_metrics.end_pso_phase()
-
     success_count = sum(1 for r in pso_results if r['perfect_match'])
     success_rate = (success_count / len(targetPaths)) * 100
     pso_time = run_metrics.pso_end_time - run_metrics.pso_start_time
-
-    print(f"\nRun {run_num} runcompleted:  {success_rate:.1f}% ({success_count}/{len(targetPaths)}) | "
-          f"PSO {pso_time:.2f} seconds")
-
+    print(f"\nRun {run_num} completed: success rate {success_rate:.1f}% ({success_count}/{len(targetPaths)}) | PSO time: {pso_time:.2f}s")
     return pso_results, run_metrics
 
 
 def run_multiple_dqn_pso_experiments(num_runs):
-    """DQN-PSO"""
+    """Run multiple DQN-PSO experiments"""
     print("\n" + "=" * 100)
-    print(f"DQN-PSO(standard PSO) - {num_runs}")
+    print(f"DQN-PSO (Standard PSO) - {num_runs} runs")
     print("=" * 100)
-    print(f"target paths: Path 1  Path {len(targetPaths)} ({len(targetPaths)})")
-    print(f"Run: {num_runs}")
-    print(f": Light: {BOUNDS['light']}, Temp: {BOUNDS['temp']}, Moisture: {BOUNDS['moisture']}")
+    print(f"Target paths: {len(targetPaths)} paths")
+    print(f"Runs: {num_runs}")
+    print(f"Bounds: Light: {BOUNDS['light']}, Temp: {BOUNDS['temp']}, Moisture: {BOUNDS['moisture']}")
     print("=" * 100)
-
     similar_group, isolated_group = group_paths_by_similarity(targetPaths)
-
     similar_paths_display = [idx + 1 for idx in similar_group]
     isolated_paths_display = [idx + 1 for idx in isolated_group]
-
     print(f"Similar path group: {similar_paths_display}")
     print(f"Isolated path group: {isolated_paths_display}\n")
-
     all_run_results = []
     all_run_metrics = []
     total_experiment_start = time.time()
-
     for run_num in range(1, num_runs + 1):
         pso_results, run_metrics = run_single_experiment(run_num, similar_group, isolated_group)
         all_run_results.append(pso_results)
         all_run_metrics.append(run_metrics)
-
     total_experiment_time = time.time() - total_experiment_start
-
     print(f"\n{'=' * 100}")
-    print(f"All {num_runs} runcompleted!")
-    print(f": {total_experiment_time:.2f} seconds ({total_experiment_time / 60:.2f} minutes)")
+    print(f"All {num_runs} runs completed!")
+    print(f"Total time: {total_experiment_time:.2f}s ({total_experiment_time / 60:.2f} min)")
     print(f"{'=' * 100}\n")
-
     return all_run_results, all_run_metrics
 
 
 if __name__ == "__main__":
     print("=" * 100)
-    print("DQN-PSO(standard PSO) - ")
+    print("DQN-PSO (Standard PSO) - Experiment")
     print("=" * 100)
-    print(f"Current configuration: Run = {NUM_RUNS}")
-    print(f"Path : Path 1 - Path {len(targetPaths)}")
+    print(f"Configuration: Runs = {NUM_RUNS}")
+    print(f"Paths: Path 1 - Path {len(targetPaths)}")
+    print(f"Bounds: x(1,200), y(1,200), z(2,150)")
     print("=" * 100)
-
-    # Run
     if len(sys.argv) > 1:
         try:
             NUM_RUNS = int(sys.argv[1])
-            print(f"Read from command line: Run {NUM_RUNS}")
+            print(f"Command line override: Runs = {NUM_RUNS}")
         except ValueError:
-            print(f"Invalid command-line argument, using default number of runs {NUM_RUNS}")
-
-    print("\n...")
-
+            print(f"Invalid argument, using default: {NUM_RUNS}")
+    print("\nStarting experiments...")
     all_run_results, all_run_metrics = run_multiple_dqn_pso_experiments(num_runs=NUM_RUNS)
-
-    print("\nExcel...")
+    print("\nExporting to Excel...")
     excel_filename = export_multiple_runs_to_excel(all_run_results, all_run_metrics, NUM_RUNS)
-
     print(f"\nProgram completed!")
-    print(f"Excel: {excel_filename}")
+    print(f"Excel file: {excel_filename}")
     print("=" * 100)

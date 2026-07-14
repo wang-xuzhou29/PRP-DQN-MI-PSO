@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,11 +16,12 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# ===  ===
+# === 实验配置 ===
 EXPERIMENT_CONFIG = {
     'STATE_DIM': 3,
-    'MIN_VALUE': 1,
-    'MAX_VALUE': 128,  # 50
+    'MIN_X': 2, 'MAX_X': 100,
+    'MIN_Y': 1, 'MAX_Y': 150,
+    'MIN_Z': 1, 'MAX_Z': 200,
     'SAMPLES_PER_PATH': 200,
     'BATCH_SIZE_SAMPLES': 50,
     'STEPS_PER_SAMPLE': 5,
@@ -32,45 +32,59 @@ EXPERIMENT_CONFIG = {
     'TRIGGER_BONUS': 1.0,
     'HIDDEN_DIM': 256,
     'LEARNING_RATE': 3e-4,
-    'NUM_RUNS': 20,  # 20 run
+    'NUM_RUNS': 20,  # 20次运行
     'TOP_K_SAMPLES': 20,
-    'REPLAY_BUFFER_CAPACITY': 20000,  # Path 
+    'REPLAY_BUFFER_CAPACITY': 20000,  # 每个路径的回放缓冲区容量
     'TARGET_PATHS': [
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
-        {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
-        {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
-        {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
-        {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
+    {2,3,6,8,9,11,12,13,15,16,18,19,20,25,48,50,65,68,71,73,74,78,79,80,81,82,83},  # A1
+    {6,16,18,19,26,33,34,36,37,38,39,41,42,45,46,48,49,50,51,52,53,54,55,56,61},  # A2
+    {2,3,4,6,8,9,11,12,13,15,16,18,20,25,48,50,68,71,73,78,79,80,81,82,83},  # A3
+    {6,12,13,17,20,21,26,33,34,36,37,38,39,45,46,48,49,50,53,54,55,56,61},  # A4
+    {1,16,18,19,20,25,45,46,47,48,50,64,65,68,71,73,74,78,79,80,81,82,83},  # A5
+    {2,3,4,6,8,9,11,12,13,15,16,18,19,20,25,50,51,75,78,79,80,81,82,83},  # A6
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,49,50,51,57,58,59,60,63},  # A7
+    {16,18,19,20,25,43,45,46,47,48,50,51,52,65,74,75,78,79,80,81,82,83},  # A8
+    {16,18,19,20,25,43,45,46,47,48,50,64,68,71,73,77,78,79,80,81,82,83},  # A9
+    {2,3,6,8,9,11,14,17,21,25,48,64,65,68,71,73,74,78,79,80,81,82,83},  # A10
+    {1,7,12,13,16,18,19,20,25,50,51,65,68,71,73,74,78,79,80,81,82,83},  # A11
+    {1,5,7,10,12,13,15,16,18,20,25,48,50,51,68,71,73,78,79,80,81},  # A12
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,50,58,59,60,63,84},  # A13
+    {18,19,20,26,33,34,36,37,38,39,41,64,69,70,72,75,76,77,81,83},  # A14
+    {16,18,19,20,26,33,34,35,36,37,38,39,41,67,68,71,78,79,80,84},  # A15
+    {3,6,12,13,15,16,18,20,25,28,62,65,68,71,73,74,78,79,80,81},  # A16
+    {16,18,19,20,26,33,34,36,37,38,39,67,68,71,78,79,80,84,85},  # A17
+    {18,19,20,26,33,34,36,37,38,39,66,67,68,71,76,77,81,82,83},  # A18
+    {2,6,24,27,28,29,30,31,33,34,36,37,39,58,59,60,63,85},  # A19
+    {2,6,22,26,32,33,34,36,37,38,39,58,59,60,63,85},  # A20
+    {12,13,14,17,21,26,44,45,46,47,48,49,50,84,85},  # A21
+    {18,19,20,26,40,66,67,68,71,76,77,81,82,83},  # A22
+    {3,23,25,28,32,35,53,54,55,56,61,85}  # A23
     ],
 }
 
 
-# ===  ===
-def clip_state(state):
-    return np.clip(state, EXPERIMENT_CONFIG['MIN_VALUE'], EXPERIMENT_CONFIG['MAX_VALUE'])
+# === 辅助函数 ===
+def get_bounds():
+    mins = np.array([EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MIN_Z']])
+    maxs = np.array([EXPERIMENT_CONFIG['MAX_X'], EXPERIMENT_CONFIG['MAX_Y'], EXPERIMENT_CONFIG['MAX_Z']])
+    return mins, maxs
 
+def clip_state(state):
+    mins, maxs = get_bounds()
+    return np.clip(state, mins, maxs)
 
 def denormalize_state(normalized_state):
-    """"""
-    min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-    max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-    return normalized_state * (max_val - min_val) / 2 + (min_val + max_val) / 2
+    """将归一化状态还原为原始状态"""
+    mins, maxs = get_bounds()
+    return normalized_state * (maxs - mins) / 2 + (mins + maxs) / 2
 
 
 def coverage_similarity(triggered, target_path):
     """
-    Similarity: / target paths
+    相似度计算: 交集 / 目标路径大小
     """
+    if triggered is None:
+        return 0.0
     if len(target_path) == 0:
         return 1.0 if len(triggered) == 0 else 0.0
 
@@ -92,127 +106,115 @@ def unified_reward_function(triggered, target_path):
     return reward
 
 
-# ===   ===
-def execute_Tr(a):
-    x, y, z = int(a[0]), int(a[1]), int(a[2])
+# === 测试需求执行函数 ===
+def execute_Tr(x, y, z):
     triggered = set()
 
-    # Rule Group 1: (x > y) related
-    if (x > y) != (x > 5):
-        triggered.add(1)
-    if (x > y) != (x * x > y):
-        triggered.add(2)
-    if (x > y) != (x > y * y):
-        triggered.add(3)
+    # --- 分支 1-11 (原 energy_y * energy_z / (energy_x + 1) > 140 的变异) ---
+    if ((y * z) / (x + 1) > 140) != ((y * y) / (x + 1) > 140): triggered.add(1)
+    if ((y * z) / (x + 1) > 140) != ((z * z) / (x + 1) > 140): triggered.add(2)
+    if ((y * z) / (x + 1) > 140) != ((y * x) / (x + 1) > 140): triggered.add(3)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 3) > 140): triggered.add(4)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x - 1) > 140): triggered.add(5)
+    if ((y * z) / (x + 1) > 140) != ((y * z * 2) / (y + 1) > 140): triggered.add(6)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 100): triggered.add(7)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 180): triggered.add(8)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 10) > 140): triggered.add(9)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x * 1) > 140): triggered.add(10)
+    if ((y * z) / (x + 1) > 140) != ((y * 30) / (x + 1) > 140): triggered.add(11)
 
-        # Rule Group 2: (x > z) related
-    if (x > z) != (x > 10):
-        triggered.add(4)
-    if (x > z) != (x * x > z):
-        triggered.add(5)
-    if (x > z) != (x > z * z):
-        triggered.add(6)
+    # --- 分支 12-21 (原 (energy_z - energy_x) < 0.22 * energy_y 的变异) ---
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * x): triggered.add(12)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * z): triggered.add(13)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.32 * y): triggered.add(14)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.12 * y): triggered.add(15)
+    if ((z - x) < 0.22 * y) != ((z * 2 - x) < 0.22 * y): triggered.add(16)
+    if ((z - x) < 0.22 * y) != ((z - x * 1.2) < 0.22 * y): triggered.add(17)
+    if ((z - x) < 0.22 * y) != ((z + x) < 0.22 * y): triggered.add(18)
+    if ((z - x) < 0.22 * y) != ((z - 20) < 0.22 * y): triggered.add(19)
+    if ((z - x) < 0.22 * y) != ((90 - x) < 0.22 * y): triggered.add(20)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.4 * y): triggered.add(21)
 
-        # Rule Group 3: (y > z) related
-    if (y > z) != (y > 8):
-        triggered.add(7)
-    if (y > z) != (y * y > z):
-        triggered.add(8)
-    if (y > z) != (y > z * z):
-        triggered.add(9)
-    if (y > z) != (10 > z):
-        triggered.add(10)
+    # --- 分支 22-32 (原 (energy_x^3 + energy_y^3) < energy_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.7 + y ** 3) < z ** 2): triggered.add(22)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.6) < z ** 2): triggered.add(23)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1.8): triggered.add(24)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(25)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(26)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(27)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(28)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.5): triggered.add(32)
 
-        # Rule Group 4: (x + y <= z) related
-    if (x + y <= z) != (x + y <= z * x):
-        triggered.add(11)
-    if (x + y <= z) != (x + y <= z * y):
-        triggered.add(12)
-    if (x + y <= z) != (x * y <= z * z):
-        triggered.add(13)
-    if (x + y <= z) != (x - y <= z):
-        triggered.add(14)
+    # --- 分支 33-42 (原 x/(y+0.01)>5 and y/(z+0.01)<0.2 的变异) ---
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (z + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(33)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (x + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(34)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((z / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(35)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((y / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(36)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (z / (z + 0.01)) < 0.2): triggered.add(37)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (x / (z + 0.01)) < 0.2): triggered.add(38)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (y + 0.01)) < 0.2): triggered.add(39)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (x + 0.01)) < 0.2): triggered.add(40)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.15): triggered.add(41)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 7 and (y / (z + 0.01)) < 0.2): triggered.add(42)
 
-        #  15: 
-    cond_xy_le_z = (x + y <= z)
-    cond_x_div_y_le_z = False
-    if y != 0:
-        cond_x_div_y_le_z = (x / y <= z)
+    # --- 分支 43-52 (原 abs(x-y)>16 and abs(y-z)>18 and abs(x-z)<9 的变异) ---
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x * 1.2 - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9): triggered.add(43)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y * 2 - z) > 18 and abs(x - z) < 9): triggered.add(44)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 19 and abs(y - z) > 18 and abs(y - z) < 9): triggered.add(45)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(x - z) > 18 and abs(x - z) < 9): triggered.add(46)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 40 and abs(x - z) < 9): triggered.add(47)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 2 - z) < 9): triggered.add(48)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z * 0.2) > 18 and abs(x - z) < 9): triggered.add(49)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 1.5 - z) < 9): triggered.add(50)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z * 0.87) < 9): triggered.add(51)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 7.8): triggered.add(52)
 
-    if cond_xy_le_z != cond_x_div_y_le_z:
-        triggered.add(15)
+    # --- 分支 53-63 (原 (x>95 or x<5) and (y>90 or y<3) and (z>85 or z<2) 的变异) ---
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(53)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * x > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(54)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * z > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(55)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 80 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(56)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * y > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(57)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(58)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * z > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(59)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 50 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(60)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 40 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(61)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y > 90 or y < 3) and (z * z > 85 or z < 2)): triggered.add(62)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 40 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(63)
 
-    if (x + y <= z) != (x + y <= 15):
-        triggered.add(16)
-    if (x + y <= z) != (x + y <= 20):
-        triggered.add(17)
-    if (x + y <= z) != (x + 5 <= z):
-        triggered.add(18)
-    if (x + y <= z) != (10 + y <= z):
-        triggered.add(19)
-    if (x + y <= z) != (x + 8 <= z):
-        triggered.add(20)
+    # --- 分支 64-75 (原 x^0.7+y^0.7>z^0.9 and x+y+z<180 的变异) ---
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.6 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(64)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(65)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.8 > z ** 0.9 and x + y + z < 180): triggered.add(66)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.8 and x + y + z < 180): triggered.add(67)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + z ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(68)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (y ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(69)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (z ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(70)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + x ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(71)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > x ** 0.9 and x + y + z < 180): triggered.add(72)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and y + y + z < 180): triggered.add(73)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(74)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + x + z < 180): triggered.add(75)
 
-        # Rule Group 5: (x == y == z) related
-    if (x == y == z) != (x <= y == z):
-        triggered.add(21)
-    if (x == y == z) != (x == y != z):
-        triggered.add(22)
-    if (x == y == z) != (x != y == z):
-        triggered.add(23)
-
-    if (x == y == z) != (x == y <= z):
-        triggered.add(24)
-
-        # Rule Group 6: Modulo operations
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
-        triggered.add(25)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
-        triggered.add(26)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
-        triggered.add(27)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
-        triggered.add(28)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
-        triggered.add(29)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
-        triggered.add(30)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
-        triggered.add(31)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
-        triggered.add(32)
-
-        # Rule Group 7: Quadratic equation discriminant like conditions
-    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
-
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
-        triggered.add(33)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
-        triggered.add(34)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
-        triggered.add(35)
-
-    # Rule Group 8: System of equations like conditions
-    cond_eq_main_part = (x + y == z and y + z == 2 * x)
-
-    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
-        triggered.add(36)
-
-    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
-        triggered.add(37)
-
-    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
-        triggered.add(38)
-    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
-        triggered.add(39)
+    # --- 分支 76-85 (原 (x+y)^1.3<z^1.6 and x+y+z/3>35 的变异) ---
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((y + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(76)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((z + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(77)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + x) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(78)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + z) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(79)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + 20) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(80)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(81)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.7 and x + y + z / 3 > 35): triggered.add(82)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.2 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(83)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and y + y + z / 3 > 35): triggered.add(84)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and x + y - z / 3 > 35): triggered.add(85)
 
     return triggered
 
 
-# 
-execute_Tr = execute_Tr
-
-# === DQN ===
+# === DQN网络 ===
 class DQNNetwork(nn.Module):
     def __init__(self, action_size=30):
         super(DQNNetwork, self).__init__()
@@ -230,15 +232,15 @@ class DQNNetwork(nn.Module):
         return self.output(x)
 
 
-# === Path  ===
+# === 每个路径的回放缓冲区 ===
 class PathReplayBuffer:
-    """Path """
+    """每个路径独立的回放缓冲区"""
 
     def __init__(self, path_idx, capacity=20000):
         self.path_idx = path_idx
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
-        self.similarities = deque(maxlen=capacity)  # Similarity
+        self.similarities = deque(maxlen=capacity)  # 存储相似度
 
     def push(self, state, action, reward, next_state, done, similarity):
         self.buffer.append((state, action, reward, next_state, done))
@@ -260,15 +262,15 @@ class PathReplayBuffer:
         )
 
     def get_top_k(self, k=20):
-        """Path Top-K"""
+        """获取每个路径的Top-K样本"""
         if len(self.buffer) == 0:
             return []
 
-        # buffersimilarities
+        # 将buffer和similarities配对
         samples_with_sim = list(zip(self.buffer, self.similarities))
         samples_with_sim.sort(key=lambda x: x[1], reverse=True)
 
-        # Top-K
+        # 取Top-K
         top_k = samples_with_sim[:k]
 
         results = []
@@ -279,7 +281,7 @@ class PathReplayBuffer:
             results.append({
                 'state': original_state_int,
                 'similarity': similarity,
-                'triggered': execute_Tr(original_state_int)
+                'triggered': execute_Tr(*original_state_int)
             })
 
         return results
@@ -288,7 +290,7 @@ class PathReplayBuffer:
         return len(self.buffer)
 
 
-# === DQN(:)===
+# === 改进的DQN智能体(每个路径独立缓冲区) ===
 class ImprovedDQNAgent:
     def __init__(self, num_paths, action_size=30):
         self.action_size = action_size
@@ -303,7 +305,7 @@ class ImprovedDQNAgent:
         lr = EXPERIMENT_CONFIG['LEARNING_RATE']
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
 
-        # Path 
+        # 为每个路径创建独立的回放缓冲区
         capacity = EXPERIMENT_CONFIG['REPLAY_BUFFER_CAPACITY']
         self.replay_buffers = {}
         for path_idx in range(num_paths):
@@ -313,7 +315,7 @@ class ImprovedDQNAgent:
         self.update_target_network()
 
     def discrete_to_action_delta(self, action_idx):
-        # 
+        # 定义每个维度的离散变化值
         delta_values = [5, 3, 2, 1, 0.5, -0.5, -1, -2, -3, -5]
 
         if action_idx >= 30:
@@ -329,9 +331,8 @@ class ImprovedDQNAgent:
         return action_delta
 
     def get_action(self, state):
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         if random.random() < self.epsilon:
             action_idx = random.randint(0, self.action_size - 1)
@@ -345,11 +346,10 @@ class ImprovedDQNAgent:
         return action_delta, action_idx
 
     def store_experience(self, path_idx, state, action_idx, reward, next_state, done, similarity):
-        """Path """
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
-        normalized_next_state = (next_state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        """存储经验到对应路径的缓冲区"""
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
+        normalized_next_state = (next_state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         self.replay_buffers[path_idx].push(
             normalized_state, action_idx, reward,
@@ -357,7 +357,7 @@ class ImprovedDQNAgent:
         )
 
     def replay_train(self, path_idx):
-        """Path """
+        """从指定路径的缓冲区训练"""
         batch_size = EXPERIMENT_CONFIG['REPLAY_BATCH_SIZE']
         batch = self.replay_buffers[path_idx].sample(batch_size)
 
@@ -386,51 +386,51 @@ class ImprovedDQNAgent:
 
         if self.replay_train_count % 2 == 0:
             self.update_target_network()
-            print(f"    ->  (Run {self.replay_train_count})")
+            print(f"    -> 更新目标网络 (第 {self.replay_train_count} 次训练)")
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.q_network.state_dict())
 
     def get_all_top_k(self, k=20):
-        """Path Top-K"""
+        """获取所有路径的Top-K样本"""
         results = {}
         for path_idx in range(self.num_paths):
             results[path_idx] = self.replay_buffers[path_idx].get_top_k(k)
         return results
 
     def get_buffer_stats(self):
-        """"""
+        """获取缓冲区统计信息"""
         stats = {}
         for path_idx in range(self.num_paths):
             stats[path_idx] = len(self.replay_buffers[path_idx])
         return stats
 
 
-# === Metric ===
+# === 性能指标计算 ===
 def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, update_count, agent):
-    """ runMetric"""
+    """计算单次运行的性能指标"""
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
     num_paths = len(target_paths)
 
-    # 1. (Total Reward)
+    # 1. 总奖励 (Total Reward)
     total_reward = 0
-    # 2. (Average Reward)
+    # 2. 平均奖励 (Average Reward)
     average_reward = 0
-    # 5. (Convergence)
+    # 5. 收敛性 (Convergence)
     convergence = 0
-    # 12. (Environment Adaptability)
+    # 12. 环境适应性 (Environment Adaptability)
     environment_adaptability = 0
-    # 13. (Generalization Ability)
+    # 13. 泛化能力 (Generalization Ability)
     generalization_ability = 0
-    # 15. (Computational Efficiency)
+    # 15. 计算效率 (Computational Efficiency)
     computational_efficiency = 0
-    # 16. (Policy Update Frequency)
+    # 16. 策略更新频率 (Policy Update Frequency)
     policy_update_frequency = 0
 
-    # Similarity
+    # 收集所有相似度
     all_similarities = []
 
-    # Metric
+    # 计算各项指标
     total_samples = 0
     all_rewards = []
 
@@ -447,68 +447,68 @@ def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, 
             all_similarities.append(similarity)
             total_samples += 1
 
-    # 1. 
+    # 1. 总奖励
     total_reward = total_reward
 
-    # 2. 
+    # 2. 平均奖励
     if total_samples > 0:
         average_reward = total_reward / total_samples
 
-    # 5. (Average Similarity)
+    # 5. 收敛性（平均相似度）
     if all_similarities:
         convergence = np.mean(all_similarities)
 
-    # 12. (Similarity)
+    # 12. 环境适应性（相似度的稳定性）
     if len(all_similarities) > 1:
         environment_adaptability = 1 / (np.std(all_similarities) + 1e-8)
 
-    # 13. (Average Similarity)
+    # 13. 泛化能力（平均相似度）
     generalization_ability = convergence
 
-    # 15. (/ seconds)
+    # 15. 计算效率（步数/秒）
     if training_time > 0:
         computational_efficiency = total_steps / training_time
 
-    # 16. 
+    # 16. 策略更新频率
     if training_time > 0:
         policy_update_frequency = update_count / training_time
 
-    # Similarity
+    # 相似度统计
     avg_similarity = np.mean(all_similarities) if all_similarities else 0
     max_similarity = np.max(all_similarities) if all_similarities else 0
     min_similarity = np.min(all_similarities) if all_similarities else 0
 
     return {
-        '': run_idx + 1,
+        'Run': run_idx + 1,
 
-        # Metric
-        '': round(total_reward, 2),
-        '': round(average_reward, 4),
-        '': round(convergence, 4),
-        '': round(environment_adaptability, 4),
-        '': round(generalization_ability, 4),
-        '': round(computational_efficiency, 2),
-        '': round(policy_update_frequency, 4),
+        # 性能指标
+        'Total Reward': round(total_reward, 2),
+        'Average Reward': round(average_reward, 4),
+        'Convergence': round(convergence, 4),
+        'Environment Adaptability': round(environment_adaptability, 4),
+        'Generalization Ability': round(generalization_ability, 4),
+        'Computational Efficiency': round(computational_efficiency, 2),
+        'Policy Update Frequency': round(policy_update_frequency, 4),
 
-        # Similarity
+        # 相似度统计
         'Average Similarity': round(avg_similarity, 4),
-        'Similarity': round(max_similarity, 4),
-        'Similarity': round(min_similarity, 4),
+        'Max Similarity': round(max_similarity, 4),
+        'Min Similarity': round(min_similarity, 4),
     }
 
 
-# === Excel ===
-def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_path="DQN_20 run.xlsx"):
-    """20 runDQNExcel"""
-    print("\nExcel...")
+# === Excel导出功能 ===
+def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_path="DQN_20次运行结果.xlsx"):
+    """将20次运行的DQN结果导出到Excel"""
+    print("\n正在导出Excel...")
 
-    # 
+    # 准备数据
     all_dqn_summary_data = []
     all_dqn_detailed_data = []
 
-    #  run
+    # 遍历每次运行
     for run_idx, (dqn_results, performance_data) in enumerate(zip(all_dqn_results, all_performance_data)):
-        # ===== Sheet1: DQNPath  =====
+        # ===== Sheet1: DQN路径摘要 =====
         dqn_summary_data = []
         for path_idx in range(len(target_paths)):
             target_path = target_paths[path_idx]
@@ -516,39 +516,38 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
 
             if len(samples) == 0:
                 dqn_summary_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
-                    '': len(target_path),
-                    '': 0,
+                    'Target Rule Count': len(target_path),
+                    'Sample Count': 0,
                     'Average Similarity': 0,
-                    'Similarity': 0,
-                    'Similarity': 0,
-                    'SimilarityStandard deviation': 0,
-                    '': '',
-                    'target paths': ', '.join(map(str, sorted(target_path)))
+                    'Max Similarity': 0,
+                    'Min Similarity': 0,
+                    'Similarity Std': 0,
+                    'Perfect Coverage': 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
                 continue
 
             similarities = [s['similarity'] for s in samples]
             perfect_count = sum(1 for s in similarities if abs(s - 1.0) < 0.001)
-            is_perfect = '' if perfect_count > 0 else ''
+            is_perfect = 'Yes' if perfect_count > 0 else 'No'
 
             dqn_summary_data.append({
-                '': run_idx + 1,
+                'Run': run_idx + 1,
                 'Path ID': path_idx + 1,
-                '': len(target_path),
-                '': len(samples),
+                'Target Rule Count': len(target_path),
+                'Sample Count': len(samples),
                 'Average Similarity': round(np.mean(similarities), 4),
-                'Similarity': round(max(similarities), 4),
-                'Similarity': round(min(similarities), 4),
-                'SimilarityStandard deviation': round(np.std(similarities), 4),
-                '': is_perfect,
-                'target paths': ', '.join(map(str, sorted(target_path)))
+                'Max Similarity': round(max(similarities), 4),
+                'Min Similarity': round(min(similarities), 4),
+                'Similarity Std': round(np.std(similarities), 4),
+                'Perfect Coverage': is_perfect,
+                'Target Paths': ', '.join(map(str, sorted(target_path)))
             })
-
         all_dqn_summary_data.extend(dqn_summary_data)
 
-        # ===== Sheet2: DQNDetailed Sample Data =====
+        # ===== Sheet2: DQN详细样本数据 =====
         dqn_detailed_data = []
         for path_idx in range(len(target_paths)):
             target_path = target_paths[path_idx]
@@ -560,62 +559,62 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
                 triggered = sample['triggered']
 
                 dqn_detailed_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
                     'Sample ID': sample_idx + 1,
                     'X': int(state[0]),
                     'Y': int(state[1]),
                     'Z': int(state[2]),
                     'Similarity': round(similarity, 4),
-                    '': '' if abs(similarity - 1.0) < 0.001 else '',
-                    'target paths': ', '.join(map(str, sorted(target_path))),
-                    '': ', '.join(map(str, sorted(triggered))),
-                    '': len(target_path.intersection(triggered)),
-                    '': len(target_path)
+                    'Perfect Coverage': 'Yes' if abs(similarity - 1.0) < 0.001 else 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path))),
+                    'Triggered Rules': ', '.join(map(str, sorted(triggered))),
+                    'Hit Rule Count': len(target_path.intersection(triggered)),
+                    'Target Rule Count': len(target_path)
                 })
-
         all_dqn_detailed_data.extend(dqn_detailed_data)
 
-    # Excel
+    # 创建Excel文件
     dqn_summary_df = pd.DataFrame(all_dqn_summary_data)
     dqn_detailed_df = pd.DataFrame(all_dqn_detailed_data)
     performance_df = pd.DataFrame(all_performance_data)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # Sheet1: DQNPath 
-        dqn_summary_df.to_excel(writer, sheet_name='DQNPath ', index=False)
+        # Sheet1: DQN路径摘要
+        dqn_summary_df.to_excel(writer, sheet_name='DQN路径摘要', index=False)
 
-        # Sheet2: DQNDetailed Sample Data
-        dqn_detailed_df.to_excel(writer, sheet_name='DQNDetailed Sample Data', index=False)
+        # Sheet2: DQN详细样本数据
+        dqn_detailed_df.to_excel(writer, sheet_name='DQN详细样本数据', index=False)
 
-        # Sheet3: Metric - 
+        # Sheet3: 性能指标
         selected_columns = [
-            '',
-            '', '', '', '',
-            '', '', '',
-            'Average Similarity', 'Similarity', 'Similarity'
+            'Run',
+            'Total Reward', 'Average Reward', 'Convergence',
+            'Environment Adaptability', 'Generalization Ability',
+            'Computational Efficiency', 'Policy Update Frequency',
+            'Average Similarity', 'Max Similarity', 'Min Similarity'
         ]
         performance_df_selected = performance_df[selected_columns]
-        performance_df_selected.to_excel(writer, sheet_name='Metric', index=False)
+        performance_df_selected.to_excel(writer, sheet_name='性能指标', index=False)
 
-        # 
+        # 格式化Excel
         workbook = writer.book
 
-        # 
+        # 定义样式
         header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
         header_font = Font(name='Microsoft YaHei', size=11, bold=True, color='FFFFFF')
-        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 
+        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 绿色
 
-        # === Sheet1 ===
-        ws1 = writer.sheets['DQNPath ']
+        # === Sheet1 格式化 ===
+        ws1 = writer.sheets['DQN路径摘要']
         for cell in ws1[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        # 高亮完美覆盖的行
         for row_idx in range(2, ws1.max_row + 1):
-            if ws1.cell(row_idx, 9).value == '':  # Run 9""
+            if ws1.cell(row_idx, 9).value == 'Yes':  # 第9列是Perfect Coverage
                 for col_idx in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col_idx).fill = perfect_fill
 
@@ -630,8 +629,8 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
         ws1.column_dimensions['I'].width = 15
         ws1.column_dimensions['J'].width = 50
 
-        # === Sheet2 ===
-        ws2 = writer.sheets['DQNDetailed Sample Data']
+        # === Sheet2 格式化 ===
+        ws2 = writer.sheets['DQN详细样本数据']
         for cell in ws2[1]:
             cell.fill = header_fill
             cell.font = header_font
@@ -650,117 +649,116 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
         ws2.column_dimensions['K'].width = 15
         ws2.column_dimensions['L'].width = 15
 
-        # === Sheet3 ===
-        ws3 = writer.sheets['Metric']
+        # === Sheet3 格式化 ===
+        ws3 = writer.sheets['性能指标']
         for cell in ws3[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        # 设置列宽
         columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
         for col in columns:
             ws3.column_dimensions[col].width = 18
 
-    print(f"Excel: {output_path}")
-    print(f"  - Sheet1: DQNPath  ({len(all_dqn_summary_data)})")
-    print(f"  - Sheet2: DQNDetailed Sample Data ({len(all_dqn_detailed_data)})")
-    print(f"  - Sheet3: Metric ({len(all_performance_data)})")
+    print(f"Excel已保存: {output_path}")
+    print(f"  - Sheet1: DQN路径摘要 ({len(all_dqn_summary_data)} 行)")
+    print(f"  - Sheet2: DQN详细样本数据 ({len(all_dqn_detailed_data)} 行)")
+    print(f"  - Sheet3: 性能指标 ({len(all_performance_data)} 行)")
 
 
-# === DQN training(:)===
+# === DQN训练工作流(每个路径独立缓冲区) ===
 def train_dqn_workflow():
     print("=" * 80)
-    print("DQN training ()")
-    print("Similarity:  / target paths")
+    print("DQN训练 (每个路径独立缓冲区)")
+    print("相似度: 交集 / 目标路径大小")
     print(
-        f": Path {EXPERIMENT_CONFIG['NUM_ROUNDS']},{EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}")
-    print(f": Path ,={EXPERIMENT_CONFIG['REPLAY_BUFFER_CAPACITY']}")
+        f"训练配置: 每个路径 {EXPERIMENT_CONFIG['NUM_ROUNDS']} 轮,每轮 {EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']} 步")
+    print(f"回放缓冲区: 每个路径独立,容量={EXPERIMENT_CONFIG['REPLAY_BUFFER_CAPACITY']}")
     print("=" * 80)
 
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
     num_paths = len(target_paths)
 
-    # (Number of Paths)
+    # 初始化智能体(路径数量)
     agent = ImprovedDQNAgent(num_paths=num_paths)
 
     start_time = time.time()
     total_steps = 0
 
-    # 
-    print(f"\n: Path {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']}")
+    print(f"\n生成初始样本: 每个路径 {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']} 个")
     path_samples = {}
     for path_idx in range(num_paths):
         samples = []
         for _ in range(EXPERIMENT_CONFIG['SAMPLES_PER_PATH']):
-            state = np.random.randint(
-                EXPERIMENT_CONFIG['MIN_VALUE'],
-                EXPERIMENT_CONFIG['MAX_VALUE'] + 1,
-                EXPERIMENT_CONFIG['STATE_DIM']
-            ).astype(np.float32)
+            state = np.array([
+                random.randint(EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MAX_X']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MAX_Y']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Z'], EXPERIMENT_CONFIG['MAX_Z'])
+            ], dtype=np.float32)
             samples.append(state)
         path_samples[path_idx] = samples
-        print(f"  Path  {path_idx + 1}/{num_paths}:  {len(samples)} ")
+        print(f"  路径 {path_idx + 1}/{num_paths}: 生成 {len(samples)} 个样本")
 
-    # 
+    # 训练参数
     batch_size = EXPERIMENT_CONFIG['BATCH_SIZE_SAMPLES']
     num_batches = EXPERIMENT_CONFIG['SAMPLES_PER_PATH'] // batch_size
     num_rounds = EXPERIMENT_CONFIG['NUM_ROUNDS']
 
-    print(f"\n:")
-    print(f"  - : {batch_size}")
-    print(f"  - Path : {num_batches}")
-    print(f"  - Path : {num_rounds}")
-    print(f"  - : {EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}")
+    print(f"\n训练参数:")
+    print(f"  - 批次大小: {batch_size}")
+    print(f"  - 每个路径的批次数: {num_batches}")
+    print(f"  - 每个路径的训练轮数: {num_rounds}")
+    print(f"  - 每个样本的步数: {EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}")
     print(
-        f"  - : {num_paths} Path  x {num_rounds}  x {num_batches}  = {num_paths * num_rounds * num_batches} ")
+        f"  - 总训练循环: {num_paths} 个路径 x {num_rounds} 轮 x {num_batches} 批 = {num_paths * num_rounds * num_batches} 批次")
     print("-" * 80)
 
-    # :completedPath ,Path 
+    # 逐个路径训练:完成一个路径的所有轮次后,再训练下一个路径
     for path_idx in range(num_paths):
         target_path = target_paths[path_idx]
         print(f"\n{'=' * 80}")
-        print(f"Start training path  {path_idx + 1}/{num_paths}")
-        print(f": {sorted(target_path)}")
-        print(f": replay_buffers[{path_idx}]")
+        print(f"开始训练路径 {path_idx + 1}/{num_paths}")
+        print(f"目标路径: {sorted(target_path)}")
+        print(f"使用缓冲区: replay_buffers[{path_idx}]")
         print(f"{'=' * 80}")
 
-        # Path NUM_ROUNDS
+        # 每个路径训练NUM_ROUNDS轮
         for round_idx in range(num_rounds):
-            print(f"\n{'' * 80}")
-            print(f"Path  {path_idx + 1} - Run  {round_idx + 1}/{num_rounds} ")
-            print(f"{'' * 80}")
+            print(f"\n{'*' * 80}")
+            print(f"路径 {path_idx + 1} - 第 {round_idx + 1}/{num_rounds} 轮训练")
+            print(f"{'*' * 80}")
 
-            # Per roundnum_batches
+            # 每轮遍历num_batches个批次
             for batch_idx in range(num_batches):
-                print(f"\n   {batch_idx + 1}/{num_batches} (Path {path_idx + 1}, Run {round_idx + 1})")
+                print(f"\n  批次 {batch_idx + 1}/{num_batches} (路径 {path_idx + 1}, 轮次 {round_idx + 1})")
 
-                # 
+                # 获取当前批次的样本
                 batch_samples = path_samples[path_idx][batch_idx * batch_size:(batch_idx + 1) * batch_size]
 
                 batch_rewards = []
                 batch_similarities = []
 
-                # 
+                # 对批次中的每个样本进行训练
                 for sample_idx, initial_state in enumerate(batch_samples):
                     state = initial_state.copy()
                     episode_reward = 0
                     final_similarity = 0
 
-                    # STEPS_PER_SAMPLE
+                    # 每个样本执行STEPS_PER_SAMPLE步
                     for step in range(EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']):
                         action_delta, action_idx = agent.get_action(state)
 
                         next_state = state + action_delta
                         next_state = clip_state(next_state)
 
-                        triggered = execute_Tr(next_state)  # 
+                        triggered = execute_Tr(*next_state)  # 执行测试需求
                         reward = unified_reward_function(triggered, target_path)
                         similarity = coverage_similarity(triggered, target_path)
 
                         done = (step == EXPERIMENT_CONFIG['STEPS_PER_SAMPLE'] - 1)
 
-                        # Path 
+                        # 存储经验到对应路径的缓冲区
                         agent.store_experience(
                             path_idx, state, action_idx, reward, next_state, done, similarity
                         )
@@ -773,131 +771,132 @@ def train_dqn_workflow():
                     batch_rewards.append(episode_reward)
                     batch_similarities.append(final_similarity)
 
-                # 
+                # 批次统计
                 avg_reward = np.mean(batch_rewards)
                 avg_similarity = np.mean(batch_similarities)
                 max_similarity = np.max(batch_similarities)
-                print(f"    ={avg_reward:.2f}, Average Similarity={avg_similarity:.4f}, "
-                      f"Similarity={max_similarity:.4f}, epsilon={agent.epsilon:.3f}")
+                print(f"    平均奖励={avg_reward:.2f}, 平均相似度={avg_similarity:.4f}, "
+                      f"最大相似度={max_similarity:.4f}, epsilon={agent.epsilon:.3f}")
 
-                # Path 
-                print(f"    (Path {path_idx})...")
+                # 从对应路径的缓冲区进行训练
+                print(f"    从缓冲区训练 (路径 {path_idx})...")
                 agent.replay_train(path_idx)
 
-                # Path 
+                # 显示当前路径的缓冲区大小
                 buffer_size = len(agent.replay_buffers[path_idx])
-                print(f"    Path {path_idx}: {buffer_size}, : {agent.replay_train_count}")
+                print(f"    路径 {path_idx} 缓冲区大小: {buffer_size}, 总训练次数: {agent.replay_train_count}")
 
     training_time = time.time() - start_time
 
     print("\n" + "=" * 80)
-    print(f"DQN trainingcompleted! Total elapsed time: {training_time:.2f} seconds, : {total_steps}")
-    print(f": {agent.replay_train_count}")
-    print(f": {agent.replay_train_count // 2}")
+    print(f"DQN训练完成! 总耗时: {training_time:.2f} 秒, 总步数: {total_steps}")
+    print(f"总训练次数: {agent.replay_train_count}")
+    print(f"目标网络更新次数: {agent.replay_train_count // 2}")
 
-    # Path 
-    print("\nPath :")
+    # 显示每个路径的缓冲区大小
+    print("\n各路径缓冲区大小:")
     buffer_stats = agent.get_buffer_stats()
     for path_idx, size in buffer_stats.items():
-        print(f"  Path {path_idx + 1}: {size} ")
+        print(f"  路径 {path_idx + 1}: {size} 个经验")
 
     print("=" * 80)
 
-    # Top-K
-    print(f"\nPath SimilarityMaximum{EXPERIMENT_CONFIG['TOP_K_SAMPLES']}...")
+    # 获取Top-K结果
+    print(f"\n提取每个路径相似度最高的{EXPERIMENT_CONFIG['TOP_K_SAMPLES']}个样本...")
     dqn_top_k_results = agent.get_all_top_k(EXPERIMENT_CONFIG['TOP_K_SAMPLES'])
 
     return agent, dqn_top_k_results, training_time, total_steps, agent.replay_train_count
 
 
-# ===  ===
+# === 主函数 ===
 def main():
     print("\n" + "=" * 80)
-    print("DQN - 20 run")
-    print("Metric")
+    print("DQN - 20次运行实验")
+    print("性能指标计算")
     print("=" * 80)
 
     all_dqn_results = []
     all_performance_data = []
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
 
-    # 20
+    # 执行20次运行
     for run_idx in range(EXPERIMENT_CONFIG['NUM_RUNS']):
         print(f"\n{'='*80}")
-        print(f"Start run  {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']}  run")
+        print(f"开始第 {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']} 次运行")
         print(f"{'='*80}")
 
-        # DQN training
+        # 执行DQN训练
         dqn_agent, dqn_results, training_time, total_steps, update_count = train_dqn_workflow()
 
-        # Metric
+        # 计算性能指标
         performance_data = calculate_run_performance(
             run_idx, dqn_results, training_time, total_steps, update_count, dqn_agent
         )
 
-        # 
+        # 存储结果
         all_dqn_results.append(dqn_results)
         all_performance_data.append(performance_data)
 
-        print(f"\nRun  {run_idx + 1}  runcompleted!")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
+        print(f"\n第 {run_idx + 1} 次运行完成!")
+        print(f"  总奖励: {performance_data['Total Reward']}")
+        print(f"  平均奖励: {performance_data['Average Reward']}")
+        print(f"  收敛性: {performance_data['Convergence']}")
 
-    # Excel(20 run)
+    # 导出Excel(包含20次运行的所有结果)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"DQN_20 run_{timestamp}.xlsx"
+    output_path = f"DQN_20次运行_{timestamp}.xlsx"
     export_to_excel(all_dqn_results, all_performance_data, target_paths, output_path)
 
-    # 
+    # 输出汇总统计
     print("\n" + "=" * 80)
-    print("20 run")
+    print("20次运行汇总统计")
     print("=" * 80)
 
-    # Metric
-    total_rewards = [p[''] for p in all_performance_data]
-    average_rewards = [p[''] for p in all_performance_data]
-    convergences = [p[''] for p in all_performance_data]
-    environment_adaptabilities = [p[''] for p in all_performance_data]
-    generalization_abilities = [p[''] for p in all_performance_data]
-    computational_efficiencies = [p[''] for p in all_performance_data]
-    policy_update_frequencies = [p[''] for p in all_performance_data]
+    # 计算各项指标的均值和标准差
+    # 提取性能指标
+    total_rewards = [p['Total Reward'] for p in all_performance_data]
+    average_rewards = [p['Average Reward'] for p in all_performance_data]
+    convergences = [p['Convergence'] for p in all_performance_data]
+    environment_adaptabilities = [p['Environment Adaptability'] for p in all_performance_data]
+    generalization_abilities = [p['Generalization Ability'] for p in all_performance_data]
+    computational_efficiencies = [p['Computational Efficiency'] for p in all_performance_data]
+    policy_update_frequencies = [p['Policy Update Frequency'] for p in all_performance_data]
     avg_similarities = [p['Average Similarity'] for p in all_performance_data]
 
-    print(f":")
-    print(f"  : {np.mean(total_rewards):.2f}")
-    print(f"  Standard deviation: {np.std(total_rewards):.2f}")
+    print(f"\n总奖励统计:")
+    print(f"  均值: {np.mean(total_rewards):.2f}")
+    print(f"  标准差: {np.std(total_rewards):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(average_rewards):.4f}")
-    print(f"  Standard deviation: {np.std(average_rewards):.4f}")
+    print(f"\n平均奖励统计:")
+    print(f"  均值: {np.mean(average_rewards):.4f}")
+    print(f"  标准差: {np.std(average_rewards):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(convergences):.4f}")
-    print(f"  Standard deviation: {np.std(convergences):.4f}")
+    print(f"\n收敛性统计:")
+    print(f"  均值: {np.mean(convergences):.4f}")
+    print(f"  标准差: {np.std(convergences):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(environment_adaptabilities):.4f}")
-    print(f"  Standard deviation: {np.std(environment_adaptabilities):.4f}")
+    print(f"\n环境适应性统计:")
+    print(f"  均值: {np.mean(environment_adaptabilities):.4f}")
+    print(f"  标准差: {np.std(environment_adaptabilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(generalization_abilities):.4f}")
-    print(f"  Standard deviation: {np.std(generalization_abilities):.4f}")
+    print(f"\n泛化能力统计:")
+    print(f"  均值: {np.mean(generalization_abilities):.4f}")
+    print(f"  标准差: {np.std(generalization_abilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(computational_efficiencies):.2f}")
-    print(f"  Standard deviation: {np.std(computational_efficiencies):.2f}")
+    print(f"\n计算效率统计:")
+    print(f"  均值: {np.mean(computational_efficiencies):.2f}")
+    print(f"  标准差: {np.std(computational_efficiencies):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(policy_update_frequencies):.4f}")
-    print(f"  Standard deviation: {np.std(policy_update_frequencies):.4f}")
+    print(f"\n策略更新频率统计:")
+    print(f"  均值: {np.mean(policy_update_frequencies):.4f}")
+    print(f"  标准差: {np.std(policy_update_frequencies):.4f}")
 
-    print(f"\nAverage similarity statistics:")
-    print(f"  : {np.mean(avg_similarities):.4f}")
-    print(f"  Standard deviation: {np.std(avg_similarities):.4f}")
+    print(f"\n平均相似度统计:")
+    print(f"  均值: {np.mean(avg_similarities):.4f}")
+    print(f"  标准差: {np.std(avg_similarities):.4f}")
 
     print("\n" + "=" * 80)
-    print(f" {EXPERIMENT_CONFIG['NUM_RUNS']} completed!")
+    print(f"所有 {EXPERIMENT_CONFIG['NUM_RUNS']} 次运行完成!")
     print("=" * 80)
 
 

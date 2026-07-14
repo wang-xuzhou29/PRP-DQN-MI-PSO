@@ -19,9 +19,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # ===  ===
-dx_min, dx_max = 1, 50  # dx
-dy_min, dy_max = 1, 50  # dy
-dz_min, dz_max = 1, 50  # dz
+dx_min, dx_max = 1, 100  # dx
+dy_min, dy_max = 1, 100  # dy
+dz_min, dz_max = 1, 100  # dz
 
 
 # ===  ===

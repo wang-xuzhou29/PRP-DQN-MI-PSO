@@ -18,17 +18,18 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
+# === 全局取值范围配置 ===
+STATE_MIN_W, STATE_MAX_W = 2000, 9000
+STATE_MIN_T, STATE_MAX_T = 38, 85
+STATE_MIN_Z, STATE_MAX_Z = 650, 1900
 # === / ===
 class StateNormalizer:
     """: [0,1]"""
-
     def __init__(self):
-        #  - 
         self.ranges = {
-            'weather': (1, 6),  # 
-            'time_period': (1, 6),  # 
-            'z': (1, 6)  # 
+            'weather': (STATE_MIN_W, STATE_MAX_W),
+            'time_period': (STATE_MIN_T, STATE_MAX_T),
+            'z': (STATE_MIN_Z, STATE_MAX_Z)
         }
 
     def normalize(self, state):
@@ -80,312 +81,351 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_validation_rules_block4(weather, time_period, z):
-    """ - weather, time_period, z"""
+def execute_Tr(light, moisture, co2):
+    actions = []
     triggered = set()
 
-    # z
-    x = z  # zx
-    y = (weather * time_period * 10 + z) % 100 + 1  # y
+    # Fixed all if statements - using triggered.add() instead of b[0]=1
+    if (light < 3500 and moisture > 75) != (light < 2500 and moisture > 75):
+        triggered.add(1)
+    if (light < 3500 and moisture > 75) != (light < 4500 and moisture > 75):
+        triggered.add(2)
+    if (light < 3500 and moisture > 75) != (light < 5500 and moisture > 75):
+        triggered.add(3)
+    if (light < 3500 and moisture > 75) != (light < 3500 and moisture > 25):
+        triggered.add(4)
+    if (light < 3500 and moisture > 75) != (light < 3500 and moisture > 55):
+        triggered.add(5)
 
-    # 1-7: (time_period == 1)
-    if time_period == 1:
-        if x < 60 and y > 75:
-            triggered.add(1)
-        if x > 60 and y > 70:
-            triggered.add(2)
-        if x < 50 and y < 40:
-            triggered.add(3)
-        if x > 78 and 45 < y < 70:
-            triggered.add(4)
-        if 45 < x < 70 and y > 78:
-            triggered.add(5)
-        if x < 55 and 50 < y < 75:
-            triggered.add(6)
-        if 50 < x < 75 and y < 55:
-            triggered.add(7)
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 5500 and moisture > 80 and co2 > 1600):
+        triggered.add(6)
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 6500 and moisture > 80 and co2 > 1600):
+        triggered.add(7)
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 8500 and moisture > 80 and co2 > 1600):
+        triggered.add(8)
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 2500 and moisture > 40 and co2 > 1600):
+        triggered.add(9)
+    # 原分支10已删除
 
-    # 8-14: (time_period == 2)
-    if time_period == 2:
-        if x < 60 and y > 75:
-            triggered.add(8)
-        if x > 60 and y > 70:
-            triggered.add(9)
-        if x < 55 and y < 45:
-            triggered.add(10)
-        if 45 < x < 70 and y > 78:
-            triggered.add(11)
-        if x > 78 and 45 < y < 70:
-            triggered.add(12)
-        if 55 < x < 75 and y < 50:
-            triggered.add(13)
-        if x < 50 and 55 < y < 75:
-            triggered.add(14)
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 55):
+        triggered.add(10)
+    if (light > 3000 and moisture < 75) != (light > 4000 and moisture < 75):
+        triggered.add(11)
+    if (light > 3000 and moisture < 75) != (light > 5000 and moisture < 75):
+        triggered.add(12)
+    if (light > 3000 and moisture < 75) != (light > 6000 and moisture < 75):
+        triggered.add(13)
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 85):
+        triggered.add(14)
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 35):
+        triggered.add(15)
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 15):
+        triggered.add(16)
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 65):
+        triggered.add(17)
 
-    # 15-19: (time_period == 3)
-    if time_period == 3:
-        if x > 60 and 40 < y < 65:
-            triggered.add(15)
-        if 40 < x < 65 and y > 60:
-            triggered.add(16)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(17)
-        if x < 50 and y < 40:
-            triggered.add(18)
-        if x > 65 and y < 45:
-            triggered.add(19)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 4500 or co2 < 800) and moisture > 42):
+        triggered.add(18)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 6500 or co2 < 800) and moisture > 42):
+        triggered.add(19)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 8500 or co2 < 800) and moisture > 42):
+        triggered.add(20)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 900) and moisture > 42):
+        triggered.add(21)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 1100) and moisture > 42):
+        triggered.add(22)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 700) and moisture > 42):
+        triggered.add(23)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 1500) and moisture > 42):
+        triggered.add(24)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 32):
+        triggered.add(25)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 52):
+        triggered.add(26)
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 62):
+        triggered.add(27)
 
-    # 20-25: (time_period == 4)
-    if time_period == 4:
-        if x < 45 and y < 35:
-            triggered.add(20)
-        if x > 60 and y < 40:
-            triggered.add(21)
-        if x < 50 and y > 70:
-            triggered.add(22)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(23)
-        if x < 35 and y < 25:
-            triggered.add(24)
-        if 40 < x < 65 and y < 45:
-            triggered.add(25)
+    if (moisture / (light / 100) > 8) != (moisture / (co2 / 100) > 8):
+        triggered.add(28)
 
-    # 26-28: (time_period == 5)
-    if time_period == 5:
-        if x < 60 and y < 50:
-            triggered.add(26)
-        if x > 65 and y > 75:
-            triggered.add(27)
-        if x > 60 and y < 45:
-            triggered.add(28)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 2000 and (light + moisture * 10) < 3800):
+        triggered.add(29)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 4000 and (light + moisture * 10) < 3800):
+        triggered.add(30)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 5000 and (light + moisture * 10) < 3800):
+        triggered.add(31)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 7000 and (light + moisture * 10) < 3800):
+        triggered.add(32)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 15) < 3800):
+        triggered.add(33)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 20) < 3800):
+        triggered.add(34)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 10) > 3800):
+        triggered.add(35)
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light > 3000 and (light + moisture * 10) < 3800):
+        triggered.add(36)
+    # 原分支38已删除
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + co2) < 3800):
+        triggered.add(37)
 
-    # 29-33: (time_period == 6)
-    if time_period == 6:
-        if 40 < x < 70 and 40 < y < 60:
-            triggered.add(29)
-        if x < 55 and y < 45:
-            triggered.add(30)
-        if x > 60 and y < 50:
-            triggered.add(31)
-        if x < 60 and y > 70:
-            triggered.add(32)
-        if x > 65 and y > 75:
-            triggered.add(33)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light < 5000 and light < 7000 and co2 > 1400):
+        triggered.add(38)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 4000 and light < 7000 and co2 > 1400):
+        triggered.add(39)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light > 7000 and co2 > 1400):
+        triggered.add(40)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 3000 and co2 > 1400):
+        triggered.add(41)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 7000 and co2 < 1400):
+        triggered.add(42)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 7000 and co2 > 1200):
+        triggered.add(43)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 4000 and co2 > 1400):
+        triggered.add(44)
 
-    # 34-68: 
-    if weather == 1:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(34)
-        if time_period in [1, 2] and y > 70:
-            triggered.add(35)
-        if time_period in [3, 4] and x < 50:
-            triggered.add(36)
-        if time_period in [3, 4] and y < 50:
-            triggered.add(37)
-        if time_period in [5, 6] and 40 < x < 80:
-            triggered.add(38)
-        if time_period in [5, 6] and 40 < y < 80:
-            triggered.add(39)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light < 6000 and (light + moisture + co2) > 8500):
+        triggered.add(45)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light - moisture + co2) > 8500):
+        triggered.add(46)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture - co2) > 8500):
+        triggered.add(47)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture + co2) > 4500):
+        triggered.add(48)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture + co2) > 6500):
+        triggered.add(49)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 8000 and (light + moisture + co2) > 8500):
+        triggered.add(50)
 
-    if weather == 2:  # 
-        if time_period in [1, 2] and x > 75:
-            triggered.add(40)
-        if time_period in [1, 2] and y < 60:
-            triggered.add(41)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(42)
-        if time_period in [3, 4] and y > 65:
-            triggered.add(43)
-        if time_period in [5, 6] and 35 < x < 75:
-            triggered.add(44)
-        if time_period in [5, 6] and 35 < y < 75:
-            triggered.add(45)
+    if (light > 8500 and moisture < 50) != (light > 5500 and moisture < 50):
+        triggered.add(51)
+    if (light > 8500 and moisture < 50) != (light > 3500 and moisture < 50):
+        triggered.add(52)
+    if (light > 8500 and moisture < 50) != (light < 8500 and moisture < 50):
+        triggered.add(53)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 70):
+        triggered.add(54)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 60):
+        triggered.add(55)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture > 50):
+        triggered.add(56)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 40):
+        triggered.add(57)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 30):
+        triggered.add(58)
 
-    if weather == 3:  # 
-        if time_period in [1, 2] and x > 60:
-            triggered.add(46)
-        if time_period in [1, 2] and y > 65:
-            triggered.add(47)
-        if time_period in [3, 4] and x < 55:
-            triggered.add(48)
-        if time_period in [3, 4] and y < 55:
-            triggered.add(49)
-        if time_period in [5, 6] and 30 < x < 70:
-            triggered.add(50)
-        if time_period in [5, 6] and 30 < y < 70:
-            triggered.add(51)
+    if (light > 7500 and co2 < 900) != (light > 5500 and co2 < 900):
+        triggered.add(59)
+    if (light > 7500 and co2 < 900) != (light < 7500 and co2 < 900):
+        triggered.add(60)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 > 900):
+        triggered.add(61)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 400):
+        triggered.add(62)
+    if (light > 7500 and co2 < 900) != (light > 7000 and co2 < 900):
+        triggered.add(63)
+    if (light > 7500 and co2 < 900) != (light > 3500 and co2 < 900):
+        triggered.add(64)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 1400):
+        triggered.add(65)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 800):
+        triggered.add(66)
 
-    if weather == 4:  # 
-        if time_period in [1, 2] and x > 65:
-            triggered.add(52)
-        if time_period in [1, 2] and y < 55:
-            triggered.add(53)
-        if time_period in [3, 4] and x < 40:
-            triggered.add(54)
-        if time_period in [3, 4] and y > 60:
-            triggered.add(55)
-        if time_period in [5, 6] and 25 < x < 65:
-            triggered.add(56)
-        if time_period in [5, 6] and 25 < y < 65:
-            triggered.add(57)
+    if (light < 4000 and moisture < 45) != (light < 3000 and moisture < 45):
+        triggered.add(67)
+    if (light < 4000 and moisture < 45) != (light < 5000 and moisture < 45):
+        triggered.add(68)
+    if (light < 4000 and moisture < 45) != (light < 6000 and moisture < 45):
+        triggered.add(69)
+    if (light < 4000 and moisture < 45) != (light > 4000 and moisture < 45):
+        triggered.add(70)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture > 45):
+        triggered.add(71)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 55):
+        triggered.add(72)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 65):
+        triggered.add(73)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 75):
+        triggered.add(74)
+    if (light < 4000 and moisture < 45) != (light < 7000 and moisture < 45):
+        triggered.add(75)
 
-    if weather == 5:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(58)
-        if time_period in [1, 2] and y > 60:
-            triggered.add(59)
-        if time_period in [3, 4] and x < 35:
-            triggered.add(60)
-        if time_period in [3, 4] and y < 40:
-            triggered.add(61)
-        if time_period in [5, 6] and 20 < x < 60:
-            triggered.add(62)
-        if time_period in [5, 6] and 20 < y < 60:
-            triggered.add(63)
+    if (light < 2800 and moisture > 80) != (light < 1800 and moisture > 80):
+        triggered.add(76)
+    if (light < 2800 and moisture > 80) != (light > 2800 and moisture > 80):
+        triggered.add(77)
+    if (light < 2800 and moisture > 80) != (light < 3800 and moisture > 80):
+        triggered.add(78)
+    if (light < 2800 and moisture > 80) != (light < 4800 and moisture > 80):
+        triggered.add(79)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture < 80):
+        triggered.add(80)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 60):
+        triggered.add(81)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 40):
+        triggered.add(82)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 30):
+        triggered.add(83)
 
-    if weather == 6:  # 
-        if time_period in [1, 2] and x > 55:
-            triggered.add(64)
-        if time_period in [1, 2] and y > 55:
-            triggered.add(65)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(66)
-        if time_period in [3, 4] and y < 45:
-            triggered.add(67)
-        if time_period in [5, 6] and 15 < x < 55:
-            triggered.add(68)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 100) > 7):
+        triggered.add(84)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 200) > 7):
+        triggered.add(85)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 8):
+        triggered.add(86)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 1) > 7):
+        triggered.add(87)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 9):
+        triggered.add(88)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 300) > 7):
+        triggered.add(89)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 100) > 7):
+        triggered.add(90)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 200) > 7):
+        triggered.add(91)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 300) > 7):
+        triggered.add(92)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 10):
+        triggered.add(93)
 
-    # 69-78: ()
-    if weather + time_period > 6:
-        if x > 50 and y > 50:
-            triggered.add(69)
-        if x < 50 and y < 50:
-            triggered.add(70)
-        if x > y:
-            triggered.add(71)
-        if x < y:
-            triggered.add(72)
-        if abs(x - y) < 20:
-            triggered.add(73)
-
-    if weather + time_period <= 6:
-        if x > 60 or y > 60:
-            triggered.add(74)
-        if x < 40 or y < 40:
-            triggered.add(75)
-        if x + y > 100:
-            triggered.add(76)
-        if x + y < 80:
-            triggered.add(77)
-        if abs(x - y) > 30:
-            triggered.add(78)
-
-    # 79-88: Value
-    if weather % 2 == time_period % 2:  # 
-        if x % 10 < 5:
-            triggered.add(79)
-        if y % 10 >= 5:
-            triggered.add(80)
-        if (x + y) % 3 == 0:
-            triggered.add(81)
-        if (x * y) % 7 == 0:
-            triggered.add(82)
-        if x // 10 == y // 10:
-            triggered.add(83)
-
-    if weather % 2 != time_period % 2:  # 
-        if x > 75 or y > 75:
-            triggered.add(84)
-        if x < 25 or y < 25:
-            triggered.add(85)
-        if max(x, y) - min(x, y) > 40:
-            triggered.add(86)
-        if (x + y) // 2 > 50:
-            triggered.add(87)
-        if weather * time_period > 15:
-            triggered.add(88)
-
-    # 89-95: ()
-    if weather in [1, 3, 5]:  # 
-        if time_period in [1, 3, 5] and x > 40:
-            triggered.add(89)
-        if time_period in [2, 4, 6] and y > 40:
-            triggered.add(90)
-        if x % 20 < 10 and y % 20 < 10:
-            triggered.add(91)
-        if x + weather * 10 > 50:
-            triggered.add(92)
-        if y + time_period * 10 > 50:
-            triggered.add(93)
-        if time_period in [1, 3, 5] and x < 60:
-            triggered.add(94)
-        if time_period in [2, 4, 6] and y < 60:
-            triggered.add(95)
-
-    # 96-98: 
-    if weather in [2, 4, 6]:  # 
-        if (x + y) % weather == 0:
-            triggered.add(96)
-        if x * weather > 100:
-            triggered.add(97)
-        if y * time_period > 100:
-            triggered.add(98)
-
-    # 99-100: 
-    if (weather * time_period + z) % 7 == 0:
+    if (moisture < 55 and light < 4500) != (moisture < 65 and light < 4500):
+        triggered.add(94)
+    if (moisture < 55 and light < 4500) != (moisture < 75 and light < 4500):
+        triggered.add(95)
+    if (moisture < 55 and light < 4500) != (moisture < 85 and light < 4500):
+        triggered.add(96)
+    if (moisture < 55 and light < 4500) != (moisture > 55 and light < 4500):
+        triggered.add(97)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light > 4500):
+        triggered.add(98)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 3500):
         triggered.add(99)
-    if max(weather, time_period) * min(x, y) > 150:
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 6500):
         triggered.add(100)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 7500):
+        triggered.add(101)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 8500):
+        triggered.add(102)
+
+    if (moisture < 58 and co2 < 950) != (moisture < 38 and co2 < 950):
+        triggered.add(103)
+    if (moisture < 58 and co2 < 950) != (moisture < 48 and co2 < 950):
+        triggered.add(104)
+    if (moisture < 58 and co2 < 950) != (moisture > 58 and co2 < 950):
+        triggered.add(105)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 > 950):
+        triggered.add(106)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 < 1050):
+        triggered.add(107)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 < 450):
+        triggered.add(108)
+
+    if (moisture > 82 and co2 > 1600) != (moisture > 62 and co2 > 1600):
+        triggered.add(109)
+    if (moisture > 82 and co2 > 1600) != (moisture > 32 and co2 > 1600):
+        triggered.add(110)
+    if (moisture > 82 and co2 > 1600) != (moisture > 42 and co2 > 1600):
+        triggered.add(111)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 1100):
+        triggered.add(112)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 1000):
+        triggered.add(113)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 700):
+        triggered.add(114)
+
+    if (co2 > 1750 and moisture < 45) != (co2 > 950 and moisture < 45):
+        triggered.add(115)
+    if (co2 > 1750 and moisture < 45) != (co2 > 750 and moisture < 45):
+        triggered.add(116)
+    if (co2 > 1750 and moisture < 45) != (co2 < 1750 and moisture < 45):
+        triggered.add(117)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture > 45):
+        triggered.add(118)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture < 55):
+        triggered.add(119)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture < 65):
+        triggered.add(120)
+
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 100) > 0.22):
+        triggered.add(121)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 200) > 0.22):
+        triggered.add(122)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light - 1000) > 0.22):
+        triggered.add(123)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light - 2000) > 0.22):
+        triggered.add(124)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 1) > 0.32):
+        triggered.add(125)
+
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 15 + co2 > 10500):
+        triggered.add(126)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 35 + co2 > 10500):
+        triggered.add(127)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 45 + co2 > 10500):
+        triggered.add(128)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 25 + co2 + 1000 > 10500):
+        triggered.add(129)
 
     return triggered
 
 
-def execute_Tr(weather, time_period, z):
-    """"""
-    return execute_validation_rules_block4(weather, time_period, z)
-
-
-# === target path definitions ===
-target_paths = [
-    [15, 16, 48, 49, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [16, 18, 19, 60, 61, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [1, 4, 6, 46, 47, 74, 75, 76, 77, 78, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [30, 31, 50, 51, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [18, 19, 36, 37, 74, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [20, 24, 25, 36, 37, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 99, 100],
-    [8, 12, 34, 35, 74, 75, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 100],
-    [8, 10, 58, 59, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [8, 14, 46, 47, 75, 76, 77, 78, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99, 100],
-    [1, 2, 6, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 100],
-    [39, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [20, 21, 60, 61, 70, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99],
-    [8, 9, 11, 13, 40, 41, 75, 76, 77, 78, 79, 80, 81, 83, 96, 97, 98, 100],
-    [18, 19, 54, 55, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [25, 48, 49, 69, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [26, 28, 62, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [32, 33, 68, 69, 71, 72, 73, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [1, 52, 53, 74, 75, 76, 77, 78, 84, 85, 86, 87, 88, 97, 98, 99, 100],
-    [8, 12, 14, 64, 65, 69, 71, 72, 73, 80, 81, 82, 83, 96, 97, 98, 100],
-    [1, 3, 64, 65, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [22, 36, 37, 76, 77, 78, 85, 86, 87, 88, 90, 91, 93, 95, 100],
-    [31, 45, 70, 71, 72, 73, 79, 80, 81, 83, 96, 97, 98, 99, 100],
-    [22, 66, 67, 69, 71, 72, 73, 79, 80, 82, 83, 97, 98, 100],
-    [44, 45, 69, 71, 72, 73, 79, 80, 83, 96, 97, 98, 99, 100],
-    [57, 71, 72, 73, 79, 80, 83, 97, 98, 100],
-    [15, 16, 17, 48, 49, 74, 75, 76, 77, 78, 79, 80, 82, 83, 89, 91, 92, 93, 94, 100],
-    [1, 2, 5, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [20, 21, 25, 42, 43, 74, 76, 77, 78, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [2, 5, 7, 40, 41, 75, 76, 77, 78, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 56, 57, 70, 71, 72, 73, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 38, 74, 76, 77, 78, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [30, 31, 62, 63, 70, 71, 72, 73, 84, 86, 87, 88, 90, 91, 92, 93, 95],
-    [29, 62, 63, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [23, 25, 60, 61, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100]
+targetPaths = [
+    [15, 16, 19, 20, 21, 22, 24, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 84, 85, 86, 88, 89, 93, 98, 100, 101, 102,
+     103, 105, 106, 108, 116, 117],
+    [15, 16, 23, 26, 27, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 84, 85, 86, 88, 89, 93, 98, 100, 101, 102, 103,
+     105, 106, 108, 116, 117],
+    [15, 16, 19, 20, 21, 22, 24, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 90, 91, 92, 98, 100, 101, 102, 103, 105,
+     106, 108, 116, 117],
+    [13, 15, 16, 19, 20, 21, 22, 24, 42, 52, 53, 60, 64, 69, 70, 75, 91, 92, 98, 100, 101, 102, 103, 105, 106, 108, 116,
+     117, 123, 124],
+    [12, 13, 15, 16, 19, 20, 21, 22, 24, 52, 53, 60, 64, 68, 69, 70, 75, 91, 92, 98, 100, 101, 102, 103, 105, 106, 108,
+     116, 117, 124],
+    [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 52, 53, 60, 64, 67, 70, 71, 92, 97, 98, 99, 103, 105, 106, 108, 116,
+     117, 123, 124],
+    [15, 16, 20, 22, 24, 45, 46, 47, 50, 51, 52, 53, 61, 65, 70, 84, 85, 86, 88, 89, 93, 98, 102, 106, 107, 115, 116,
+     117, 128, 129],
+    [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 52, 53, 60, 64, 71, 72, 73, 74, 92, 97, 98, 99, 103, 104, 105, 106,
+     108, 123, 124],
+    [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 60, 64, 71, 72, 73, 74, 92, 97, 98, 99, 103, 104, 105, 106, 108, 121,
+     122, 125],
+    [15, 16, 20, 22, 24, 45, 47, 50, 51, 52, 53, 61, 65, 70, 84, 85, 86, 88, 89, 93, 98, 102, 106, 115, 116, 117, 127,
+     128, 129],
+    [15, 16, 20, 38, 40, 41, 42, 44, 45, 47, 50, 51, 52, 53, 70, 75, 98, 101, 102, 106, 110, 111, 115, 116, 117, 125,
+     128, 129],
+    [4, 11, 12, 13, 15, 16, 26, 27, 30, 31, 32, 36, 53, 60, 71, 72, 73, 74, 92, 97, 98, 103, 104, 105, 106, 108, 121,
+     122, 125],
+    [15, 16, 20, 21, 22, 24, 45, 47, 51, 52, 53, 60, 61, 62, 66, 70, 93, 98, 102, 103, 105, 106, 108, 116, 117, 127,
+     128, 129],
+    [15, 16, 20, 38, 40, 41, 42, 44, 45, 46, 47, 50, 51, 52, 53, 70, 75, 98, 101, 102, 106, 110, 111, 117, 118, 125,
+     128, 129],
+    [13, 15, 16, 25, 42, 51, 52, 53, 59, 60, 64, 69, 70, 75, 85, 86, 88, 89, 93, 98, 100, 101, 102, 103, 105, 106, 108,
+     117],
+    [15, 16, 20, 21, 22, 24, 48, 49, 51, 52, 53, 59, 60, 63, 64, 85, 88, 89, 93, 98, 101, 102, 103, 104, 105, 106, 108,
+     129],
+    [15, 16, 20, 38, 40, 41, 42, 44, 45, 46, 47, 50, 51, 52, 53, 98, 101, 102, 106, 110, 111, 118, 119, 120, 125, 128,
+     129],
+    [13, 15, 16, 42, 51, 52, 53, 59, 60, 64, 69, 70, 75, 87, 90, 91, 92, 98, 100, 101, 102, 103, 105, 106, 108, 116,
+     117],
+    [15, 16, 19, 20, 24, 42, 43, 48, 49, 51, 52, 53, 70, 75, 92, 98, 100, 101, 102, 106, 115, 116, 117, 123, 124],
+    [4, 5, 10, 11, 12, 13, 15, 16, 27, 28, 60, 71, 73, 74, 92, 94, 95, 96, 97, 103, 104, 105, 106, 108, 123, 124],
+    [15, 16, 23, 26, 27, 45, 47, 53, 56, 57, 58, 60, 61, 62, 70, 98, 103, 105, 106, 108, 116, 117, 127, 128, 129],
+    [4, 5, 27, 28, 29, 34, 35, 36, 60, 71, 73, 74, 80, 82, 83, 92, 94, 95, 96, 97, 103, 104, 105, 106, 108, 125],
+    [12, 13, 15, 16, 19, 20, 24, 38, 39, 52, 53, 68, 69, 70, 75, 98, 100, 101, 102, 106, 115, 116, 117, 125],
+    [10, 15, 16, 17, 20, 21, 22, 24, 28, 45, 46, 47, 50, 60, 61, 62, 66, 85, 88, 89, 93, 105, 127, 128, 129],
+    [15, 16, 21, 22, 24, 45, 47, 53, 56, 57, 58, 60, 61, 62, 66, 70, 98, 103, 105, 106, 108, 116, 117, 126],
+    [4, 5, 10, 11, 12, 13, 15, 16, 30, 31, 32, 36, 38, 71, 73, 74, 94, 95, 96, 97, 109, 110, 111, 118, 120],
+    [4, 9, 26, 27, 29, 35, 36, 37, 38, 53, 70, 71, 80, 82, 83, 97, 98, 106, 110, 111, 115, 116, 117],
+    [15, 16, 21, 22, 24, 45, 47, 54, 55, 56, 60, 61, 62, 66, 93, 98, 103, 104, 105, 106, 108, 126],
+    [14, 19, 20, 24, 38, 40, 41, 42, 44, 48, 49, 77, 112, 113, 114, 121, 122, 125, 127, 128, 129],
+    [4, 5, 27, 28, 29, 33, 34, 35, 36, 60, 71, 73, 74, 92, 94, 95, 96, 97, 105, 121, 122, 125],
+    [4, 5, 29, 33, 34, 35, 36, 37, 38, 71, 74, 80, 81, 82, 83, 95, 96, 97, 109, 110, 111, 118],
+    [2, 3, 14, 18, 19, 20, 21, 22, 24, 28, 60, 64, 77, 79, 96, 97, 105, 114, 121, 122, 125],
+    [2, 3, 14, 18, 19, 20, 21, 22, 24, 28, 60, 64, 71, 77, 78, 79, 96, 97, 105, 122, 125],
+    [1, 6, 7, 8, 29, 33, 34, 35, 36, 37, 38, 71, 77, 78, 79, 96, 97, 109, 110, 111, 118],
+    [1, 28, 29, 33, 34, 35, 36, 60, 71, 76, 77, 80, 96, 97, 105, 114, 125]
 ]
 
 # 
-target_paths = [set(path) for path in target_paths]
+target_paths = [set(path) for path in targetPaths]
 
 
 def jaccard_similarity(set1, set2):
@@ -435,9 +475,9 @@ def compute_robustness(state, path):
             for dz in [-1, 0, 1]:
                 if dw == dt == dz == 0:
                     continue
-                # 
                 neighbor = np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                   [1, 1, 1], [6, 6, 6])
+                                    [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                    [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z])
                 neighbor = tuple(neighbor)
                 nw, nt, nz = neighbor
                 n_trig = execute_Tr(nw, nt, nz)
@@ -491,10 +531,10 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -550,10 +590,10 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -848,7 +888,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                             dw, dt, dz = agent.decode_action(a)
                             # 
                             cand_next = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                      [1, 1, 1], [6, 6, 6]))
+                                                      [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                      [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
                             legal_actions.append(a)
 
                         if not legal_actions:
@@ -866,7 +907,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                         # ()
                         dw, dt, dz = agent.decode_action(action)
                         next_state = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                   [1, 1, 1], [6, 6, 6]))
+                                                   [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                   [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
 
                         # 
                         normalized_next_state = normalizer.normalize(next_state)

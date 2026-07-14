@@ -20,11 +20,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # X, Y, Z - 150
 X_MIN = 1
-X_MAX = 50
+X_MAX = 100
 Y_MIN = 1
-Y_MAX = 50
+Y_MAX = 100
 Z_MIN = 1
-Z_MAX = 50
+Z_MAX = 100
 
 
 # ===  ===
@@ -1037,10 +1037,9 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
     performance_row = {
         'Run': run_number,
         'Average Similarity': f"{avg_similarity:.4f}",
-        'TD': f"{avg_td_error:.4f}",
-        '': f"{action_improve_rate:.4f}",
-        'Training Time( seconds)': f"{training_time:.2f}",
-        '(MB)': f"{avg_memory:.2f}"
+        'TD Error': f"{avg_td_error:.4f}",
+        'Action Improve Rate': f"{action_improve_rate:.4f}",
+        'Memory(MB)': f"{avg_memory:.2f}"
     }
 
     # ===== final samples =====
@@ -1054,19 +1053,18 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Similar',  #
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
-
     # 
     for path_idx in isolated_group:
         target_path = targetPaths[path_idx]
@@ -1075,17 +1073,17 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Isolated',  # 修复此处
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
 
     # ===== Excel =====
@@ -1125,7 +1123,7 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
 
         # 
         ws_performance.column_dimensions['A'].width = 15
-        for col in ['B', 'C', 'D', 'E', 'F']:
+        for col in ['B', 'C', 'D', 'E']:
             ws_performance.column_dimensions[col].width = 20
 
         # 
@@ -1267,10 +1265,8 @@ def run_single_experiment(run_number, results_save_dir):
 
     #  runMetric
     avg_similarity = np.mean(enhanced_standard_metrics.final_output_similarities)
-    training_time = enhanced_standard_metrics.end_time - enhanced_standard_metrics.start_time
     print(f"\nRun  {run_number}  runcompleted:")
     print(f"  Average Similarity: {avg_similarity:.4f}")
-    print(f"  Training Time: {training_time:.2f} seconds")
     print(f"  : {enhanced_standard_metrics.step_count}")
 
 

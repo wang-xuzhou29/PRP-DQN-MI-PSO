@@ -20,8 +20,9 @@ print(f"Using device: {device}")
 # ===  ===
 EXPERIMENT_CONFIG = {
     'STATE_DIM': 3,
-    'MIN_VALUE': 1,
-    'MAX_VALUE': 128,  # 50
+    'MIN_X': 1, 'MAX_X': 100,
+    'MIN_Y': 1, 'MAX_Y': 100,
+    'MIN_Z': 1, 'MAX_Z': 100,
     'SAMPLES_PER_PATH': 200,
     'BATCH_SIZE_SAMPLES': 50,
     'STEPS_PER_SAMPLE': 5,
@@ -36,35 +37,90 @@ EXPERIMENT_CONFIG = {
     'TOP_K_SAMPLES': 20,
     'REPLAY_BUFFER_CAPACITY': 20000,  # Path 
     'TARGET_PATHS': [
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
-        {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
-        {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
-        {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
-        {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
+        [15, 16, 19, 20, 21, 22, 24, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 84, 85, 86, 88, 89, 93, 98, 100, 101,
+         102,
+         103, 105, 106, 108, 116, 117],
+        [15, 16, 23, 26, 27, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 84, 85, 86, 88, 89, 93, 98, 100, 101, 102, 103,
+         105, 106, 108, 116, 117],
+        [15, 16, 19, 20, 21, 22, 24, 42, 48, 49, 51, 52, 53, 59, 60, 64, 70, 75, 90, 91, 92, 98, 100, 101, 102, 103,
+         105,
+         106, 108, 116, 117],
+        [13, 15, 16, 19, 20, 21, 22, 24, 42, 52, 53, 60, 64, 69, 70, 75, 91, 92, 98, 100, 101, 102, 103, 105, 106, 108,
+         116,
+         117, 123, 124],
+        [12, 13, 15, 16, 19, 20, 21, 22, 24, 52, 53, 60, 64, 68, 69, 70, 75, 91, 92, 98, 100, 101, 102, 103, 105, 106,
+         108,
+         116, 117, 124],
+        [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 52, 53, 60, 64, 67, 70, 71, 92, 97, 98, 99, 103, 105, 106, 108,
+         116,
+         117, 123, 124],
+        [15, 16, 20, 22, 24, 45, 46, 47, 50, 51, 52, 53, 61, 65, 70, 84, 85, 86, 88, 89, 93, 98, 102, 106, 107, 115,
+         116,
+         117, 128, 129],
+        [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 52, 53, 60, 64, 71, 72, 73, 74, 92, 97, 98, 99, 103, 104, 105, 106,
+         108, 123, 124],
+        [11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 24, 60, 64, 71, 72, 73, 74, 92, 97, 98, 99, 103, 104, 105, 106, 108,
+         121,
+         122, 125],
+        [15, 16, 20, 22, 24, 45, 47, 50, 51, 52, 53, 61, 65, 70, 84, 85, 86, 88, 89, 93, 98, 102, 106, 115, 116, 117,
+         127,
+         128, 129],
+        [15, 16, 20, 38, 40, 41, 42, 44, 45, 47, 50, 51, 52, 53, 70, 75, 98, 101, 102, 106, 110, 111, 115, 116, 117,
+         125,
+         128, 129],
+        [4, 11, 12, 13, 15, 16, 26, 27, 30, 31, 32, 36, 53, 60, 71, 72, 73, 74, 92, 97, 98, 103, 104, 105, 106, 108,
+         121,
+         122, 125],
+        [15, 16, 20, 21, 22, 24, 45, 47, 51, 52, 53, 60, 61, 62, 66, 70, 93, 98, 102, 103, 105, 106, 108, 116, 117, 127,
+         128, 129],
+        [15, 16, 20, 38, 40, 41, 42, 44, 45, 46, 47, 50, 51, 52, 53, 70, 75, 98, 101, 102, 106, 110, 111, 117, 118, 125,
+         128, 129],
+        [13, 15, 16, 25, 42, 51, 52, 53, 59, 60, 64, 69, 70, 75, 85, 86, 88, 89, 93, 98, 100, 101, 102, 103, 105, 106,
+         108,
+         117],
+        [15, 16, 20, 21, 22, 24, 48, 49, 51, 52, 53, 59, 60, 63, 64, 85, 88, 89, 93, 98, 101, 102, 103, 104, 105, 106,
+         108,
+         129],
+        [15, 16, 20, 38, 40, 41, 42, 44, 45, 46, 47, 50, 51, 52, 53, 98, 101, 102, 106, 110, 111, 118, 119, 120, 125,
+         128,
+         129],
+        [13, 15, 16, 42, 51, 52, 53, 59, 60, 64, 69, 70, 75, 87, 90, 91, 92, 98, 100, 101, 102, 103, 105, 106, 108, 116,
+         117],
+        [15, 16, 19, 20, 24, 42, 43, 48, 49, 51, 52, 53, 70, 75, 92, 98, 100, 101, 102, 106, 115, 116, 117, 123, 124],
+        [4, 5, 10, 11, 12, 13, 15, 16, 27, 28, 60, 71, 73, 74, 92, 94, 95, 96, 97, 103, 104, 105, 106, 108, 123, 124],
+        [15, 16, 23, 26, 27, 45, 47, 53, 56, 57, 58, 60, 61, 62, 70, 98, 103, 105, 106, 108, 116, 117, 127, 128, 129],
+        [4, 5, 27, 28, 29, 34, 35, 36, 60, 71, 73, 74, 80, 82, 83, 92, 94, 95, 96, 97, 103, 104, 105, 106, 108, 125],
+        [12, 13, 15, 16, 19, 20, 24, 38, 39, 52, 53, 68, 69, 70, 75, 98, 100, 101, 102, 106, 115, 116, 117, 125],
+        [10, 15, 16, 17, 20, 21, 22, 24, 28, 45, 46, 47, 50, 60, 61, 62, 66, 85, 88, 89, 93, 105, 127, 128, 129],
+        [15, 16, 21, 22, 24, 45, 47, 53, 56, 57, 58, 60, 61, 62, 66, 70, 98, 103, 105, 106, 108, 116, 117, 126],
+        [4, 5, 10, 11, 12, 13, 15, 16, 30, 31, 32, 36, 38, 71, 73, 74, 94, 95, 96, 97, 109, 110, 111, 118, 120],
+        [4, 9, 26, 27, 29, 35, 36, 37, 38, 53, 70, 71, 80, 82, 83, 97, 98, 106, 110, 111, 115, 116, 117],
+        [15, 16, 21, 22, 24, 45, 47, 54, 55, 56, 60, 61, 62, 66, 93, 98, 103, 104, 105, 106, 108, 126],
+        [14, 19, 20, 24, 38, 40, 41, 42, 44, 48, 49, 77, 112, 113, 114, 121, 122, 125, 127, 128, 129],
+        [4, 5, 27, 28, 29, 33, 34, 35, 36, 60, 71, 73, 74, 92, 94, 95, 96, 97, 105, 121, 122, 125],
+        [4, 5, 29, 33, 34, 35, 36, 37, 38, 71, 74, 80, 81, 82, 83, 95, 96, 97, 109, 110, 111, 118],
+        [2, 3, 14, 18, 19, 20, 21, 22, 24, 28, 60, 64, 77, 79, 96, 97, 105, 114, 121, 122, 125],
+        [2, 3, 14, 18, 19, 20, 21, 22, 24, 28, 60, 64, 71, 77, 78, 79, 96, 97, 105, 122, 125],
+        [1, 6, 7, 8, 29, 33, 34, 35, 36, 37, 38, 71, 77, 78, 79, 96, 97, 109, 110, 111, 118],
+        [1, 28, 29, 33, 34, 35, 36, 60, 71, 76, 77, 80, 96, 97, 105, 114, 125]
     ],
 }
 
 
 # ===  ===
-def clip_state(state):
-    return np.clip(state, EXPERIMENT_CONFIG['MIN_VALUE'], EXPERIMENT_CONFIG['MAX_VALUE'])
+def get_bounds():
+    mins = np.array([EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MIN_Z']])
+    maxs = np.array([EXPERIMENT_CONFIG['MAX_X'], EXPERIMENT_CONFIG['MAX_Y'], EXPERIMENT_CONFIG['MAX_Z']])
+    return mins, maxs
 
+def clip_state(state):
+    mins, maxs = get_bounds()
+    return np.clip(state, mins, maxs)
 
 def denormalize_state(normalized_state):
     """"""
-    min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-    max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-    return normalized_state * (max_val - min_val) / 2 + (min_val + max_val) / 2
+    mins, maxs = get_bounds()
+    return normalized_state * (maxs - mins) / 2 + (mins + maxs) / 2
 
 
 def coverage_similarity(triggered, target_path):
@@ -93,120 +149,292 @@ def unified_reward_function(triggered, target_path):
 
 
 # ===   ===
-def execute_Tr(a):
-    x, y, z = int(a[0]), int(a[1]), int(a[2])
+def execute_Tr(light, moisture, co2):
+    actions = []
     triggered = set()
 
-    # Rule Group 1: (x > y) related
-    if (x > y) != (x > 5):
+    # Fixed all if statements - using triggered.add() instead of b[0]=1
+    if (light < 3500 and moisture > 75) != (light < 2500 and moisture > 75):
         triggered.add(1)
-    if (x > y) != (x * x > y):
+    if (light < 3500 and moisture > 75) != (light < 4500 and moisture > 75):
         triggered.add(2)
-    if (x > y) != (x > y * y):
+    if (light < 3500 and moisture > 75) != (light < 5500 and moisture > 75):
         triggered.add(3)
-
-        # Rule Group 2: (x > z) related
-    if (x > z) != (x > 10):
+    if (light < 3500 and moisture > 75) != (light < 3500 and moisture > 25):
         triggered.add(4)
-    if (x > z) != (x * x > z):
+    if (light < 3500 and moisture > 75) != (light < 3500 and moisture > 55):
         triggered.add(5)
-    if (x > z) != (x > z * z):
+
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 5500 and moisture > 80 and co2 > 1600):
         triggered.add(6)
-
-        # Rule Group 3: (y > z) related
-    if (y > z) != (y > 8):
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 6500 and moisture > 80 and co2 > 1600):
         triggered.add(7)
-    if (y > z) != (y * y > z):
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 8500 and moisture > 80 and co2 > 1600):
         triggered.add(8)
-    if (y > z) != (y > z * z):
+    if (light < 2500 and moisture > 80 and co2 > 1600) != (light < 2500 and moisture > 40 and co2 > 1600):
         triggered.add(9)
-    if (y > z) != (10 > z):
+    # 原分支10已删除
+
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 55):
         triggered.add(10)
-
-        # Rule Group 4: (x + y <= z) related
-    if (x + y <= z) != (x + y <= z * x):
+    if (light > 3000 and moisture < 75) != (light > 4000 and moisture < 75):
         triggered.add(11)
-    if (x + y <= z) != (x + y <= z * y):
+    if (light > 3000 and moisture < 75) != (light > 5000 and moisture < 75):
         triggered.add(12)
-    if (x + y <= z) != (x * y <= z * z):
+    if (light > 3000 and moisture < 75) != (light > 6000 and moisture < 75):
         triggered.add(13)
-    if (x + y <= z) != (x - y <= z):
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 85):
         triggered.add(14)
-
-        #  15: 
-    cond_xy_le_z = (x + y <= z)
-    cond_x_div_y_le_z = False
-    if y != 0:
-        cond_x_div_y_le_z = (x / y <= z)
-
-    if cond_xy_le_z != cond_x_div_y_le_z:
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 35):
         triggered.add(15)
-
-    if (x + y <= z) != (x + y <= 15):
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 15):
         triggered.add(16)
-    if (x + y <= z) != (x + y <= 20):
+    if (light > 3000 and moisture < 75) != (light > 3000 and moisture < 65):
         triggered.add(17)
-    if (x + y <= z) != (x + 5 <= z):
+
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 4500 or co2 < 800) and moisture > 42):
         triggered.add(18)
-    if (x + y <= z) != (10 + y <= z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 6500 or co2 < 800) and moisture > 42):
         triggered.add(19)
-    if (x + y <= z) != (x + 8 <= z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 8500 or co2 < 800) and moisture > 42):
         triggered.add(20)
-
-        # Rule Group 5: (x == y == z) related
-    if (x == y == z) != (x <= y == z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 900) and moisture > 42):
         triggered.add(21)
-    if (x == y == z) != (x == y != z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 1100) and moisture > 42):
         triggered.add(22)
-    if (x == y == z) != (x != y == z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 700) and moisture > 42):
         triggered.add(23)
-
-    if (x == y == z) != (x == y <= z):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 1500) and moisture > 42):
         triggered.add(24)
-
-        # Rule Group 6: Modulo operations
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 32):
         triggered.add(25)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 52):
         triggered.add(26)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+    if ((light < 3500 or co2 < 800) and moisture > 42) != ((light < 3500 or co2 < 800) and moisture > 62):
         triggered.add(27)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+
+    if (moisture / (light / 100) > 8) != (moisture / (co2 / 100) > 8):
         triggered.add(28)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 2000 and (light + moisture * 10) < 3800):
         triggered.add(29)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 4000 and (light + moisture * 10) < 3800):
         triggered.add(30)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 5000 and (light + moisture * 10) < 3800):
         triggered.add(31)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 7000 and (light + moisture * 10) < 3800):
         triggered.add(32)
-
-        # Rule Group 7: Quadratic equation discriminant like conditions
-    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
-
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 15) < 3800):
         triggered.add(33)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 20) < 3800):
         triggered.add(34)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + moisture * 10) > 3800):
         triggered.add(35)
-
-    # Rule Group 8: System of equations like conditions
-    cond_eq_main_part = (x + y == z and y + z == 2 * x)
-
-    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light > 3000 and (light + moisture * 10) < 3800):
         triggered.add(36)
-
-    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+    # 原分支38已删除
+    if (light < 3000 and (light + moisture * 10) < 3800) != (light < 3000 and (light + co2) < 3800):
         triggered.add(37)
 
-    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light < 5000 and light < 7000 and co2 > 1400):
         triggered.add(38)
-    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 4000 and light < 7000 and co2 > 1400):
         triggered.add(39)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light > 7000 and co2 > 1400):
+        triggered.add(40)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 3000 and co2 > 1400):
+        triggered.add(41)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 7000 and co2 < 1400):
+        triggered.add(42)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 7000 and co2 > 1200):
+        triggered.add(43)
+    if (light > 5000 and light < 7000 and co2 > 1400) != (light > 5000 and light < 4000 and co2 > 1400):
+        triggered.add(44)
+
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light < 6000 and (light + moisture + co2) > 8500):
+        triggered.add(45)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light - moisture + co2) > 8500):
+        triggered.add(46)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture - co2) > 8500):
+        triggered.add(47)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture + co2) > 4500):
+        triggered.add(48)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 6000 and (light + moisture + co2) > 6500):
+        triggered.add(49)
+    if (light > 6000 and (light + moisture + co2) > 8500) != (light > 8000 and (light + moisture + co2) > 8500):
+        triggered.add(50)
+
+    if (light > 8500 and moisture < 50) != (light > 5500 and moisture < 50):
+        triggered.add(51)
+    if (light > 8500 and moisture < 50) != (light > 3500 and moisture < 50):
+        triggered.add(52)
+    if (light > 8500 and moisture < 50) != (light < 8500 and moisture < 50):
+        triggered.add(53)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 70):
+        triggered.add(54)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 60):
+        triggered.add(55)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture > 50):
+        triggered.add(56)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 40):
+        triggered.add(57)
+    if (light > 8500 and moisture < 50) != (light > 8500 and moisture < 30):
+        triggered.add(58)
+
+    if (light > 7500 and co2 < 900) != (light > 5500 and co2 < 900):
+        triggered.add(59)
+    if (light > 7500 and co2 < 900) != (light < 7500 and co2 < 900):
+        triggered.add(60)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 > 900):
+        triggered.add(61)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 400):
+        triggered.add(62)
+    if (light > 7500 and co2 < 900) != (light > 7000 and co2 < 900):
+        triggered.add(63)
+    if (light > 7500 and co2 < 900) != (light > 3500 and co2 < 900):
+        triggered.add(64)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 1400):
+        triggered.add(65)
+    if (light > 7500 and co2 < 900) != (light > 7500 and co2 < 800):
+        triggered.add(66)
+
+    if (light < 4000 and moisture < 45) != (light < 3000 and moisture < 45):
+        triggered.add(67)
+    if (light < 4000 and moisture < 45) != (light < 5000 and moisture < 45):
+        triggered.add(68)
+    if (light < 4000 and moisture < 45) != (light < 6000 and moisture < 45):
+        triggered.add(69)
+    if (light < 4000 and moisture < 45) != (light > 4000 and moisture < 45):
+        triggered.add(70)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture > 45):
+        triggered.add(71)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 55):
+        triggered.add(72)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 65):
+        triggered.add(73)
+    if (light < 4000 and moisture < 45) != (light < 4000 and moisture < 75):
+        triggered.add(74)
+    if (light < 4000 and moisture < 45) != (light < 7000 and moisture < 45):
+        triggered.add(75)
+
+    if (light < 2800 and moisture > 80) != (light < 1800 and moisture > 80):
+        triggered.add(76)
+    if (light < 2800 and moisture > 80) != (light > 2800 and moisture > 80):
+        triggered.add(77)
+    if (light < 2800 and moisture > 80) != (light < 3800 and moisture > 80):
+        triggered.add(78)
+    if (light < 2800 and moisture > 80) != (light < 4800 and moisture > 80):
+        triggered.add(79)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture < 80):
+        triggered.add(80)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 60):
+        triggered.add(81)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 40):
+        triggered.add(82)
+    if (light < 2800 and moisture > 80) != (light < 2800 and moisture > 30):
+        triggered.add(83)
+
+    if (light / (co2 + 1) > 7) != (light / (co2 + 100) > 7):
+        triggered.add(84)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 200) > 7):
+        triggered.add(85)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 8):
+        triggered.add(86)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 1) > 7):
+        triggered.add(87)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 9):
+        triggered.add(88)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 300) > 7):
+        triggered.add(89)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 100) > 7):
+        triggered.add(90)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 200) > 7):
+        triggered.add(91)
+    if (light / (co2 + 1) > 7) != (light / (co2 - 300) > 7):
+        triggered.add(92)
+    if (light / (co2 + 1) > 7) != (light / (co2 + 1) > 10):
+        triggered.add(93)
+
+    if (moisture < 55 and light < 4500) != (moisture < 65 and light < 4500):
+        triggered.add(94)
+    if (moisture < 55 and light < 4500) != (moisture < 75 and light < 4500):
+        triggered.add(95)
+    if (moisture < 55 and light < 4500) != (moisture < 85 and light < 4500):
+        triggered.add(96)
+    if (moisture < 55 and light < 4500) != (moisture > 55 and light < 4500):
+        triggered.add(97)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light > 4500):
+        triggered.add(98)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 3500):
+        triggered.add(99)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 6500):
+        triggered.add(100)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 7500):
+        triggered.add(101)
+    if (moisture < 55 and light < 4500) != (moisture < 55 and light < 8500):
+        triggered.add(102)
+
+    if (moisture < 58 and co2 < 950) != (moisture < 38 and co2 < 950):
+        triggered.add(103)
+    if (moisture < 58 and co2 < 950) != (moisture < 48 and co2 < 950):
+        triggered.add(104)
+    if (moisture < 58 and co2 < 950) != (moisture > 58 and co2 < 950):
+        triggered.add(105)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 > 950):
+        triggered.add(106)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 < 1050):
+        triggered.add(107)
+    if (moisture < 58 and co2 < 950) != (moisture < 58 and co2 < 450):
+        triggered.add(108)
+
+    if (moisture > 82 and co2 > 1600) != (moisture > 62 and co2 > 1600):
+        triggered.add(109)
+    if (moisture > 82 and co2 > 1600) != (moisture > 32 and co2 > 1600):
+        triggered.add(110)
+    if (moisture > 82 and co2 > 1600) != (moisture > 42 and co2 > 1600):
+        triggered.add(111)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 1100):
+        triggered.add(112)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 1000):
+        triggered.add(113)
+    if (moisture > 82 and co2 > 1600) != (moisture > 82 and co2 > 700):
+        triggered.add(114)
+
+    if (co2 > 1750 and moisture < 45) != (co2 > 950 and moisture < 45):
+        triggered.add(115)
+    if (co2 > 1750 and moisture < 45) != (co2 > 750 and moisture < 45):
+        triggered.add(116)
+    if (co2 > 1750 and moisture < 45) != (co2 < 1750 and moisture < 45):
+        triggered.add(117)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture > 45):
+        triggered.add(118)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture < 55):
+        triggered.add(119)
+    if (co2 > 1750 and moisture < 45) != (co2 > 1750 and moisture < 65):
+        triggered.add(120)
+
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 100) > 0.22):
+        triggered.add(121)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 200) > 0.22):
+        triggered.add(122)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light - 1000) > 0.22):
+        triggered.add(123)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light - 2000) > 0.22):
+        triggered.add(124)
+    if (co2 / (light + 1) > 0.22) != (co2 / (light + 1) > 0.32):
+        triggered.add(125)
+
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 15 + co2 > 10500):
+        triggered.add(126)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 35 + co2 > 10500):
+        triggered.add(127)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 45 + co2 > 10500):
+        triggered.add(128)
+    if (light + moisture * 25 + co2 > 10500) != (light + moisture * 25 + co2 + 1000 > 10500):
+        triggered.add(129)
 
     return triggered
+
 
 
 # 
@@ -279,7 +507,7 @@ class PathReplayBuffer:
             results.append({
                 'state': original_state_int,
                 'similarity': similarity,
-                'triggered': execute_Tr(original_state_int)
+                'triggered': execute_Tr(*original_state_int)
             })
 
         return results
@@ -329,9 +557,8 @@ class ImprovedDQNAgent:
         return action_delta
 
     def get_action(self, state):
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         if random.random() < self.epsilon:
             action_idx = random.randint(0, self.action_size - 1)
@@ -346,10 +573,9 @@ class ImprovedDQNAgent:
 
     def store_experience(self, path_idx, state, action_idx, reward, next_state, done, similarity):
         """Path """
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
-        normalized_next_state = (next_state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
+        normalized_next_state = (next_state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         self.replay_buffers[path_idx].push(
             normalized_state, action_idx, reward,
@@ -479,21 +705,21 @@ def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, 
     min_similarity = np.min(all_similarities) if all_similarities else 0
 
     return {
-        '': run_idx + 1,
+        'Run': run_idx + 1,
 
         # Metric
-        '': round(total_reward, 2),
-        '': round(average_reward, 4),
-        '': round(convergence, 4),
-        '': round(environment_adaptability, 4),
-        '': round(generalization_ability, 4),
-        '': round(computational_efficiency, 2),
-        '': round(policy_update_frequency, 4),
+        'Total Reward': round(total_reward, 2),
+        'Average Reward': round(average_reward, 4),
+        'Convergence': round(convergence, 4),
+        'Environment Adaptability': round(environment_adaptability, 4),
+        'Generalization Ability': round(generalization_ability, 4),
+        'Computational Efficiency': round(computational_efficiency, 2),
+        'Policy Update Frequency': round(policy_update_frequency, 4),
 
         # Similarity
         'Average Similarity': round(avg_similarity, 4),
-        'Similarity': round(max_similarity, 4),
-        'Similarity': round(min_similarity, 4),
+        'Max Similarity': round(max_similarity, 4),
+        'Min Similarity': round(min_similarity, 4),
     }
 
 
@@ -516,36 +742,35 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
 
             if len(samples) == 0:
                 dqn_summary_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
-                    '': len(target_path),
-                    '': 0,
+                    'Target Rule Count': len(target_path),
+                    'Sample Count': 0,
                     'Average Similarity': 0,
-                    'Similarity': 0,
-                    'Similarity': 0,
-                    'SimilarityStandard deviation': 0,
-                    '': '',
-                    'target paths': ', '.join(map(str, sorted(target_path)))
+                    'Max Similarity': 0,
+                    'Min Similarity': 0,
+                    'Similarity Std': 0,
+                    'Perfect Coverage': 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
                 continue
 
             similarities = [s['similarity'] for s in samples]
             perfect_count = sum(1 for s in similarities if abs(s - 1.0) < 0.001)
-            is_perfect = '' if perfect_count > 0 else ''
+            is_perfect = 'Yes' if perfect_count > 0 else 'No'
 
             dqn_summary_data.append({
-                '': run_idx + 1,
+                'Run': run_idx + 1,
                 'Path ID': path_idx + 1,
-                '': len(target_path),
-                '': len(samples),
+                'Target Rule Count': len(target_path),
+                'Sample Count': len(samples),
                 'Average Similarity': round(np.mean(similarities), 4),
-                'Similarity': round(max(similarities), 4),
-                'Similarity': round(min(similarities), 4),
-                'SimilarityStandard deviation': round(np.std(similarities), 4),
-                '': is_perfect,
-                'target paths': ', '.join(map(str, sorted(target_path)))
+                'Max Similarity': round(max(similarities), 4),
+                'Min Similarity': round(min(similarities), 4),
+                'Similarity Std': round(np.std(similarities), 4),
+                'Perfect Coverage': is_perfect,
+                'Target Paths': ', '.join(map(str, sorted(target_path)))
             })
-
         all_dqn_summary_data.extend(dqn_summary_data)
 
         # ===== Sheet2: DQNDetailed Sample Data =====
@@ -560,20 +785,19 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
                 triggered = sample['triggered']
 
                 dqn_detailed_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
                     'Sample ID': sample_idx + 1,
                     'X': int(state[0]),
                     'Y': int(state[1]),
                     'Z': int(state[2]),
                     'Similarity': round(similarity, 4),
-                    '': '' if abs(similarity - 1.0) < 0.001 else '',
-                    'target paths': ', '.join(map(str, sorted(target_path))),
-                    '': ', '.join(map(str, sorted(triggered))),
-                    '': len(target_path.intersection(triggered)),
-                    '': len(target_path)
+                    'Perfect Coverage': 'Yes' if abs(similarity - 1.0) < 0.001 else 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path))),
+                    'Triggered Rules': ', '.join(map(str, sorted(triggered))),
+                    'Hit Rule Count': len(target_path.intersection(triggered)),
+                    'Target Rule Count': len(target_path)
                 })
-
         all_dqn_detailed_data.extend(dqn_detailed_data)
 
     # Excel
@@ -588,12 +812,13 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
         # Sheet2: DQNDetailed Sample Data
         dqn_detailed_df.to_excel(writer, sheet_name='DQNDetailed Sample Data', index=False)
 
-        # Sheet3: Metric - 
+        # Sheet3: Metric
         selected_columns = [
-            '',
-            '', '', '', '',
-            '', '', '',
-            'Average Similarity', 'Similarity', 'Similarity'
+            'Run',
+            'Total Reward', 'Average Reward', 'Convergence',
+            'Environment Adaptability', 'Generalization Ability',
+            'Computational Efficiency', 'Policy Update Frequency',
+            'Average Similarity', 'Max Similarity', 'Min Similarity'
         ]
         performance_df_selected = performance_df[selected_columns]
         performance_df_selected.to_excel(writer, sheet_name='Metric', index=False)
@@ -687,17 +912,16 @@ def train_dqn_workflow():
     start_time = time.time()
     total_steps = 0
 
-    # 
     print(f"\n: Path {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']}")
     path_samples = {}
     for path_idx in range(num_paths):
         samples = []
         for _ in range(EXPERIMENT_CONFIG['SAMPLES_PER_PATH']):
-            state = np.random.randint(
-                EXPERIMENT_CONFIG['MIN_VALUE'],
-                EXPERIMENT_CONFIG['MAX_VALUE'] + 1,
-                EXPERIMENT_CONFIG['STATE_DIM']
-            ).astype(np.float32)
+            state = np.array([
+                random.randint(EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MAX_X']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MAX_Y']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Z'], EXPERIMENT_CONFIG['MAX_Z'])
+            ], dtype=np.float32)
             samples.append(state)
         path_samples[path_idx] = samples
         print(f"  Path  {path_idx + 1}/{num_paths}:  {len(samples)} ")
@@ -754,7 +978,7 @@ def train_dqn_workflow():
                         next_state = state + action_delta
                         next_state = clip_state(next_state)
 
-                        triggered = execute_Tr(next_state)  # 
+                        triggered = execute_Tr(*next_state)  #
                         reward = unified_reward_function(triggered, target_path)
                         similarity = coverage_similarity(triggered, target_path)
 
@@ -839,10 +1063,10 @@ def main():
         all_dqn_results.append(dqn_results)
         all_performance_data.append(performance_data)
 
-        print(f"\nRun  {run_idx + 1}  runcompleted!")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
+        print(f"\nRun {run_idx + 1} completed!")
+        print(f"  Total Reward: {performance_data['Total Reward']}")
+        print(f"  Average Reward: {performance_data['Average Reward']}")
+        print(f"  Convergence: {performance_data['Convergence']}")
 
     # Excel(20 run)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -855,13 +1079,14 @@ def main():
     print("=" * 80)
 
     # Metric
-    total_rewards = [p[''] for p in all_performance_data]
-    average_rewards = [p[''] for p in all_performance_data]
-    convergences = [p[''] for p in all_performance_data]
-    environment_adaptabilities = [p[''] for p in all_performance_data]
-    generalization_abilities = [p[''] for p in all_performance_data]
-    computational_efficiencies = [p[''] for p in all_performance_data]
-    policy_update_frequencies = [p[''] for p in all_performance_data]
+    # Metric Extraction
+    total_rewards = [p['Total Reward'] for p in all_performance_data]
+    average_rewards = [p['Average Reward'] for p in all_performance_data]
+    convergences = [p['Convergence'] for p in all_performance_data]
+    environment_adaptabilities = [p['Environment Adaptability'] for p in all_performance_data]
+    generalization_abilities = [p['Generalization Ability'] for p in all_performance_data]
+    computational_efficiencies = [p['Computational Efficiency'] for p in all_performance_data]
+    policy_update_frequencies = [p['Policy Update Frequency'] for p in all_performance_data]
     avg_similarities = [p['Average Similarity'] for p in all_performance_data]
 
     print(f":")

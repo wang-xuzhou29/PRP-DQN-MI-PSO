@@ -21,11 +21,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # === new three-dimensional range settings ===
 LIGHT_MIN = 1
-LIGHT_MAX = 50
+LIGHT_MAX = 100
 MOISTURE_MIN = 1
-MOISTURE_MAX = 50
+MOISTURE_MAX = 100
 TEMP_MIN = 1
-TEMP_MAX = 50
+TEMP_MAX = 100
 
 BOUNDS = {
     'light': (LIGHT_MIN, LIGHT_MAX),  # x: light intensity

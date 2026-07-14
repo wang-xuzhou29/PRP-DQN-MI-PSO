@@ -20,11 +20,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # X, Y, Z - 150
 X_MIN = 1
-X_MAX = 50
-Y_MIN = 1
-Y_MAX = 50
-Z_MIN = 1
-Z_MAX = 50
+X_MAX = 100
+Y_MIN = 20
+Y_MAX = 150
+Z_MIN = 30
+Z_MAX = 200
 
 
 # ===  ===
@@ -276,80 +276,126 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
+def safe_divide(numerator, denominator, default_value=0.0):
+    """安全除法，避免除零错误"""
+    try:
+        if abs(denominator) < 1e-10:
+            return default_value
+        return numerator / denominator
+    except (ZeroDivisionError, OverflowError):
+        return default_value
 
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
 
+def execute_Tr(x, y, z):
+    """安全执行测试用例，避免除零错误"""
     triggered = set()
+    
+    # 使用大的默认值进行安全计算
+    EPSILON = 1e-10
 
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
+    # --- 分支 1-15 (原 fault_y * fault_z / (fault_x + 1) > 85 的变异) ---
+    denom_x1 = x + 1 if abs(x + 1) > EPSILON else EPSILON
+    denom_x2 = x + 2 if abs(x + 2) > EPSILON else EPSILON
+    denom_y1 = y + 1 if abs(y + 1) > EPSILON else EPSILON
+    denom_z1 = z + 1 if abs(z + 1) > EPSILON else EPSILON
+    denom_x_minus_1 = x - 1 if abs(x - 1) > EPSILON else EPSILON
+    
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, denom_x2) > 85: triggered.add(1)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, denom_y1) > 85: triggered.add(2)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, denom_z1) > 85: triggered.add(3)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, max(x * 1, EPSILON)) > 85: triggered.add(4)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * y, denom_x1) > 85: triggered.add(5)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * x, denom_x1) > 85: triggered.add(6)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(x * z, denom_x1) > 85: triggered.add(7)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(z * z, denom_x1) > 85: triggered.add(8)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(10 * z, denom_x1) > 85: triggered.add(9)
+    if safe_divide(y * z, denom_x1) > 85 != ((y * z) - (x + 1) > 85): triggered.add(10)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, denom_x1) > 105: triggered.add(11)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * z, denom_x_minus_1) > 85: triggered.add(12)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * 2 * z, denom_x1) > 85: triggered.add(13)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y / 2 * z, denom_x1) > 85: triggered.add(14)
+    if safe_divide(y * z, denom_x1) > 85 != safe_divide(y * 15, denom_x1) > 85: triggered.add(15)
 
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
+    # --- 分支 16-28 (原 (fault_z - fault_x) < 0.25 * fault_y 的变异) ---
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(16)
+    if ((z - x) < 0.25 * y) != ((z * 1.2 - x) < 0.25 * y): triggered.add(17)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.3 * y): triggered.add(18)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.4 * y): triggered.add(19)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * x): triggered.add(20)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * z): triggered.add(21)
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(22)
+    if ((z - x) < 0.25 * y) != ((z - x * 0.7) < 0.25 * y): triggered.add(23)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 ** y): triggered.add(24)
+    if ((z - x) < 0.25 * y) != (safe_divide(z, max(x, EPSILON)) < 0.25 * y): triggered.add(25)
+    if ((z - x) < 0.25 * y) != ((z + x) < 0.25 * y): triggered.add(26)
+    if ((z - x) < 0.25 * y) != ((80 - x) < 0.25 * y): triggered.add(27)
+    if ((z - x) < 0.25 * y) != ((z - 60) < 0.25 * y): triggered.add(28)
 
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+    # --- 分支 29-44 (原 (fault_x^3 + fault_y^3) < fault_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(32)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): triggered.add(33)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(34)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(35)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(36)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(37)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z * 2): triggered.add(38)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.8) < z ** 2): triggered.add(39)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.4 + y ** 3) < z ** 2): triggered.add(40)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.3): triggered.add(41)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((20 ** 3 + y ** 3) < z ** 2): triggered.add(42)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + 15 ** 3) < z ** 2): triggered.add(43)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < 50 ** 2): triggered.add(44)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
+    # --- 分支 45-56 (原 x/(y+0.01)>4.5 and y/(z+0.01)<0.22 的变异) ---
+    denom_y_001 = y + 0.01 if abs(y + 0.01) > EPSILON else EPSILON
+    denom_z_001 = z + 0.01 if abs(z + 0.01) > EPSILON else EPSILON
+    denom_x_001 = x + 0.01 if abs(x + 0.01) > EPSILON else EPSILON
+    
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(z, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(45)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 1 and safe_divide(y, denom_z_001) < 0.22): triggered.add(46)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 0.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(47)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_x_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(48)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x * 0.6, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0): triggered.add(49)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 7.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(50)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 4.5 and safe_divide(z, denom_z_001) < 0.22): triggered.add(51)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 4.5 and safe_divide(x, denom_z_001) < 0.22): triggered.add(52)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_x_001) < 0.22): triggered.add(53)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, max(y + 0.01, EPSILON)) < 0.22): triggered.add(54)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 2.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(55)
+    if (safe_divide(x, denom_y_001) > 4.5 and safe_divide(y, denom_z_001) < 0.22) != (safe_divide(x, denom_y_001) > 3.5 and safe_divide(y, denom_z_001) < 0.22): triggered.add(56)
 
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
+    # --- 分支 57-68 (原 abs(x-y)>13 and abs(y-z)>17 and abs(x-z)<8 的变异) ---
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 2 - z) < 8): triggered.add(57)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x + y) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(58)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - z) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(59)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y * 1.1) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(60)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 18 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(61)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(x - z) > 17 and abs(x - z) < 8): triggered.add(62)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z * 0.9) > 17 and abs(x - z) < 8): triggered.add(63)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y * 1.4 - z) > 17 and abs(x - z) < 8): triggered.add(64)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 20 and abs(x - z) < 8): triggered.add(65)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(y - z) < 8): triggered.add(66)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 1.5 - z) < 8): triggered.add(67)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 4): triggered.add(68)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
+    # --- 分支 69-82 (原 (x>92 or x<6) and (y>87 or y<3) and (z>83 or z<2) 的变异) ---
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 3 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(69)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(70)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * y > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(71)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * z > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(72)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 4) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(73)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * x > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(74)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(75)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * z > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(76)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * x > 83 or z < 2)): triggered.add(77)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * y > 83 or z < 2)): triggered.add(78)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * z > 83 or z < 2)): triggered.add(79)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * 50 > 83 or z < 2)): triggered.add(80)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 60 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(81)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * 75 > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(82)
 
     return triggered
 
@@ -375,9 +421,23 @@ def compute_path_similarity_matrix(paths):
 
 
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {2,7,8,10,13,17,23,24,26,28,57,59,60,61,62,63,64,66,67,68,74,75,76,82},  # A1
+    {2,7,9,14,15,16,22,23,24,26,31,57,59,62,66,67,68,69,70,71,72,81},  # A2
+    {2,7,8,10,13,16,22,25,27,29,30,42,45,46,47,55,56,57,74,75,76,82},  # A3
+    {2,7,8,10,16,22,25,27,29,30,42,48,49,50,51,52,54,57,74,75,76,82},  # A4
+    {2,7,9,11,14,15,23,24,26,31,57,59,62,65,66,67,69,70,71,72,81},  # A5
+    {2,7,8,10,16,20,21,22,25,27,30,48,49,50,51,52,54,74,75,76,82},  # A6
+    {1,2,3,6,7,8,9,11,14,15,16,22,24,26,27,31,57,59,62,66,67,68},  # A7
+    {3,5,6,9,14,15,16,22,25,29,30,31,33,40,41,42,43,45,46,47},  # A8
+    {3,5,6,9,14,15,16,22,29,30,31,33,39,40,41,42,43,45,46,47},  # A9
+    {3,5,6,9,14,15,16,22,32,34,35,36,37,38,44,45,46,47},  # A10
+    {3,4,5,6,10,12,13,16,22,26,27,31,57,59,62,66,67,68},  # A11
+    {7,10,17,23,26,28,53,57,59,62,66,67,68,74,75,76,82},  # A12
+    {7,8,10,16,18,19,20,21,22,25,27,57,59,62,66,67,68},  # A13
+    {2,7,16,17,20,21,22,24,26,27,31,32,33,78,79,80},  # A14
+    {2,6,7,9,18,19,25,28,31,32,33,77,78,79,80},  # A15
+    {2,6,7,25,31,32,33,43,73},  # A16
+    {2,7,8,9,11,14,15,26,31,58,60},  # A17
 ]
 
 
@@ -443,12 +503,20 @@ class StandardExperienceReplay:
 
 def load_path_data(file_path):
     path_data = []
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        for line in lines[2:]:
-            parts = line.strip().split("\t")
-            state = tuple(map(int, parts[0].split()))
-            path_data.append(state)
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            for line in lines[2:]:
+                parts = line.strip().split("\t")
+                if len(parts) > 0:
+                    state = tuple(map(int, parts[0].split()))
+                    path_data.append(state)
+    except FileNotFoundError:
+        print(f"Warning: File not found - {file_path}")
+        return []
+    except Exception as e:
+        print(f"Warning: Error reading file {file_path} - {e}")
+        return []
     return path_data
 
 
@@ -651,10 +719,16 @@ def enhanced_standard_generate_and_train_for_similar_paths(agent, similar_group,
             file_path = os.path.join(path_documents,
                                      f"enhanced_standard_path{path_idx + 1}{'_isolated' if is_isolated else ''}.txt")
             path_data = load_path_data(file_path)
+            
+            if not path_data:
+                print(f"Warning: No data for path {path_idx + 1}, skipping...")
+                trained_paths.add(path_idx)
+                continue
+                
             target_path = targetPaths[path_idx]
 
             BATCH_SIZE = 50
-            N_SAMPLES = 200
+            N_SAMPLES = min(200, len(path_data))
             N_STEPS = 10
             REPLAY_TIMES = 3
 
@@ -862,6 +936,12 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
 
             file_path = os.path.join(path_documents, f"enhanced_standard_path{path_idx + 1}_isolated.txt")
             stage2_path_data = load_path_data(file_path)
+            
+            if not stage2_path_data:
+                print(f"Warning: No isolated path data for path {path_idx + 1}, skipping...")
+                trained_paths.add(path_idx)
+                continue
+                
             stage1_samples = stage1_samples_pool.get(path_idx, [])
             target_path = targetPaths[path_idx]
 
@@ -1037,10 +1117,9 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
     performance_row = {
         'Run': run_number,
         'Average Similarity': f"{avg_similarity:.4f}",
-        'TD': f"{avg_td_error:.4f}",
-        '': f"{action_improve_rate:.4f}",
-        'Training Time( seconds)': f"{training_time:.2f}",
-        '(MB)': f"{avg_memory:.2f}"
+        'TD Error': f"{avg_td_error:.4f}",
+        'Action Improve Rate': f"{action_improve_rate:.4f}",
+        'Memory(MB)': f"{avg_memory:.2f}"
     }
 
     # ===== final samples =====
@@ -1054,19 +1133,18 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Similar',  #
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
-
     # 
     for path_idx in isolated_group:
         target_path = targetPaths[path_idx]
@@ -1075,17 +1153,17 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Isolated',  # 修复此处
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
 
     # ===== Excel =====
@@ -1125,7 +1203,7 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
 
         # 
         ws_performance.column_dimensions['A'].width = 15
-        for col in ['B', 'C', 'D', 'E', 'F']:
+        for col in ['B', 'C', 'D', 'E']:
             ws_performance.column_dimensions[col].width = 20
 
         # 
@@ -1215,6 +1293,7 @@ def run_single_experiment(run_number, results_save_dir):
         agent_isolated.target_model.load_state_dict(checkpoint['model_state_dict'])
         agent_isolated.epsilon = checkpoint.get('epsilon', 0.5)
     except Exception as e:
+        print(f"Warning: Could not load similar model weights - {e}")
         pass
 
     agent_isolated = enhanced_standard_generate_and_train_for_isolated_paths(
@@ -1266,11 +1345,9 @@ def run_single_experiment(run_number, results_save_dir):
     )
 
     #  runMetric
-    avg_similarity = np.mean(enhanced_standard_metrics.final_output_similarities)
-    training_time = enhanced_standard_metrics.end_time - enhanced_standard_metrics.start_time
+    avg_similarity = np.mean(enhanced_standard_metrics.final_output_similarities) if enhanced_standard_metrics.final_output_similarities else 0
     print(f"\nRun  {run_number}  runcompleted:")
     print(f"  Average Similarity: {avg_similarity:.4f}")
-    print(f"  Training Time: {training_time:.2f} seconds")
     print(f"  : {enhanced_standard_metrics.step_count}")
 
 
@@ -1292,7 +1369,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"\nRun  {run}  run: {str(e)}")
             import traceback
-
             traceback.print_exc()
             continue
 

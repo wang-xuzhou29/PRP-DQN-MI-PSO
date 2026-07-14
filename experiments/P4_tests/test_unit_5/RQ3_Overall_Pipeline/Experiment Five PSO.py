@@ -9,112 +9,122 @@ from openpyxl.utils import get_column_letter
 
 
 def safe_divide(numerator, denominator, default=0.0):
-    """, """
+    """安全除法"""
     if denominator == 0:
         return default
     return numerator / denominator
 
-def execute_validation_rules(dx: int, dy: int, dz: int) -> Set[int]:
-    """Path """
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 50.0  # 50.0
-    INITIAL_BATTERY = 500.0  # 
-    BATTERY_PER_STEP = 1.0  # 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 50.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 45.0, 45.0, 20.0  # 
 
-    MIN_PLANNING_X = 5.0
-    MIN_PLANNING_Y = 7.5
-    MIN_PLANNING_Z = 4.0
-    CRITICAL_X_VELOCITY = 10.0
-    CRITICAL_Y_VELOCITY = 12.5
-    CRITICAL_Z_VELOCITY = 7.5
-
+def execute_Tr(x, y, z):
+    """执行105分支逻辑，返回触发的分支集合"""
+    # 初始化分支覆盖数组
     triggered = set()
 
-    # , 1-50
-    current_x = random.uniform(1.0, MAX_GRID_SIZE)
-    current_y = random.uniform(1.0, MAX_GRID_SIZE)
-    current_z = random.uniform(1.0, MAX_GRID_SIZE)
+    # --- 分支 1-15 (原 fault_y * fault_z / (fault_x + 1) > 85 的变异) ---
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x + 2) > 85): triggered.add(1)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (y + 1) > 85): triggered.add(2)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (z + 1) > 85): triggered.add(3)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x * 1) > 85): triggered.add(4)
+    if ((y * z) / (x + 1) > 85) != ((y * y) / (x + 1) > 85): triggered.add(5)
+    if ((y * z) / (x + 1) > 85) != ((y * x) / (x + 1) > 85): triggered.add(6)
+    if ((y * z) / (x + 1) > 85) != ((x * z) / (x + 1) > 85): triggered.add(7)
+    if ((y * z) / (x + 1) > 85) != ((z * z) / (x + 1) > 85): triggered.add(8)
+    if ((y * z) / (x + 1) > 85) != ((10 * z) / (x + 1) > 85): triggered.add(9)
+    if ((y * z) / (x + 1) > 85) != ((y * z) - (x + 1) > 85): triggered.add(10)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x + 1) > 105): triggered.add(11)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x - 1) > 85): triggered.add(12)
+    if ((y * z) / (x + 1) > 85) != ((y * 2 * z) / (x + 1) > 85): triggered.add(13)
+    if ((y * z) / (x + 1) > 85) != ((y / 2 * z) / (x + 1) > 85): triggered.add(14)
+    if ((y * z) / (x + 1) > 85) != ((y * 15) / (x + 1) > 85): triggered.add(15)
 
-    # ''''
-    simulated_y = current_y  #  current_y  self.y 
+    # --- 分支 16-28 (原 (fault_z - fault_x) < 0.25 * fault_y 的变异) ---
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(16)
+    if ((z - x) < 0.25 * y) != ((z * 1.2 - x) < 0.25 * y): triggered.add(17)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.3 * y): triggered.add(18)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.4 * y): triggered.add(19)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * x): triggered.add(20)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * z): triggered.add(21)
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(22)
+    if ((z - x) < 0.25 * y) != ((z - x * 0.7) < 0.25 * y): triggered.add(23)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 ** y): triggered.add(24)
+    if ((z - x) < 0.25 * y) != ((z / x) < 0.25 * y): triggered.add(25)
+    if ((z - x) < 0.25 * y) != ((z + x) < 0.25 * y): triggered.add(26)
+    if ((z - x) < 0.25 * y) != ((80 - x) < 0.25 * y): triggered.add(27)
+    if ((z - x) < 0.25 * y) != ((z - 60) < 0.25 * y): triggered.add(28)
 
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
-        triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
-        triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
-        triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
-        triggered.add(4)
+    # --- 分支 29-44 (原 (fault_x^3 + fault_y^3) < fault_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(32)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): triggered.add(33)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(34)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(35)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(36)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(37)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z * 2): triggered.add(38)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.8) < z ** 2): triggered.add(39)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.4 + y ** 3) < z ** 2): triggered.add(40)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.3): triggered.add(41)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((20 ** 3 + y ** 3) < z ** 2): triggered.add(42)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + 15 ** 3) < z ** 2): triggered.add(43)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < 50 ** 2): triggered.add(44)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
-        triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
-        triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
+    # --- 分支 45-56 (原 x/(y+0.01)>4.5 and y/(z+0.01)<0.22 的变异) ---
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((z / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22): triggered.add(45)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 1 and (y / (z + 0.01)) < 0.22): triggered.add(46)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 0.5 and (y / (z + 0.01)) < 0.22): triggered.add(47)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (x + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22): triggered.add(48)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x * 0.6 / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0): triggered.add(49)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 7.5 and (y / (z + 0.01)) < 0.22): triggered.add(50)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (z / (z + 0.01)) < 0.22): triggered.add(51)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (x / (z + 0.01)) < 0.22): triggered.add(52)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (y / (x + 0.01)) < 0.22): triggered.add(53)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (y / (y + 0.01)) < 0.22): triggered.add(54)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 2.5 and (y / (z + 0.01)) < 0.22): triggered.add(55)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 3.5 and (y / (z + 0.01)) < 0.22): triggered.add(56)
 
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 5:
-        triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 15:
-        triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 20:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 25:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dx < 10:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dz < 10:
-        triggered.add(15)
+    # --- 分支 57-68 (原 abs(x-y)>13 and abs(y-z)>17 and abs(x-z)<8 的变异) ---
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 2 - z) < 8): triggered.add(57)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x + y) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(58)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - z) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(59)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y * 1.1) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(60)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 18 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(61)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(x - z) > 17 and abs(x - z) < 8): triggered.add(62)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z * 0.9) > 17 and abs(x - z) < 8): triggered.add(63)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y * 1.4 - z) > 17 and abs(x - z) < 8): triggered.add(64)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 20 and abs(x - z) < 8): triggered.add(65)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(y - z) < 8): triggered.add(66)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 1.5 - z) < 8): triggered.add(67)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 4): triggered.add(68)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
-        triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
-        triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
-        triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
-        triggered.add(29)
+    # --- 分支 69-82 (原 (x>92 or x<6) and (y>87 or y<3) and (z>83 or z<2) 的变异) ---
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 3 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(69)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(70)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * y > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(71)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * z > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(72)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 4) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(73)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * x > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(74)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(75)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * z > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(76)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * x > 83 or z < 2)): triggered.add(77)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * y > 83 or z < 2)): triggered.add(78)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * z > 83 or z < 2)): triggered.add(79)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * 50 > 83 or z < 2)): triggered.add(80)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 60 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(81)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * 75 > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(82)
 
     return triggered
 
 
+def execute_validation_rules(dx: int, dy: int, dz: int) -> Set[int]:
+    """执行验证规则，返回触发的分支集合（调用105分支版本）"""
+    return execute_Tr(dx, dy, dz)
+
+
 def calculate_fitness(particle: List[float], target_path: Set[int]) -> float:
-    """"""
-    generated_path = execute_validation_rules(particle[0], particle[1], particle[2])
+    """计算适应度"""
+    generated_path = execute_validation_rules(int(particle[0]), int(particle[1]), int(particle[2]))
 
     if target_path.issubset(generated_path):
         return 1.0
@@ -125,20 +135,20 @@ def calculate_fitness(particle: List[float], target_path: Set[int]) -> float:
 
 
 class BasicPSO:
-    """"""
+    """基本PSO优化器"""
 
     def __init__(self, n_particles=20, max_iterations=10000, bounds=None):
         self.n_particles = n_particles
         self.max_iterations = max_iterations
-        # : x:1-50, y:1-50, z:1-50
-        self.bounds = bounds if bounds else [(1, 50), (1, 50), (1, 50)]
+        # 范围: x(2,100), y(20,150), z(30,200)
+        self.bounds = bounds if bounds else [(2, 100), (20, 150), (30, 200)]
         self.dim = len(self.bounds)
         self.w = 0.7
         self.c1 = 1.5
         self.c2 = 1.5
 
     def initialize_particles(self):
-        """"""
+        """初始化粒子"""
         particles = []
         velocities = []
 
@@ -153,7 +163,7 @@ class BasicPSO:
         return particles, velocities
 
     def update_velocity_and_position(self, particle, velocity, pbest, gbest):
-        """"""
+        """更新速度和位置"""
         new_velocity = []
         new_particle = []
 
@@ -177,7 +187,7 @@ class BasicPSO:
         return new_particle, new_velocity
 
     def optimize(self, target_path: Set[int]):
-        """target pathsPSO"""
+        """对目标路径进行PSO优化"""
         start_time = time.time()
 
         particles, velocities = self.initialize_particles()
@@ -200,7 +210,9 @@ class BasicPSO:
                         'success': True,
                         'best_fitness': 1.0,
                         'best_particle': particles[i].copy(),
-                        'best_path': execute_validation_rules(particles[i][0], particles[i][1], particles[i][2]),
+                        'best_path': execute_validation_rules(
+                            int(particles[i][0]), int(particles[i][1]), int(particles[i][2])
+                        ),
                         'iterations': iteration,
                         'time': time.time() - start_time
                     }
@@ -224,7 +236,9 @@ class BasicPSO:
             'success': gbest_fitness == 1.0,
             'best_fitness': gbest_fitness,
             'best_particle': gbest_particle,
-            'best_path': execute_validation_rules(gbest_particle[0], gbest_particle[1], gbest_particle[2]),
+            'best_path': execute_validation_rules(
+                int(gbest_particle[0]), int(gbest_particle[1]), int(gbest_particle[2])
+            ),
             'iterations': self.max_iterations,
             'time': time.time() - start_time
         }
@@ -233,13 +247,14 @@ class BasicPSO:
 
 
 def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iterations=10000):
-    """Path PSO"""
+    """对所有路径运行PSO"""
 
     print(f"\n{'=' * 70}")
-    print(f"baseline PSO - Path ")
+    print(f"Baseline PSO - 路径优化")
     print(f"{'=' * 70}")
-    print(f": {n_particles}, {max_iterations}iterations")
-    print(f"Path : {len(target_paths)}")
+    print(f"粒子数: {n_particles}, 最大迭代次数: {max_iterations}")
+    print(f"路径数量: {len(target_paths)}")
+    print(f"范围: x(2,100), y(20,150), z(30,200)")
     print(f"{'=' * 70}\n")
 
     results = {}
@@ -248,13 +263,13 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
     pso = BasicPSO(n_particles=n_particles, max_iterations=max_iterations)
 
     for i, target_path in enumerate(target_paths):
-        print(f"Path {i + 1}: ", end='')
+        print(f"路径 {i + 1}: ", end='')
 
         result = pso.optimize(target_path)
         results[i] = result
 
-        status = "" if result['success'] else f"({result['best_fitness']:.3f})"
-        print(f"{status} | {result['time']:.2f}s | iterations{result['iterations']}")
+        status = "完美求解" if result['success'] else f"(适应度: {result['best_fitness']:.3f})"
+        print(f"{status} | 耗时: {result['time']:.2f}s | 迭代次数: {result['iterations']}")
 
     total_time = time.time() - total_start
     results['total_time'] = total_time
@@ -263,7 +278,7 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
     success_rate = (success_count / len(target_paths)) * 100
 
     print(f"\n{'=' * 70}")
-    print(f": {success_count}/{len(target_paths)} ({success_rate:.1f}%) | Total elapsed time{total_time:.2f}s")
+    print(f"求解成功: {success_count}/{len(target_paths)} ({success_rate:.1f}%) | 总耗时: {total_time:.2f}s")
     print(f"{'=' * 70}\n")
 
     return results
@@ -271,37 +286,38 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
 
 def run_multiple_experiments(target_paths: List[Set[int]], num_runs=20,
                              n_particles=20, max_iterations=3000):
-    """"""
+    """多次运行实验"""
 
     print(f"\n{'=' * 70}")
-    print(f"baseline PSO - {num_runs}")
+    print(f"Baseline PSO - {num_runs}次运行")
     print(f"{'=' * 70}")
-    print(f": {n_particles}, {max_iterations}iterations, {len(target_paths)}Path ")
+    print(f"粒子数: {n_particles}, 最大迭代次数: {max_iterations}, 路径数: {len(target_paths)}")
+    print(f"范围: x(2,100), y(20,150), z(30,200)")
     print(f"{'=' * 70}\n")
 
     all_results = []
     experiment_start = time.time()
 
     for run_idx in range(1, num_runs + 1):
-        print(f"---  {run_idx}/{num_runs} ---")
+        print(f"--- 第 {run_idx}/{num_runs} 次运行 ---")
 
         results = run_pso_for_paths(target_paths, n_particles, max_iterations)
         all_results.append(results)
 
         success_count = sum(1 for i in range(len(target_paths)) if results[i]['success'])
-        print(f": {success_count}/{len(target_paths)}\n")
+        print(f"求解成功: {success_count}/{len(target_paths)}\n")
 
     total_time = time.time() - experiment_start
 
     print(f"{'=' * 70}")
-    print(f"{num_runs} runcompleted | Total elapsed time{total_time:.2f}s")
+    print(f"{num_runs}次运行完成 | 总耗时: {total_time:.2f}s")
     print(f"{'=' * 70}\n")
 
     return all_results
 
 
 def export_to_excel(all_results, target_paths, filename=None):
-    """Excel"""
+    """导出Excel"""
 
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -323,12 +339,12 @@ def export_to_excel(all_results, target_paths, filename=None):
     center_align = Alignment(horizontal='center', vertical='center')
     left_align = Alignment(horizontal='left', vertical='center')
 
-    # 1: 
+    # Sheet 1: 运行汇总
     ws1 = wb.active
-    ws1.title = ""
+    ws1.title = "运行汇总"
     ws1.sheet_view.showGridLines = False
 
-    headers = ["Run", "", "", "", "Average Iterations", "(s)"]
+    headers = ["运行", "成功率", "求解/总数", "平均适应度", "平均迭代次数", "耗时(s)"]
     col_widths = [12, 12, 12, 14, 14, 14]
 
     for col, (header, width) in enumerate(zip(headers, col_widths), 1):
@@ -347,7 +363,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         total_time = results.get('total_time', 0)
 
         row_data = [
-            f" {run_idx}",
+            f"运行 {run_idx}",
             f"{success_rate:.1f}%",
             f"{success_count}/{len(target_paths)}",
             f"{avg_fitness:.4f}",
@@ -372,11 +388,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws1.freeze_panes = 'A2'
     ws1.auto_filter.ref = f"A1:F{len(all_results) + 1}"
 
-    # 2: Path 
-    ws2 = wb.create_sheet(title="Path ")
+    # Sheet 2: 路径统计
+    ws2 = wb.create_sheet(title="路径统计")
     ws2.sheet_view.showGridLines = False
 
-    headers2 = ["Path ID", "", "", "", "Average Iterations", "Minimum Iterations", "Maximum Iterations"]
+    headers2 = ["路径ID", "求解/总数", "成功率", "平均适应度", "平均迭代次数", "最小迭代次数", "最大迭代次数"]
     col_widths2 = [12, 12, 12, 14, 14, 14, 14]
 
     for col, (header, width) in enumerate(zip(headers2, col_widths2), 1):
@@ -398,7 +414,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         max_iterations = np.max(iterations_list)
 
         row_data = [
-            f"Path  {path_idx + 1}",
+            f"路径 {path_idx + 1}",
             f"{success_count}/{len(all_results)}",
             f"{success_rate:.1f}%",
             f"{avg_fitness:.4f}",
@@ -424,11 +440,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws2.freeze_panes = 'A2'
     ws2.auto_filter.ref = f"A1:G{len(target_paths) + 1}"
 
-    # 3: 
-    ws3 = wb.create_sheet(title="")
+    # Sheet 3: 详细结果
+    ws3 = wb.create_sheet(title="详细结果")
     ws3.sheet_view.showGridLines = False
 
-    headers3 = ["Path ", "", "(x,y,z)", "", "Iterations", "Path "]
+    headers3 = ["路径ID", "运行", "位置(x,y,z)", "适应度", "迭代次数", "触发路径"]
     col_widths3 = [10, 10, 22, 12, 12, 50]
 
     for col, (header, width) in enumerate(zip(headers3, col_widths3), 1):
@@ -452,7 +468,7 @@ def export_to_excel(all_results, target_paths, filename=None):
 
             row_data = [
                 f"Path {path_idx + 1}",
-                f"{run_idx}",
+                f"Run {run_idx}",
                 particle_str,
                 f"{best_fitness:.4f}",
                 iterations,
@@ -480,11 +496,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws3.freeze_panes = 'A2'
     ws3.auto_filter.ref = f"A1:F{row_idx - 1}"
 
-    # 4: target paths
-    ws4 = wb.create_sheet(title="target paths")
+    # Sheet 4: 目标路径
+    ws4 = wb.create_sheet(title="目标路径")
     ws4.sheet_view.showGridLines = False
 
-    headers4 = ["Path ID", "target paths", ""]
+    headers4 = ["路径ID", "目标路径", "分支数"]
     col_widths4 = [12, 60, 12]
 
     for col, (header, width) in enumerate(zip(headers4, col_widths4), 1):
@@ -499,7 +515,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         path_str = str(sorted(list(target_path)))
 
         row_data = [
-            f"Path  {path_idx + 1}",
+            f"路径 {path_idx + 1}",
             path_str,
             len(target_path)
         ]
@@ -521,29 +537,45 @@ def export_to_excel(all_results, target_paths, filename=None):
     wb.save(filename)
 
     print(f"\n{'=' * 70}")
-    print(f" : {filename}")
+    print(f"Excel已保存: {filename}")
     print(f"{'=' * 70}")
-    print(f":")
-    print(f"  1.        - {len(all_results)} run")
-    print(f"  2. Path        - Path ")
-    print(f"  3.    -  runPath ")
-    print(f"  4. target paths       - target paths")
+    print(f"包含工作表:")
+    print(f"  1. 运行汇总      - {len(all_results)}次运行汇总")
+    print(f"  2. 路径统计      - 每条路径的统计")
+    print(f"  3. 详细结果      - 每次运行每条路径的详细结果")
+    print(f"  4. 目标路径      - 目标路径定义")
     print(f"{'=' * 70}\n")
 
     return filename
 
 
 def main():
-    """"""
-
+    # 目标路径定义（105分支版本）
     target_paths = [
-        {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-        {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-        {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+        {2,7,8,10,13,17,23,24,26,28,57,59,60,61,62,63,64,66,67,68,74,75,76,82},  # A1
+        {2,7,9,14,15,16,22,23,24,26,31,57,59,62,66,67,68,69,70,71,72,81},  # A2
+        {2,7,8,10,13,16,22,25,27,29,30,42,45,46,47,55,56,57,74,75,76,82},  # A3
+        {2,7,8,10,16,22,25,27,29,30,42,48,49,50,51,52,54,57,74,75,76,82},  # A4
+        {2,7,9,11,14,15,23,24,26,31,57,59,62,65,66,67,69,70,71,72,81},  # A5
+        {2,7,8,10,16,20,21,22,25,27,30,48,49,50,51,52,54,74,75,76,82},  # A6
+        {1,2,3,6,7,8,9,11,14,15,16,22,24,26,27,31,57,59,62,66,67,68},  # A7
+        {3,5,6,9,14,15,16,22,25,29,30,31,33,40,41,42,43,45,46,47},  # A8
+        {3,5,6,9,14,15,16,22,29,30,31,33,39,40,41,42,43,45,46,47},  # A9
+        {3,5,6,9,14,15,16,22,32,34,35,36,37,38,44,45,46,47},  # A10
+        {3,4,5,6,10,12,13,16,22,26,27,31,57,59,62,66,67,68},  # A11
+        {7,10,17,23,26,28,53,57,59,62,66,67,68,74,75,76,82},  # A12
+        {7,8,10,16,18,19,20,21,22,25,27,57,59,62,66,67,68},  # A13
+        {2,7,16,17,20,21,22,24,26,27,31,32,33,78,79,80},  # A14
+        {2,6,7,9,18,19,25,28,31,32,33,77,78,79,80},  # A15
+        {2,6,7,25,31,32,33,43,73},  # A16
+        {2,7,8,9,11,14,15,26,31,58,60},  # A17
     ]
 
     print("=" * 70)
-    print("baseline PSO")
+    print("Baseline PSO - 105分支版本")
+    print("=" * 70)
+    print(f"范围: x(2,100), y(1,105), z(1,110)")
+    print(f"路径数: {len(target_paths)}")
     print("=" * 70)
 
     all_results = run_multiple_experiments(
@@ -555,7 +587,7 @@ def main():
 
     export_to_excel(all_results, target_paths)
 
-    print("Program completed")
+    print("程序完成")
 
 
 if __name__ == "__main__":

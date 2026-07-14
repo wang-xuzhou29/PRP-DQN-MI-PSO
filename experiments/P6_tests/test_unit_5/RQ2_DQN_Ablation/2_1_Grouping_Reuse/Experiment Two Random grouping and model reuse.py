@@ -18,15 +18,10 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
-# === / ===
-# === :  execute_Tr(dx, dy, dz)  ===
-#  Tr , dx/dy/dz  -50~50 .
-# , , , , clip .
 STATE_RANGES = {
-    'dx': (-60, 60),
-    'dy': (-60, 60),
-    'dz': (-60, 60),
+    'dx': (1, 100),
+    'dy': (1, 100),
+    'dz': (1, 100),
 }
 STATE_NAMES = ('dx', 'dy', 'dz')
 STATE_MIN = np.array([STATE_RANGES[name][0] for name in STATE_NAMES], dtype=np.int32)

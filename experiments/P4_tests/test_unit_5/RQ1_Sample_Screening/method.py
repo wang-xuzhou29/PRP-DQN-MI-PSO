@@ -13,32 +13,114 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
+# --- 全局状态范围配置 ---
+STATE_MIN_X, STATE_MAX_X = 2, 100
+STATE_MIN_Y, STATE_MAX_Y = 20, 150
+STATE_MIN_Z, STATE_MAX_Z = 30, 200
 
 def generate_input():
     return [
-        random.randint(1, 30),
-        random.randint(1, 40),
-        random.randint(1, 2100)
+        random.randint(STATE_MIN_X, STATE_MAX_X),
+        random.randint(STATE_MIN_Y, STATE_MAX_Y),
+        random.randint(STATE_MIN_Z, STATE_MAX_Z)
     ]
 
-
-def execute_Tr(a):
-    cpu_cores, memory_gb, disk_space_gb = int(a[0]), float(a[1]), float(a[2])
+def execute_Tr(x, y, z):
     triggered = set()
-    b = {}
 
-    if (cpu_cores >= 16) != (cpu_cores >= 13):
-        b[0] = 1
-        triggered.add(1)
-    if (cpu_cores >= 16) != (cpu_cores >= 18):
-        b[1] = 2
-        triggered.add(2)
-    if (cpu_cores >= 16) != (cpu_cores >= 21):
-        b[2] = 3
-        triggered.add(3)
-    if (cpu_cores >= 16) != (cpu_cores >= 24):
-        b[3] = 4
-        triggered.add(4)
+    # --- 分支 1-15 (原 fault_y * fault_z / (fault_x + 1) > 85 的变异) ---
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x + 2) > 85): triggered.add(1)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (y + 1) > 85): triggered.add(2)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (z + 1) > 85): triggered.add(3)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x * 1) > 85): triggered.add(4)
+    if ((y * z) / (x + 1) > 85) != ((y * y) / (x + 1) > 85): triggered.add(5)
+    if ((y * z) / (x + 1) > 85) != ((y * x) / (x + 1) > 85): triggered.add(6)
+    if ((y * z) / (x + 1) > 85) != ((x * z) / (x + 1) > 85): triggered.add(7)
+    if ((y * z) / (x + 1) > 85) != ((z * z) / (x + 1) > 85): triggered.add(8)
+    if ((y * z) / (x + 1) > 85) != ((10 * z) / (x + 1) > 85): triggered.add(9)
+    if ((y * z) / (x + 1) > 85) != ((y * z) - (x + 1) > 85): triggered.add(10)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x + 1) > 105): triggered.add(11)
+    if ((y * z) / (x + 1) > 85) != ((y * z) / (x - 1) > 85): triggered.add(12)
+    if ((y * z) / (x + 1) > 85) != ((y * 2 * z) / (x + 1) > 85): triggered.add(13)
+    if ((y * z) / (x + 1) > 85) != ((y / 2 * z) / (x + 1) > 85): triggered.add(14)
+    if ((y * z) / (x + 1) > 85) != ((y * 15) / (x + 1) > 85): triggered.add(15)
+
+    # --- 分支 16-28 (原 (fault_z - fault_x) < 0.25 * fault_y 的变异) ---
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(16)
+    if ((z - x) < 0.25 * y) != ((z * 1.2 - x) < 0.25 * y): triggered.add(17)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.3 * y): triggered.add(18)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.4 * y): triggered.add(19)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * x): triggered.add(20)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 * z): triggered.add(21)
+    if ((z - x) < 0.25 * y) != ((y - x) < 0.25 * y): triggered.add(22)
+    if ((z - x) < 0.25 * y) != ((z - x * 0.7) < 0.25 * y): triggered.add(23)
+    if ((z - x) < 0.25 * y) != ((z - x) < 0.25 ** y): triggered.add(24)
+    if ((z - x) < 0.25 * y) != ((z / x) < 0.25 * y): triggered.add(25)
+    if ((z - x) < 0.25 * y) != ((z + x) < 0.25 * y): triggered.add(26)
+    if ((z - x) < 0.25 * y) != ((80 - x) < 0.25 * y): triggered.add(27)
+    if ((z - x) < 0.25 * y) != ((z - 60) < 0.25 * y): triggered.add(28)
+
+    # --- 分支 29-44 (原 (fault_x^3 + fault_y^3) < fault_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(32)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): triggered.add(33)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(34)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(35)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(36)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(37)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z * 2): triggered.add(38)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.8) < z ** 2): triggered.add(39)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.4 + y ** 3) < z ** 2): triggered.add(40)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.3): triggered.add(41)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((20 ** 3 + y ** 3) < z ** 2): triggered.add(42)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + 15 ** 3) < z ** 2): triggered.add(43)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < 50 ** 2): triggered.add(44)
+
+    # --- 分支 45-56 (原 x/(y+0.01)>4.5 and y/(z+0.01)<0.22 的变异) ---
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((z / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22): triggered.add(45)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 1 and (y / (z + 0.01)) < 0.22): triggered.add(46)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 0.5 and (y / (z + 0.01)) < 0.22): triggered.add(47)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (x + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22): triggered.add(48)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x * 0.6 / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0): triggered.add(49)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 7.5 and (y / (z + 0.01)) < 0.22): triggered.add(50)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (z / (z + 0.01)) < 0.22): triggered.add(51)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (x / (z + 0.01)) < 0.22): triggered.add(52)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (y / (x + 0.01)) < 0.22): triggered.add(53)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 4.5 and (y / (y + 0.01)) < 0.22): triggered.add(54)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 2.5 and (y / (z + 0.01)) < 0.22): triggered.add(55)
+    if ((x / (y + 0.01)) > 4.5 and (y / (z + 0.01)) < 0.22) != ((x / (y + 0.01)) > 3.5 and (y / (z + 0.01)) < 0.22): triggered.add(56)
+
+    # --- 分支 57-68 (原 abs(x-y)>13 and abs(y-z)>17 and abs(x-z)<8 的变异) ---
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 2 - z) < 8): triggered.add(57)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x + y) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(58)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - z) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(59)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y * 1.1) > 13 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(60)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 18 and abs(y - z) > 17 and abs(x - z) < 8): triggered.add(61)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(x - z) > 17 and abs(x - z) < 8): triggered.add(62)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z * 0.9) > 17 and abs(x - z) < 8): triggered.add(63)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y * 1.4 - z) > 17 and abs(x - z) < 8): triggered.add(64)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 20 and abs(x - z) < 8): triggered.add(65)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(y - z) < 8): triggered.add(66)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x * 1.5 - z) < 8): triggered.add(67)
+    if (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 8) != (abs(x - y) > 13 and abs(y - z) > 17 and abs(x - z) < 4): triggered.add(68)
+
+    # --- 分支 69-82 (原 (x>92 or x<6) and (y>87 or y<3) and (z>83 or z<2) 的变异) ---
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 3 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(69)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(70)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * y > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(71)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * z > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(72)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 4) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(73)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * x > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(74)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(75)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * z > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(76)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * x > 83 or z < 2)): triggered.add(77)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * y > 83 or z < 2)): triggered.add(78)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * z > 83 or z < 2)): triggered.add(79)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y > 87 or y < 3) and (z * 50 > 83 or z < 2)): triggered.add(80)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x * 60 > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(81)
+    if ((x > 92 or x < 6) and (y > 87 or y < 3) and (z > 83 or z < 2)) != ((x > 92 or x < 6) and (y * 75 > 87 or y < 3) and (z > 83 or z < 2)): triggered.add(82)
 
     return triggered
 
@@ -54,14 +136,29 @@ def jaccard_similarity(set1, set2):
 
 
 targetPaths = [
-    {2, 3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 16, 17, 19, 22, 27, 30, 33, 36, 38, 44, 46, 47, 50, 53, 55, 61, 63, 65, 67,
-     71, 79, 80, 81, 83, 84, 85, 87, 93, 94},
+    {2,7,8,10,13,17,23,24,26,28,57,59,60,61,62,63,64,66,67,68,74,75,76,82},  # A1
+    {2,7,9,14,15,16,22,23,24,26,31,57,59,62,66,67,68,69,70,71,72,81},  # A2
+    {2,7,8,10,13,16,22,25,27,29,30,42,45,46,47,55,56,57,74,75,76,82},  # A3
+    {2,7,8,10,16,22,25,27,29,30,42,48,49,50,51,52,54,57,74,75,76,82},  # A4
+    {2,7,9,11,14,15,23,24,26,31,57,59,62,65,66,67,69,70,71,72,81},  # A5
+    {2,7,8,10,16,20,21,22,25,27,30,48,49,50,51,52,54,74,75,76,82},  # A6
+    {1,2,3,6,7,8,9,11,14,15,16,22,24,26,27,31,57,59,62,66,67,68},  # A7
+    {3,5,6,9,14,15,16,22,25,29,30,31,33,40,41,42,43,45,46,47},  # A8
+    {3,5,6,9,14,15,16,22,29,30,31,33,39,40,41,42,43,45,46,47},  # A9
+    {3,5,6,9,14,15,16,22,32,34,35,36,37,38,44,45,46,47},  # A10
+    {3,4,5,6,10,12,13,16,22,26,27,31,57,59,62,66,67,68},  # A11
+    {7,10,17,23,26,28,53,57,59,62,66,67,68,74,75,76,82},  # A12
+    {7,8,10,16,18,19,20,21,22,25,27,57,59,62,66,67,68},  # A13
+    {2,7,16,17,20,21,22,24,26,27,31,32,33,78,79,80},  # A14
+    {2,6,7,9,18,19,25,28,31,32,33,77,78,79,80},  # A15
+    {2,6,7,25,31,32,33,43,73},  # A16
+    {2,7,8,9,11,14,15,26,31,58,60},  # A17
 ]
 
 
 class ExperimentConfig:
     def __init__(self):
-        self.num_total_samples = 2000
+        self.num_total_samples = 6000
         self.top_k_samples = 200
         self.num_runs = 3
         self.test_paths = list(range(len(targetPaths)))
@@ -74,7 +171,7 @@ class ExperimentConfig:
 
 
 def compute_robustness(state, path):
-    base = execute_Tr(state)
+    base = execute_Tr(*state)
     if not base:
         return 0.0
 
@@ -85,11 +182,11 @@ def compute_robustness(state, path):
                 if dx == dy == dz == 0:
                     continue
                 neighbor = np.array([
-                    np.clip(state[0] + dx, 1, 30),
-                    np.clip(state[1] + dy, 1, 40),
-                    np.clip(state[2] + dz, 1, 2100)
-                ])
-                n_trig = execute_Tr(neighbor)
+                        np.clip(state[0] + dx, STATE_MIN_X, STATE_MAX_X),
+                        np.clip(state[1] + dy, STATE_MIN_Y, STATE_MAX_Y),
+                        np.clip(state[2] + dz, STATE_MIN_Z, STATE_MAX_Z)
+                    ])
+                n_trig = execute_Tr(*neighbor)
                 if not n_trig:
                     continue
                 rob += jaccard_similarity(base, n_trig)
@@ -105,11 +202,11 @@ def generate_candidate_samples(target_path_idx, sample_count=1000):
     while len(samples) < sample_count and attempts < sample_count * 10:
         attempts += 1
         state = np.array([
-            random.randint(1, 30),
-            random.randint(1, 40),
-            random.randint(1, 2100)
+            random.randint(STATE_MIN_X, STATE_MAX_X),
+            random.randint(STATE_MIN_Y, STATE_MAX_Y),
+            random.randint(STATE_MIN_Z, STATE_MAX_Z)
         ])
-        triggered = execute_Tr(state)
+        triggered = execute_Tr(*state)
 
         if not triggered:
             continue
@@ -158,11 +255,11 @@ def generate_samples_with_strategy(target_path_idx, strategy_name, weights, conf
         while len(samples) < config.top_k_samples and attempts < config.top_k_samples * 10:
             attempts += 1
             state = np.array([
-                random.randint(1, 30),
-                random.randint(1, 40),
-                random.randint(1, 2100)
+                random.randint(STATE_MIN_X, STATE_MAX_X),
+                random.randint(STATE_MIN_Y, STATE_MAX_Y),
+                random.randint(STATE_MIN_Z, STATE_MAX_Z)
             ])
-            triggered = execute_Tr(state)
+            triggered = execute_Tr(*state)
 
             if not triggered:
                 continue

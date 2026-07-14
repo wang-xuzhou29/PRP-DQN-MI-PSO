@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,6 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from datetime import datetime
 import os
+import warnings
+warnings.filterwarnings('ignore')
 
 # device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,8 +24,8 @@ EXPERIMENT_CONFIG = {
     'STATE_DIM': 3,
     'ACTION_DIM': 3,
     # : [co2, moisture, temp]
-    'MIN_VALUES': np.array([800, 10, 1], dtype=np.float32),
-    'MAX_VALUES': np.array([1500, 80, 40], dtype=np.float32),
+    'MIN_VALUES': np.array([2, 1, 1], dtype=np.float32),
+    'MAX_VALUES': np.array([100, 150, 200], dtype=np.float32),
     'SAMPLES_PER_PATH': 200,
     'BATCH_SIZE_SAMPLES': 50,
     'STEPS_PER_SAMPLE': 3,
@@ -41,61 +42,29 @@ EXPERIMENT_CONFIG = {
     'NUM_RUNS': 20,
     'TOP_K_SAMPLES': 20,
     'TARGET_PATHS': [
-        {1, 2, 6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 45, 47, 48, 54, 59, 60, 61, 68, 74, 75, 76, 86,
-         87, 92, 93, 94, 103, 107, 109, 113, 114, 115, 116, 120, 121, 123, 124, 125, 127, 130, 131, 132, 137},
-        {1, 2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 45, 47, 48, 54, 56, 57, 58, 68, 74, 75, 76,
-         84, 85, 92, 93, 94, 103, 107, 109, 113, 114, 115, 116, 119, 122, 125, 130, 131, 132, 137},
-        {1, 2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 45, 48, 54, 59, 64, 65, 68, 74, 76, 84, 85,
-         93, 94, 102, 103, 107, 109, 113, 114, 115, 116, 119, 122, 125, 131, 136},
-        {1, 2, 6, 7, 8, 9, 17, 18, 19, 20, 21, 29, 30, 31, 35, 36, 37, 38, 39, 42, 45, 47, 48, 54, 56, 57, 58, 68, 74,
-         75, 76, 84, 85, 92, 93, 94, 111, 112, 115, 116, 124, 125, 131, 132, 137},
-        {1, 2, 6, 7, 8, 9, 14, 15, 16, 21, 29, 30, 31, 35, 36, 40, 41, 42, 45, 47, 48, 54, 59, 60, 61, 68, 74, 75, 76,
-         86, 87, 92, 93, 94, 110, 111, 112, 115, 116, 128, 129, 132, 137},
-        {1, 2, 6, 14, 15, 16, 21, 36, 40, 41, 42, 45, 46, 47, 48, 59, 60, 61, 71, 72, 73, 74, 77, 78, 79, 86, 87, 92,
-         103, 106, 108, 110, 111, 112, 120, 121, 123, 124, 129, 132, 137},
-        {6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 60, 61, 68, 74, 86, 87, 92, 93, 94, 98,
-         107, 109, 113, 114, 115, 116, 120, 121, 123, 124, 127, 130, 131},
-        {1, 2, 4, 9, 11, 14, 15, 16, 20, 24, 26, 27, 28, 29, 32, 40, 45, 47, 48, 54, 59, 68, 74, 75, 76, 86, 87, 91, 96,
-         102, 103, 107, 109, 116, 118, 120, 121, 124, 129, 132, 137},
-        {1, 2, 6, 7, 8, 9, 14, 15, 16, 24, 29, 30, 31, 35, 36, 40, 52, 55, 59, 68, 74, 75, 76, 86, 87, 93, 94, 103, 109,
-         114, 115, 116, 120, 121, 123, 124, 125, 126, 130, 131, 136},
-        {1, 2, 6, 8, 9, 14, 20, 24, 29, 30, 31, 35, 36, 40, 43, 44, 49, 50, 52, 59, 64, 65, 68, 74, 75, 76, 84, 85, 94,
-         103, 107, 109, 113, 114, 116, 119, 122, 125, 131, 132, 137},
-        {1, 2, 6, 8, 9, 17, 18, 19, 20, 21, 29, 30, 31, 35, 36, 37, 38, 39, 42, 49, 50, 52, 56, 57, 58, 68, 74, 75, 76,
-         84, 85, 94, 99, 111, 112, 116, 124, 125, 131, 132, 137},
-        {1, 2, 6, 10, 11, 17, 18, 19, 20, 21, 32, 33, 34, 35, 36, 40, 41, 42, 45, 47, 48, 59, 60, 61, 71, 72, 73, 74,
-         75, 76, 86, 87, 88, 95, 96, 103, 106, 108, 117, 132, 137},
-        {1, 2, 4, 5, 9, 11, 14, 15, 16, 24, 26, 27, 28, 29, 32, 40, 45, 46, 47, 48, 54, 59, 68, 74, 79, 86, 87, 91, 96,
-         102, 103, 107, 109, 116, 118, 120, 121, 124, 129, 136},
-        {2, 6, 7, 8, 9, 14, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 60, 61, 68, 74, 86, 87, 92, 93, 94, 97, 98,
-         107, 109, 113, 114, 115, 116, 120, 123, 124, 130, 131},
-        {1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 33, 34, 35, 36, 40, 41, 42, 45, 47, 48, 59, 60, 61, 71, 72, 73, 74, 79,
-         86, 87, 88, 89, 95, 96, 103, 106, 108, 117, 132, 137},
-        {1, 2, 6, 10, 11, 12, 13, 17, 32, 33, 34, 35, 36, 40, 42, 45, 46, 47, 48, 51, 59, 61, 71, 72, 73, 74, 77, 78,
-         79, 87, 88, 89, 95, 96, 103, 106, 108, 117, 119, 122},
-        {1, 2, 6, 8, 9, 14, 24, 29, 30, 31, 35, 36, 40, 43, 44, 49, 50, 52, 56, 57, 58, 68, 74, 79, 84, 85, 99, 103,
-         107, 109, 113, 114, 116, 119, 122, 125, 126, 133, 134},
-        {6, 7, 8, 9, 14, 15, 16, 20, 24, 29, 30, 31, 35, 36, 40, 48, 54, 59, 66, 67, 68, 74, 86, 87, 93, 94, 107, 109,
-         113, 114, 115, 116, 120, 121, 123, 124, 130, 131},
-        {1, 2, 6, 9, 14, 21, 22, 23, 24, 25, 29, 35, 36, 37, 38, 39, 42, 50, 52, 56, 57, 58, 66, 67, 69, 70, 71, 75, 76,
-         84, 85, 112, 116, 124, 125, 126},
-        {1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 34, 35, 36, 40, 41, 42, 52, 53, 59, 71, 73, 74, 78, 79, 86, 87, 88, 89,
-         96, 101, 103, 120, 121, 124, 135},
-        {1, 2, 6, 14, 21, 36, 37, 38, 39, 42, 49, 50, 52, 56, 57, 58, 71, 72, 73, 74, 77, 78, 79, 84, 85, 99, 104, 112,
-         119, 122, 125, 126, 127, 133},
-        {1, 2, 4, 5, 9, 11, 12, 13, 17, 24, 26, 27, 28, 29, 32, 40, 45, 46, 47, 48, 51, 54, 59, 68, 74, 79, 88, 89, 96,
-         100, 105, 116, 118, 119, 122},
-        {1, 2, 6, 9, 14, 29, 35, 36, 40, 44, 59, 64, 65, 66, 67, 69, 70, 71, 75, 76, 80, 81, 84, 85, 104, 114, 116, 119,
-         122, 125, 126},
-        {1, 2, 6, 9, 14, 20, 24, 29, 30, 35, 36, 40, 44, 59, 64, 65, 68, 74, 75, 76, 80, 81, 82, 84, 85, 104, 114, 116,
-         119, 122, 125},
-        {1, 2, 6, 14, 16, 21, 36, 37, 38, 39, 42, 52, 53, 59, 62, 63, 71, 73, 74, 84, 85, 92, 101, 103, 111, 112, 119,
-         122, 129, 135},
-        {1, 2, 6, 10, 11, 14, 15, 16, 21, 32, 35, 36, 40, 41, 42, 52, 53, 59, 71, 74, 79, 86, 87, 90, 96, 103, 120, 121,
-         124, 135},
-        {1, 2, 6, 9, 14, 24, 29, 30, 35, 36, 40, 44, 59, 64, 65, 68, 74, 75, 76, 83, 84, 85, 104, 114, 116, 119, 122,
-         125, 126},
-        {3, 21, 22, 23, 24, 25, 35, 39, 40, 52, 58, 59, 66, 67, 69, 70, 71, 79, 94, 129}
+    {2,3,6,8,9,11,12,13,15,16,18,19,20,25,48,50,65,68,71,73,74,78,79,80,81,82,83},  # A1
+    {6,16,18,19,26,33,34,36,37,38,39,41,42,45,46,48,49,50,51,52,53,54,55,56,61},  # A2
+    {2,3,4,6,8,9,11,12,13,15,16,18,20,25,48,50,68,71,73,78,79,80,81,82,83},  # A3
+    {6,12,13,17,20,21,26,33,34,36,37,38,39,45,46,48,49,50,53,54,55,56,61},  # A4
+    {1,16,18,19,20,25,45,46,47,48,50,64,65,68,71,73,74,78,79,80,81,82,83},  # A5
+    {2,3,4,6,8,9,11,12,13,15,16,18,19,20,25,50,51,75,78,79,80,81,82,83},  # A6
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,49,50,51,57,58,59,60,63},  # A7
+    {16,18,19,20,25,43,45,46,47,48,50,51,52,65,74,75,78,79,80,81,82,83},  # A8
+    {16,18,19,20,25,43,45,46,47,48,50,64,68,71,73,77,78,79,80,81,82,83},  # A9
+    {2,3,6,8,9,11,14,17,21,25,48,64,65,68,71,73,74,78,79,80,81,82,83},  # A10
+    {1,7,12,13,16,18,19,20,25,50,51,65,68,71,73,74,78,79,80,81,82,83},  # A11
+    {1,5,7,10,12,13,15,16,18,20,25,48,50,51,68,71,73,78,79,80,81},  # A12
+    {12,13,17,20,26,33,34,36,37,38,39,45,46,48,50,58,59,60,63,84},  # A13
+    {18,19,20,26,33,34,36,37,38,39,41,64,69,70,72,75,76,77,81,83},  # A14
+    {16,18,19,20,26,33,34,35,36,37,38,39,41,67,68,71,78,79,80,84},  # A15
+    {3,6,12,13,15,16,18,20,25,28,62,65,68,71,73,74,78,79,80,81},  # A16
+    {16,18,19,20,26,33,34,36,37,38,39,67,68,71,78,79,80,84,85},  # A17
+    {18,19,20,26,33,34,36,37,38,39,66,67,68,71,76,77,81,82,83},  # A18
+    {2,6,24,27,28,29,30,31,33,34,36,37,39,58,59,60,63,85},  # A19
+    {2,6,22,26,32,33,34,36,37,38,39,58,59,60,63,85},  # A20
+    {12,13,14,17,21,26,44,45,46,47,48,49,50,84,85},  # A21
+    {18,19,20,26,40,66,67,68,71,76,77,81,82,83},  # A22
+    {3,23,25,28,32,35,53,54,55,56,61,85}  # A23
     ],
 }
 
@@ -123,6 +92,8 @@ def denormalize_state(normalized_state):
 
 
 def coverage_similarity(triggered, target_path):
+    if triggered is None:
+        return 0.0
     if len(target_path) == 0:
         return 1.0 if len(triggered) == 0 else 0.0
 
@@ -135,535 +106,118 @@ def unified_reward_function(triggered, target_path):
     similarity = coverage_similarity(triggered, target_path)
     reward = similarity * config['SIMILARITY_WEIGHT']
 
-    if target_path.issubset(triggered):
+    if triggered is not None and target_path.issubset(triggered):
         reward += config['COVERAGE_BONUS']
 
-    if len(triggered) > 0:
+    if triggered is not None and len(triggered) > 0:
         reward += config['TRIGGER_BONUS']
 
     return reward
 
 
-def safe_divide(a, b):
-    """, """
-    return a / b if b != 0 else 0
-
-
-def section6_low_co2_extremes(moisture, co2, temp):
-    """CO2branch"""
+def execute_Tr(x, y, z):
     triggered = set()
-    b = [0] * 137  # branch
 
-    if (co2 < 1150) != (co2 < 1000):
-        b[0] = 1
-        triggered.add(1)
-    if (co2 < 1150) != (co2 < 950):
-        b[1] = 2
-        triggered.add(2)
-    if (co2 < 1150) != (co2 < 1400):
-        b[2] = 3
-        triggered.add(3)
+    # --- 分支 1-11 (原 energy_y * energy_z / (energy_x + 1) > 140 的变异) ---
+    if ((y * z) / (x + 1) > 140) != ((y * y) / (x + 1) > 140): triggered.add(1)
+    if ((y * z) / (x + 1) > 140) != ((z * z) / (x + 1) > 140): triggered.add(2)
+    if ((y * z) / (x + 1) > 140) != ((y * x) / (x + 1) > 140): triggered.add(3)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 3) > 140): triggered.add(4)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x - 1) > 140): triggered.add(5)
+    if ((y * z) / (x + 1) > 140) != ((y * z * 2) / (y + 1) > 140): triggered.add(6)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 100): triggered.add(7)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 1) > 180): triggered.add(8)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x + 10) > 140): triggered.add(9)
+    if ((y * z) / (x + 1) > 140) != ((y * z) / (x * 1) > 140): triggered.add(10)
+    if ((y * z) / (x + 1) > 140) != ((y * 30) / (x + 1) > 140): triggered.add(11)
 
-    # branch4-11: 
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1050 and moisture > 45 and temp > 20):
-        b[3] = 4
-        triggered.add(4)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1100 and moisture > 45 and temp > 20):
-        b[4] = 5
-        triggered.add(5)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20):
-        b[5] = 6
-        triggered.add(6)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 35 and temp > 20):
-        b[6] = 7
-        triggered.add(7)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20):
-        b[7] = 8
-        triggered.add(8)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20):
-        b[8] = 9
-        triggered.add(9)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 5):
-        b[9] = 10
-        triggered.add(10)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20):
-        b[10] = 11
-        triggered.add(11)
+    # --- 分支 12-21 (原 (energy_z - energy_x) < 0.22 * energy_y 的变异) ---
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * x): triggered.add(12)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.22 * z): triggered.add(13)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.32 * y): triggered.add(14)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.12 * y): triggered.add(15)
+    if ((z - x) < 0.22 * y) != ((z * 2 - x) < 0.22 * y): triggered.add(16)
+    if ((z - x) < 0.22 * y) != ((z - x * 1.2) < 0.22 * y): triggered.add(17)
+    if ((z - x) < 0.22 * y) != ((z + x) < 0.22 * y): triggered.add(18)
+    if ((z - x) < 0.22 * y) != ((z - 20) < 0.22 * y): triggered.add(19)
+    if ((z - x) < 0.22 * y) != ((90 - x) < 0.22 * y): triggered.add(20)
+    if ((z - x) < 0.22 * y) != ((z - x) < 0.4 * y): triggered.add(21)
 
-    # branch12-21: 
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 970 and moisture > 50) or (co2 < 1100 and temp < 22)):
-        b[11] = 12
-        triggered.add(12)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1000 and moisture > 50) or (co2 < 1100 and temp < 22)):
-        b[12] = 13
-        triggered.add(13)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 or moisture > 50) or (co2 < 1100 and temp < 22)):
-        b[13] = 14
-        triggered.add(14)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 40) or (co2 < 1100 and temp < 22)):
-        b[14] = 15
-        triggered.add(15)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 35) or (co2 < 1100 and temp < 22)):
-        b[15] = 16
-        triggered.add(16)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 50) and (co2 < 1100 and temp < 22)):
-        b[16] = 17
-        triggered.add(17)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 50) or (co2 < 960 and temp < 22)):
-        b[17] = 18
-        triggered.add(18)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 18)):
-        b[18] = 19
-        triggered.add(19)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 50) or (co2 < 1100 and temp > 22)):
-        b[19] = 20
-        triggered.add(20)
-    if ((co2 < 1150 and moisture > 50) or (co2 < 1100 and temp < 22)) != (
-            (co2 < 1150 and moisture > 50) or (co2 > 1100 and temp < 22)):
-        b[20] = 21
-        triggered.add(21)
+    # --- 分支 22-32 (原 (energy_x^3 + energy_y^3) < energy_z^2 的变异) ---
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2.7 + y ** 3) < z ** 2): triggered.add(22)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2.6) < z ** 2): triggered.add(23)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1.8): triggered.add(24)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 - y ** 3) < z ** 2): triggered.add(25)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2): triggered.add(26)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((z ** 3 + y ** 3) < z ** 2): triggered.add(27)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2): triggered.add(28)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + z ** 3) < z ** 2): triggered.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < x ** 2): triggered.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < y ** 2): triggered.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.5): triggered.add(32)
 
-    # branch22-25: 
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.04 and temp < 22):
-        b[21] = 22
-        triggered.add(22)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.03 and temp < 22):
-        b[22] = 23
-        triggered.add(23)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (safe_divide(moisture, co2 - 700) > 0.06 or temp < 22):
-        b[23] = 24
-        triggered.add(24)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp < 22) != (moisture + safe_divide(100, co2 - 700) > 0.06 and temp < 22):
-        b[24] = 25
-        triggered.add(25)
+    # --- 分支 33-42 (原 x/(y+0.01)>5 and y/(z+0.01)<0.2 的变异) ---
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (z + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(33)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (x + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(34)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((z / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(35)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((y / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2): triggered.add(36)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (z / (z + 0.01)) < 0.2): triggered.add(37)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (x / (z + 0.01)) < 0.2): triggered.add(38)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (y + 0.01)) < 0.2): triggered.add(39)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (x + 0.01)) < 0.2): triggered.add(40)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.15): triggered.add(41)
+    if ((x / (y + 0.01)) > 5 and (y / (z + 0.01)) < 0.2) != ((x / (y + 0.01)) > 7 and (y / (z + 0.01)) < 0.2): triggered.add(42)
 
-    # branch26-36: 
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1000 and moisture > 45 and temp > 20):
-        b[25] = 26
-        triggered.add(26)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1070 and moisture > 45 and temp > 20):
-        b[26] = 27
-        triggered.add(27)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 > 1150 and moisture > 45 and temp > 20):
-        b[27] = 28
-        triggered.add(28)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture < 45 and temp > 20):
-        b[28] = 29
-        triggered.add(29)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 25 and temp > 20):
-        b[29] = 30
-        triggered.add(30)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 30 and temp > 20):
-        b[30] = 31
-        triggered.add(31)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp < 20):
-        b[31] = 32
-        triggered.add(32)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 15):
-        b[32] = 33
-        triggered.add(33)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 and temp > 12):
-        b[33] = 34
-        triggered.add(34)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 and moisture > 45 or temp > 20):
-        b[34] = 35
-        triggered.add(35)
-    if (co2 < 1150 and moisture > 45 and temp > 20) != (co2 < 1150 or moisture > 45 and temp > 20):
-        b[35] = 36
-        triggered.add(36)
+    # --- 分支 43-52 (原 abs(x-y)>16 and abs(y-z)>18 and abs(x-z)<9 的变异) ---
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x * 1.2 - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9): triggered.add(43)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y * 2 - z) > 18 and abs(x - z) < 9): triggered.add(44)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 19 and abs(y - z) > 18 and abs(y - z) < 9): triggered.add(45)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(x - z) > 18 and abs(x - z) < 9): triggered.add(46)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 40 and abs(x - z) < 9): triggered.add(47)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 2 - z) < 9): triggered.add(48)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z * 0.2) > 18 and abs(x - z) < 9): triggered.add(49)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x * 1.5 - z) < 9): triggered.add(50)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z * 0.87) < 9): triggered.add(51)
+    if (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 9) != (abs(x - y) > 16 and abs(y - z) > 18 and abs(x - z) < 7.8): triggered.add(52)
 
-    # branch37-44: 
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 970 and moisture < 40 and temp < 22):
-        b[36] = 37
-        triggered.add(37)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1020 and moisture < 40 and temp < 22):
-        b[37] = 38
-        triggered.add(38)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 > 1150 and moisture < 40 and temp < 22):
-        b[38] = 39
-        triggered.add(39)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 or moisture < 40 and temp < 22):
-        b[39] = 40
-        triggered.add(40)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 50 and temp < 22):
-        b[40] = 41
-        triggered.add(41)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture > 40 and temp < 22):
-        b[41] = 42
-        triggered.add(42)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 27):
-        b[42] = 43
-        triggered.add(43)
-    if (co2 < 1150 and moisture < 40 and temp < 22) != (co2 < 1150 and moisture < 40 and temp < 32):
-        b[43] = 44
-        triggered.add(44)
+    # --- 分支 53-63 (原 (x>95 or x<5) and (y>90 or y<3) and (z>85 or z<2) 的变异) ---
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(53)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * x > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(54)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * z > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(55)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 80 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(56)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * y > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(57)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(58)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * z > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(59)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 50 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(60)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y * 40 > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(61)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x > 95 or x < 5) and (y > 90 or y < 3) and (z * z > 85 or z < 2)): triggered.add(62)
+    if ((x > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)) != ((x * 40 > 95 or x < 5) and (y > 90 or y < 3) and (z > 85 or z < 2)): triggered.add(63)
 
-    # branch45-55: 
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1050 and 35 < moisture < 60 and 15 < temp < 28):
-        b[44] = 45
-        triggered.add(45)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1120 and 35 < moisture < 60 and 15 < temp < 28):
-        b[45] = 46
-        triggered.add(46)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1070 and 35 < moisture < 60 and 15 < temp < 28):
-        b[46] = 47
-        triggered.add(47)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 > 1150 and 35 < moisture < 60 and 15 < temp < 28):
-        b[47] = 48
-        triggered.add(48)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 25 < moisture < 60 and 15 < temp < 28):
-        b[48] = 49
-        triggered.add(49)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 20 < moisture < 60 and 15 < temp < 28):
-        b[49] = 50
-        triggered.add(50)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 35 < moisture < 52 and 15 < temp < 28):
-        b[50] = 51
-        triggered.add(51)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 35 < moisture < 60 or 15 < temp < 28):
-        b[51] = 52
-        triggered.add(52)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 35 < moisture < 60 and 10 < temp < 28):
-        b[52] = 53
-        triggered.add(53)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 20):
-        b[53] = 54
-        triggered.add(54)
-    if (co2 < 1150 and 35 < moisture < 60 and 15 < temp < 28) != (
-            co2 < 1150 and 35 < moisture < 60 and 15 < temp < 33):
-        b[54] = 55
-        triggered.add(55)
+    # --- 分支 64-75 (原 x^0.7+y^0.7>z^0.9 and x+y+z<180 的变异) ---
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.6 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(64)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(65)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.8 > z ** 0.9 and x + y + z < 180): triggered.add(66)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.8 and x + y + z < 180): triggered.add(67)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + z ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(68)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (y ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(69)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (z ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(70)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + x ** 0.7 > z ** 0.9 and x + y + z < 180): triggered.add(71)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > x ** 0.9 and x + y + z < 180): triggered.add(72)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and y + y + z < 180): triggered.add(73)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and z + y + z < 180): triggered.add(74)
+    if (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + y + z < 180) != (x ** 0.7 + y ** 0.7 > z ** 0.9 and x + x + z < 180): triggered.add(75)
 
-    # branch56-65: 
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1020 and moisture < 40 and 15 < temp < 25):
-        b[55] = 56
-        triggered.add(56)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1070 and moisture < 40 and 15 < temp < 25):
-        b[56] = 57
-        triggered.add(57)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 > 1150 and moisture < 40 and 15 < temp < 25):
-        b[57] = 58
-        triggered.add(58)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 or moisture < 40 and 15 < temp < 25):
-        b[58] = 59
-        triggered.add(59)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 50 and 15 < temp < 25):
-        b[59] = 60
-        triggered.add(60)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 55 and 15 < temp < 25):
-        b[60] = 61
-        triggered.add(61)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 10 < temp < 25):
-        b[61] = 62
-        triggered.add(62)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 5 < temp < 25):
-        b[62] = 63
-        triggered.add(63)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30):
-        b[63] = 64
-        triggered.add(64)
-    if (co2 < 1150 and moisture < 40 and 15 < temp < 25) != (co2 < 1150 and moisture < 40 and 15 < temp < 30):
-        b[64] = 65
-        triggered.add(65)
-
-    # branch66-74: temperature
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 850) > 0.06 and temp > 20):
-        b[65] = 66
-        triggered.add(66)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 900) > 0.06 and temp > 20):
-        b[66] = 67
-        triggered.add(67)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 + 200) > 0.06 and temp > 20):
-        b[67] = 68
-        triggered.add(68)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.04 and temp > 20):
-        b[68] = 69
-        triggered.add(69)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.03 and temp > 20):
-        b[69] = 70
-        triggered.add(70)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 or temp > 20):
-        b[70] = 71
-        triggered.add(71)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 15):
-        b[71] = 72
-        triggered.add(72)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp > 12):
-        b[72] = 73
-        triggered.add(73)
-    if (safe_divide(moisture, co2 - 700) > 0.06 and temp > 20) != (safe_divide(moisture, co2 - 700) > 0.06 and temp < 20):
-        b[73] = 74
-        triggered.add(74)
-
-    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1100 and temp > 18):
-        b[74] = 75
-        triggered.add(75)
-    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1050 and temp > 18):
-        b[75] = 76
-        triggered.add(76)
-    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 15):
-        b[76] = 77
-        triggered.add(77)
-    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp > 12):
-        b[77] = 78
-        triggered.add(78)
-    if (co2 + moisture > 1150 and temp > 18) != (co2 + moisture > 1150 and temp < 18):
-        b[78] = 79
-        triggered.add(79)
-
-    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
-            co2 < 1000 and abs(moisture - 45) > 15 and abs(temp - 20) > 7):
-        b[79] = 80
-        triggered.add(80)
-    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
-            co2 < 1050 and abs(moisture - 45) > 15 and abs(temp - 20) > 7):
-        b[80] = 81
-        triggered.add(81)
-    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
-            co2 < 1150 and abs(moisture - 42) > 15 and abs(temp - 20) > 7):
-        b[81] = 82
-        triggered.add(82)
-    if (co2 < 1150 and abs(moisture - 45) > 15 and abs(temp - 20) > 7) != (
-            co2 < 1150 and abs(moisture - 45) > 12 and abs(temp - 20) > 7):
-        b[82] = 83
-        triggered.add(83)
-
-    # branch84-87: 
-    if (co2 < 1150 and moisture < 40) != (co2 < 1000 and moisture < 40):
-        b[83] = 84
-        triggered.add(84)
-    if (co2 < 1150 and moisture < 40) != (co2 < 1050 and moisture < 40):
-        b[84] = 85
-        triggered.add(85)
-    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 50):
-        b[85] = 86
-        triggered.add(86)
-    if (co2 < 1150 and moisture < 40) != (co2 < 1150 and moisture < 55):
-        b[86] = 87
-        triggered.add(87)
-
-    # branch88-92: 
-    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1030 and 12 < temp < 25 and moisture > 45):
-        b[87] = 88
-        triggered.add(88)
-    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1080 and 12 < temp < 25 and moisture > 45):
-        b[88] = 89
-        triggered.add(89)
-    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 8 < temp < 25 and moisture > 45):
-        b[89] = 90
-        triggered.add(90)
-    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 30 and moisture > 45):
-        b[90] = 91
-        triggered.add(91)
-    if (co2 < 1150 and 12 < temp < 25 and moisture > 45) != (co2 < 1150 and 12 < temp < 25 and moisture > 35):
-        b[91] = 92
-        triggered.add(92)
-
-    # branch93-96: 
-    if (moisture > 45 and temp > 20) != (moisture > 35 and temp > 20):
-        b[92] = 93
-        triggered.add(93)
-    if (moisture > 45 and temp > 20) != (moisture > 32 and temp > 20):
-        b[93] = 94
-        triggered.add(94)
-    if (moisture > 45 and temp > 20) != (moisture > 45 and temp > 15):
-        b[94] = 95
-        triggered.add(95)
-    if (moisture > 45 and temp > 20) != (moisture > 45 and temp < 20):
-        b[95] = 96
-        triggered.add(96)
-
-    # branch97-102: 
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            950 < co2 < 1250 and 35 < moisture < 55 and 15 < temp < 25):
-        b[96] = 97
-        triggered.add(97)
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            900 < co2 < 1300 and 35 < moisture < 55 and 15 < temp < 25):
-        b[97] = 98
-        triggered.add(98)
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            1000 < co2 < 1200 and 28 < moisture < 55 and 15 < temp < 25):
-        b[98] = 99
-        triggered.add(99)
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            1000 < co2 < 1200 and 35 < moisture < 62 and 15 < temp < 25):
-        b[99] = 100
-        triggered.add(100)
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            1000 < co2 < 1200 and 35 < moisture < 55 and 12 < temp < 25):
-        b[100] = 101
-        triggered.add(101)
-    if (1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 25) != (
-            1000 < co2 < 1200 and 35 < moisture < 55 and 15 < temp < 28):
-        b[101] = 102
-        triggered.add(102)
-
-    # branch103-109: 
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1050 and 30 < moisture < 55 and (temp < 20 or temp > 22)):
-        b[102] = 103
-        triggered.add(103)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 22 < moisture < 55 and (temp < 20 or temp > 22)):
-        b[103] = 104
-        triggered.add(104)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 30 < moisture < 62 and (temp < 20 or temp > 22)):
-        b[104] = 105
-        triggered.add(105)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 30 < moisture < 55 and (temp < 16 or temp > 22)):
-        b[105] = 106
-        triggered.add(106)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 26)):
-        b[106] = 107
-        triggered.add(107)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 30 < moisture < 55 and (temp < 15 or temp > 22)):
-        b[107] = 108
-        triggered.add(108)
-    if (co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 22)) != (
-            co2 < 1150 and 30 < moisture < 55 and (temp < 20 or temp > 28)):
-        b[108] = 109
-        triggered.add(109)
-
-    # branch110-114: 
-    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 38 and co2 < 1150 and temp < 22):
-        b[109] = 110
-        triggered.add(110)
-    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 35 and co2 < 1150 and temp < 22):
-        b[110] = 111
-        triggered.add(111)
-    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1000 and temp < 22):
-        b[111] = 112
-        triggered.add(112)
-    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 27):
-        b[112] = 113
-        triggered.add(113)
-    if (moisture < 45 and co2 < 1150 and temp < 22) != (moisture < 45 and co2 < 1150 and temp < 30):
-        b[113] = 114
-        triggered.add(114)
-
-    # branch115-118: 
-    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
-            co2 < 1200 and moisture > 35 and temp > 20 and co2 < 1150):
-        b[114] = 115
-        triggered.add(115)
-    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
-            co2 < 1200 and moisture < 45 and temp > 20 and co2 < 1150):
-        b[115] = 116
-        triggered.add(116)
-    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
-            co2 < 1200 and moisture > 45 and temp > 15 and co2 < 1150):
-        b[116] = 117
-        triggered.add(117)
-    if (co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1150) != (
-            co2 < 1200 and moisture > 45 and temp > 20 and co2 < 1070):
-        b[117] = 118
-        triggered.add(118)
-
-    # branch119-124: 
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1000 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)):
-        b[118] = 119
-        triggered.add(119)
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1150 and (moisture > 30 or moisture < 40) and (temp > 22 or temp < 18)):
-        b[119] = 120
-        triggered.add(120)
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1150 and (moisture > 40 or moisture < 40) and (temp > 22 or temp < 18)):
-        b[120] = 121
-        triggered.add(121)
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1150 and (moisture > 50 and moisture < 40) and (temp > 22 or temp < 18)):
-        b[121] = 122
-        triggered.add(122)
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1150 and (moisture > 50 or moisture < 45) and (temp > 22 or temp < 18)):
-        b[122] = 123
-        triggered.add(123)
-    if (co2 < 1150 and (moisture > 50 or moisture < 40) and (temp > 22 or temp < 18)) != (
-            co2 < 1150 and (moisture > 50 or moisture < 40) or (temp > 22 or temp < 18)):
-        b[123] = 124
-        triggered.add(124)
-
-    # branch125-131: 
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1050 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45):
-        b[124] = 125
-        triggered.add(125)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1100 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45):
-        b[125] = 126
-        triggered.add(126)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1150 and safe_divide(temp, moisture + 5) > 0.5 and moisture < 45):
-        b[126] = 127
-        triggered.add(127)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.4 and moisture < 45):
-        b[127] = 128
-        triggered.add(128)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 or moisture < 45):
-        b[128] = 129
-        triggered.add(129)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 38):
-        b[129] = 130
-        triggered.add(130)
-    if (co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 45) != (
-            co2 < 1150 and safe_divide(temp, moisture + 1) > 0.5 and moisture < 35):
-        b[130] = 131
-        triggered.add(131)
-
-    # branch132-137: 
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1000 and 35 <= moisture <= 50 and 15 <= temp <= 25):
-        b[131] = 132
-        triggered.add(132)
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1150 and 28 <= moisture <= 50 and 15 <= temp <= 25):
-        b[132] = 133
-        triggered.add(133)
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1150 and 32 <= moisture <= 50 and 15 <= temp <= 25):
-        b[133] = 134
-        triggered.add(134)
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1150 and 35 <= moisture <= 50 and 12 <= temp <= 25):
-        b[134] = 135
-        triggered.add(135)
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 28):
-        b[135] = 136
-        triggered.add(136)
-    if (co2 < 1150 and 35 <= moisture <= 50 and 15 <= temp <= 25) != (
-            co2 < 1050 and 35 <= moisture <= 50 and 15 <= temp <= 25):
-        b[136] = 137
-        triggered.add(137)
+    # --- 分支 76-85 (原 (x+y)^1.3<z^1.6 and x+y+z/3>35 的变异) ---
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((y + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(76)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((z + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(77)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + x) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(78)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + z) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(79)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + 20) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(80)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(81)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.7 and x + y + z / 3 > 35): triggered.add(82)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.2 < z ** 1.6 and x + y + z / 3 > 35): triggered.add(83)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and y + y + z / 3 > 35): triggered.add(84)
+    if ((x + y) ** 1.3 < z ** 1.6 and x + y + z / 3 > 35) != ((x + y) ** 1.3 < z ** 1.6 and x + y - z / 3 > 35): triggered.add(85)
 
     return triggered
 
@@ -785,9 +339,9 @@ class EnhancedReplayBuffer:
                 original_state = denormalize_state(normalized_state)
                 original_state_int = np.round(original_state).astype(int)
 
-                # : 
+                # 执行测试覆盖
                 co2, moisture, temp = original_state_int
-                triggered = section6_low_co2_extremes(moisture, co2, temp)
+                triggered = execute_Tr(co2, moisture, temp)
 
                 top_k_results[path_idx].append({
                     'state': original_state_int,
@@ -807,7 +361,7 @@ class SACAgent:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        # : 
+        # 初始化网络
         self.policy = GaussianPolicy(state_dim, action_dim, EXPERIMENT_CONFIG['HIDDEN_DIM']).to(device)
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=EXPERIMENT_CONFIG['ACTOR_LR'])
 
@@ -892,19 +446,19 @@ class SACAgent:
 
         if self.replay_train_count % 2 == 0:
             alpha_value = self.log_alpha.exp().item()
-            print(f"  ->  (Run {self.replay_train_count}), Alpha={alpha_value:.4f}")
+            print(f"  -> 训练更新 (Run {self.replay_train_count}), Alpha={alpha_value:.4f}")
 
 
 # === Metric ===
 def calculate_run_performance(run_idx, sac_results, training_time, total_steps, update_count, agent):
-    """ runMetric"""
+    """计算单个run的性能指标"""
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
     num_paths = len(target_paths)
 
-    # Similarity
+    # 收集所有相似度
     all_similarities = []
 
-    # Metric
+    # 收集所有奖励
     total_samples = 0
     all_rewards = []
     total_reward = 0
@@ -922,78 +476,78 @@ def calculate_run_performance(run_idx, sac_results, training_time, total_steps, 
             all_similarities.append(similarity)
             total_samples += 1
 
-    # 1. 
+    # 1. 总奖励
     total_reward = total_reward
 
-    # 2. 
+    # 2. 平均奖励
     if total_samples > 0:
         average_reward = total_reward / total_samples
     else:
         average_reward = 0
 
-    # 5. (Average Similarity)
+    # 5. 收敛性 (平均相似度)
     if all_similarities:
         convergence = np.mean(all_similarities)
     else:
         convergence = 0
 
-    # 12. (Similarity)
+    # 12. 环境适应性 (相似度的标准差倒数)
     if len(all_similarities) > 1:
         environment_adaptability = 1 / (np.std(all_similarities) + 1e-8)
     else:
         environment_adaptability = 0
 
-    # 13. (Average Similarity)
+    # 13. 泛化能力 (平均相似度)
     generalization_ability = convergence
 
-    # 15. (/ seconds)
+    # 15. 计算效率 (总步数 / 训练时间)
     if training_time > 0:
         computational_efficiency = total_steps / training_time
     else:
         computational_efficiency = 0
 
-    # 16. 
+    # 16. 策略更新频率
     if training_time > 0:
         policy_update_frequency = update_count / training_time
     else:
         policy_update_frequency = 0
 
-    # Similarity
+    # 相似度统计
     avg_similarity = np.mean(all_similarities) if all_similarities else 0
     max_similarity = np.max(all_similarities) if all_similarities else 0
     min_similarity = np.min(all_similarities) if all_similarities else 0
 
     return {
-        '': run_idx + 1,
+        'Run': run_idx + 1,
 
-        # Metric
-        '': round(total_reward, 2),
-        '': round(average_reward, 4),
-        '': round(convergence, 4),
-        '': round(environment_adaptability, 4),
-        '': round(generalization_ability, 4),
-        '': round(computational_efficiency, 2),
-        '': round(policy_update_frequency, 4),
+        # 性能指标
+        'Total Reward': round(total_reward, 2),
+        'Average Reward': round(average_reward, 4),
+        'Convergence': round(convergence, 4),
+        'Environment Adaptability': round(environment_adaptability, 4),
+        'Generalization Ability': round(generalization_ability, 4),
+        'Computational Efficiency': round(computational_efficiency, 2),
+        'Policy Update Frequency': round(policy_update_frequency, 4),
 
-        # Similarity
+        # 相似度统计
         'Average Similarity': round(avg_similarity, 4),
-        'Similarity': round(max_similarity, 4),
-        'Similarity': round(min_similarity, 4),
+        'Max Similarity': round(max_similarity, 4),
+        'Min Similarity': round(min_similarity, 4),
     }
 
 
-# === Excel ===
-def export_to_excel(all_sac_results, all_performance_data, target_paths, output_path="SAC_20 run.xlsx"):
-    """20 runSACExcel"""
-    print("\nExcel...")
+# === Excel导出 ===
+def export_to_excel(all_sac_results, all_performance_data, target_paths, output_path="SAC_20_run.xlsx"):
+    """导出 20 次 run 的 SAC 测试结果到 Excel"""
+    print("\n正在导出数据到 Excel...")
 
-    # 
+    # 初始化收集所有 run 的数据
     all_sac_summary_data = []
     all_sac_detailed_data = []
 
-    #  run
+    # 遍历每次 run 的结果
     for run_idx, (sac_results, performance_data) in enumerate(zip(all_sac_results, all_performance_data)):
-        # ===== Sheet1: SACPath  =====
+        # ===== Sheet1: SACPath 统计 =====
         sac_summary_data = []
         for path_idx in range(len(target_paths)):
             target_path = target_paths[path_idx]
@@ -1001,34 +555,35 @@ def export_to_excel(all_sac_results, all_performance_data, target_paths, output_
 
             if len(samples) == 0:
                 sac_summary_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
-                    '': len(target_path),
-                    '': 0,
+                    'Target Rule Count': len(target_path),
+                    'Sample Count': 0,
                     'Average Similarity': 0,
-                    'Similarity': 0,
-                    'Similarity': 0,
-                    'SimilarityStandard deviation': 0,
-                    '': '',
-                    'target paths': ', '.join(map(str, sorted(target_path)))
+                    'Max Similarity': 0,
+                    'Min Similarity': 0,
+                    'Similarity Std': 0,
+                    'Perfect Coverage': 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
                 continue
 
+            # 正常结果计算
             similarities = [s['similarity'] for s in samples]
             perfect_count = sum(1 for s in similarities if abs(s - 1.0) < 0.001)
-            is_perfect = '' if perfect_count > 0 else ''
+            is_perfect = 'Yes' if perfect_count > 0 else 'No'
 
             sac_summary_data.append({
-                '': run_idx + 1,
+                'Run': run_idx + 1,
                 'Path ID': path_idx + 1,
-                '': len(target_path),
-                '': len(samples),
+                'Target Rule Count': len(target_path),
+                'Sample Count': len(samples),
                 'Average Similarity': round(np.mean(similarities), 4),
-                'Similarity': round(max(similarities), 4),
-                'Similarity': round(min(similarities), 4),
-                'SimilarityStandard deviation': round(np.std(similarities), 4),
-                '': is_perfect,
-                'target paths': ', '.join(map(str, sorted(target_path)))
+                'Max Similarity': round(max(similarities), 4),
+                'Min Similarity': round(min(similarities), 4),
+                'Similarity Std': round(np.std(similarities), 4),
+                'Perfect Coverage': is_perfect,
+                'Target Paths': ', '.join(map(str, sorted(target_path)))
             })
 
         all_sac_summary_data.extend(sac_summary_data)
@@ -1045,77 +600,78 @@ def export_to_excel(all_sac_results, all_performance_data, target_paths, output_
                 triggered = sample['triggered']
 
                 sac_detailed_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
                     'Sample ID': sample_idx + 1,
                     'CO2': int(state[0]),
-                    'moisture': int(state[1]),
-                    'temperature': int(state[2]),
+                    'Moisture': int(state[1]),
+                    'Temperature': int(state[2]),
                     'Similarity': round(similarity, 4),
-                    '': '' if abs(similarity - 1.0) < 0.001 else '',
-                    'target paths': ', '.join(map(str, sorted(target_path))),
-                    '': ', '.join(map(str, sorted(triggered))),
-                    '': len(target_path.intersection(triggered)),
-                    '': len(target_path)
+                    'Perfect Coverage': 'Yes' if abs(similarity - 1.0) < 0.001 else 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path))),
+                    'Triggered Rules': ', '.join(map(str, sorted(triggered))) if triggered else '',
+                    'Intersection Count': len(target_path.intersection(triggered)) if triggered else 0,
+                    'Target Rule Count': len(target_path)
                 })
 
         all_sac_detailed_data.extend(sac_detailed_data)
 
-    # Excel
+    # 转换为 DataFrame
     sac_summary_df = pd.DataFrame(all_sac_summary_data)
     sac_detailed_df = pd.DataFrame(all_sac_detailed_data)
     performance_df = pd.DataFrame(all_performance_data)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # Sheet1: SACPath 
-        sac_summary_df.to_excel(writer, sheet_name='SACPath ', index=False)
+        # Sheet1: SACPath 统计
+        sac_summary_df.to_excel(writer, sheet_name='SACPath', index=False)
 
         # Sheet2: SACDetailed Sample Data
         sac_detailed_df.to_excel(writer, sheet_name='SACDetailed Sample Data', index=False)
 
-        # Sheet3: Metric - 
+        # Sheet3: Metric - 性能指标汇总
         selected_columns = [
-            '',
-            '', '', '', '',
-            '', '', '',
-            'Average Similarity', 'Similarity', 'Similarity'
+            'Run',
+            'Total Reward', 'Average Reward', 'Convergence',
+            'Environment Adaptability', 'Generalization Ability',
+            'Computational Efficiency', 'Policy Update Frequency',
+            'Average Similarity', 'Max Similarity', 'Min Similarity'
         ]
         performance_df_selected = performance_df[selected_columns]
         performance_df_selected.to_excel(writer, sheet_name='Metric', index=False)
 
-        # 
+        # 获取 workbook 对象进行格式设置
         workbook = writer.book
 
-        # 
+        # 设置表头样式
         header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
         header_font = Font(name='Microsoft YaHei', size=11, bold=True, color='FFFFFF')
-        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 
+        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 浅绿色高亮
 
-        # === Sheet1 ===
-        ws1 = writer.sheets['SACPath ']
+        # === 设置 Sheet1 样式 ===
+        ws1 = writer.sheets['SACPath']
         for cell in ws1[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        # 高亮完全覆盖的行
         for row_idx in range(2, ws1.max_row + 1):
-            if ws1.cell(row_idx, 9).value == '':  # Run 9""
+            if ws1.cell(row_idx, 9).value == 'Yes':  # 第9列是 Perfect Coverage
                 for col_idx in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col_idx).fill = perfect_fill
 
         ws1.column_dimensions['A'].width = 12
         ws1.column_dimensions['B'].width = 12
-        ws1.column_dimensions['C'].width = 12
-        ws1.column_dimensions['D'].width = 12
-        ws1.column_dimensions['E'].width = 15
+        ws1.column_dimensions['C'].width = 18
+        ws1.column_dimensions['D'].width = 15
+        ws1.column_dimensions['E'].width = 18
         ws1.column_dimensions['F'].width = 15
         ws1.column_dimensions['G'].width = 15
         ws1.column_dimensions['H'].width = 15
-        ws1.column_dimensions['I'].width = 15
+        ws1.column_dimensions['I'].width = 18
         ws1.column_dimensions['J'].width = 50
 
-        # === Sheet2 ===
+        # === 设置 Sheet2 样式 ===
         ws2 = writer.sheets['SACDetailed Sample Data']
         for cell in ws2[1]:
             cell.fill = header_fill
@@ -1129,35 +685,35 @@ def export_to_excel(all_sac_results, all_performance_data, target_paths, output_
         ws2.column_dimensions['E'].width = 10
         ws2.column_dimensions['F'].width = 10
         ws2.column_dimensions['G'].width = 12
-        ws2.column_dimensions['H'].width = 15
+        ws2.column_dimensions['H'].width = 18
         ws2.column_dimensions['I'].width = 40
         ws2.column_dimensions['J'].width = 40
-        ws2.column_dimensions['K'].width = 15
-        ws2.column_dimensions['L'].width = 15
+        ws2.column_dimensions['K'].width = 18
+        ws2.column_dimensions['L'].width = 18
 
-        # === Sheet3 ===
+        # === 设置 Sheet3 样式 ===
         ws3 = writer.sheets['Metric']
         for cell in ws3[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        # 调整列宽
         columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
         for col in columns:
-            ws3.column_dimensions[col].width = 18
+            ws3.column_dimensions[col].width = 20
 
-    print(f"Excel: {output_path}")
-    print(f"  - Sheet1: SACPath  ({len(all_sac_summary_data)})")
-    print(f"  - Sheet2: SACDetailed Sample Data ({len(all_sac_detailed_data)})")
-    print(f"  - Sheet3: Metric ({len(all_performance_data)})")
+    print(f"文件已成功保存到: {output_path}")
+    print(f"  - Sheet1: SACPath 统计共计 {len(all_sac_summary_data)} 条记录")
+    print(f"  - Sheet2: SACDetailed Sample Data 共计 {len(all_sac_detailed_data)} 条记录")
+    print(f"  - Sheet3: Metric 共计 {len(all_performance_data)} 条记录")
 
 
-# ===  ===
+# === 训练工作流 ===
 def train_sac_workflow():
     print("=" * 80)
-    print("SAC")
-    print("Similarity:  / target paths")
+    print("开始SAC训练")
+    print("Similarity: 触发分支数 / target paths目标分支数")
     print("=" * 80)
 
     agent = SACAgent()
@@ -1167,7 +723,7 @@ def train_sac_workflow():
     start_time = time.time()
     total_steps = 0
 
-    print(f"\n: Path {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']}")
+    print(f"\n初始化: 为每个Path生成 {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']} 个样本")
     path_samples = {}
     min_vals = EXPERIMENT_CONFIG['MIN_VALUES']
     max_vals = EXPERIMENT_CONFIG['MAX_VALUES']
@@ -1175,21 +731,21 @@ def train_sac_workflow():
     for path_idx in range(num_paths):
         samples = []
         for _ in range(EXPERIMENT_CONFIG['SAMPLES_PER_PATH']):
-            # 
+            # 生成随机初始状态
             state = np.random.uniform(min_vals, max_vals).astype(np.float32)
             samples.append(state)
         path_samples[path_idx] = samples
-        print(f"  Path  {path_idx + 1}/{num_paths}:  {len(samples)} ")
+        print(f"  Path  {path_idx + 1}/{num_paths}:  生成 {len(samples)} 个样本")
 
     batch_size = EXPERIMENT_CONFIG['BATCH_SIZE_SAMPLES']
     num_batches = EXPERIMENT_CONFIG['SAMPLES_PER_PATH'] // batch_size
 
-    print(f"\n: {batch_size},{EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}")
-    print(f": {num_batches} /Path  x {num_paths} Path  = {num_batches * num_paths} ")
+    print(f"\n开始训练: 每批次{batch_size}个样本, 每个样本{EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}步")
+    print(f"总批次数: {num_batches} 批次/Path  x {num_paths} Path  = {num_batches * num_paths} 批次")
     print("-" * 80)
 
     for batch_idx in range(num_batches):
-        print(f"\n {batch_idx + 1}/{num_batches}")
+        print(f"\n批次 {batch_idx + 1}/{num_batches}")
 
         for path_idx in range(num_paths):
             target_path = target_paths[path_idx]
@@ -1209,9 +765,9 @@ def train_sac_workflow():
                     next_state = state + action
                     next_state = clip_state(next_state)
 
-                    # : 
+                    # 计算奖励和相似度
                     co2, moisture, temp = next_state
-                    triggered = section6_low_co2_extremes(moisture, co2, temp)
+                    triggered = execute_Tr(co2, moisture, temp)
                     reward = unified_reward_function(triggered, target_path)
                     similarity = coverage_similarity(triggered, target_path)
 
@@ -1232,115 +788,115 @@ def train_sac_workflow():
 
             avg_reward = np.mean(batch_rewards)
             avg_similarity = np.mean(batch_similarities)
-            print(f"  Path {path_idx + 1}: ={avg_reward:.2f}, Average Similarity={avg_similarity:.4f}")
+            print(f"  Path {path_idx + 1}: 平均奖励={avg_reward:.2f}, 平均相似度={avg_similarity:.4f}")
 
-        print(f"\n  ...")
+        print(f"\n  执行训练更新...")
         agent.replay_train()
-        print(f"  : {len(agent.replay_buffer)}")
+        print(f"  缓冲区大小: {len(agent.replay_buffer)}")
 
     training_time = time.time() - start_time
 
     print("\n" + "=" * 80)
-    print(f"SACcompleted! Total elapsed time: {training_time:.2f} seconds, : {total_steps}")
-    print(f": {len(agent.replay_buffer)}")
-    print(f": {agent.replay_train_count}")
+    print(f"SAC训练完成! 总耗时: {training_time:.2f} 秒, 总步数: {total_steps}")
+    print(f"缓冲区大小: {len(agent.replay_buffer)}")
+    print(f"训练更新次数: {agent.replay_train_count}")
     print("=" * 80)
 
-    print(f"\nPath SimilarityMaximum{EXPERIMENT_CONFIG['TOP_K_SAMPLES']}...")
+    print(f"\n获取每个Path相似度最高的{EXPERIMENT_CONFIG['TOP_K_SAMPLES']}个样本...")
     top_k_results = agent.replay_buffer.get_top_k_per_path(num_paths, EXPERIMENT_CONFIG['TOP_K_SAMPLES'])
 
     return agent, top_k_results, training_time, total_steps, agent.replay_train_count
 
 
-# ===  ===
+# === 主函数 ===
 def main():
     print("\n" + "=" * 80)
-    print("SAC - 20 run")
-    print(": CO2(800-1500), moisture(10-80), temperature(1-40)")
-    print("Metric")
+    print("SAC - 20 run实验")
+    print("环境: CO2(2-100), moisture(10-105), temperature(1-110)")
+    print("评估Metric性能指标")
     print("=" * 80)
 
     all_sac_results = []
     all_performance_data = []
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
 
-    # 20
+    # 执行20次run
     for run_idx in range(EXPERIMENT_CONFIG['NUM_RUNS']):
         print(f"\n{'=' * 80}")
-        print(f"Start run  {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']}  run")
+        print(f"开始执行第 {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']} 次run")
         print(f"{'=' * 80}")
 
-        # SAC
+        # 执行SAC训练
         sac_agent, sac_results, training_time, total_steps, update_count = train_sac_workflow()
 
-        # Metric
+        # 计算性能指标
         performance_data = calculate_run_performance(
             run_idx, sac_results, training_time, total_steps, update_count, sac_agent
         )
 
-        # 
+        # 存储结果
         all_sac_results.append(sac_results)
         all_performance_data.append(performance_data)
 
-        print(f"\nRun  {run_idx + 1}  runcompleted!")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
+        print(f"\n第 {run_idx + 1} 次run完成!")
+        print(f"  总奖励: {performance_data['Total Reward']}")
+        print(f"  平均奖励: {performance_data['Average Reward']}")
+        print(f"  平均相似度: {performance_data['Average Similarity']}")
 
-    # Excel(20 run)
+    # 导出所有结果到Excel(包含20次run)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"SAC_20 run_{timestamp}.xlsx"
+    output_path = f"SAC_20_run_{timestamp}.xlsx"
     export_to_excel(all_sac_results, all_performance_data, target_paths, output_path)
 
-    # 
+    # 汇总统计
     print("\n" + "=" * 80)
-    print("20 run")
+    print("20次run汇总统计")
     print("=" * 80)
 
-    # Metric
-    total_rewards = [p[''] for p in all_performance_data]
-    average_rewards = [p[''] for p in all_performance_data]
-    convergences = [p[''] for p in all_performance_data]
-    environment_adaptabilities = [p[''] for p in all_performance_data]
-    generalization_abilities = [p[''] for p in all_performance_data]
-    computational_efficiencies = [p[''] for p in all_performance_data]
-    policy_update_frequencies = [p[''] for p in all_performance_data]
+    # 提取所有性能指标
+    total_rewards = [p['Total Reward'] for p in all_performance_data]
+    average_rewards = [p['Average Reward'] for p in all_performance_data]
+    convergences = [p['Convergence'] for p in all_performance_data]
+    environment_adaptabilities = [p['Environment Adaptability'] for p in all_performance_data]
+    generalization_abilities = [p['Generalization Ability'] for p in all_performance_data]
+    computational_efficiencies = [p['Computational Efficiency'] for p in all_performance_data]
+    policy_update_frequencies = [p['Policy Update Frequency'] for p in all_performance_data]
     avg_similarities = [p['Average Similarity'] for p in all_performance_data]
 
-    print(f":")
-    print(f"  : {np.mean(total_rewards):.2f}")
-    print(f"  Standard deviation: {np.std(total_rewards):.2f}")
+    print(f"总奖励统计:")
+    print(f"  平均值: {np.mean(total_rewards):.2f}")
+    print(f"  标准差: {np.std(total_rewards):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(average_rewards):.4f}")
-    print(f"  Standard deviation: {np.std(average_rewards):.4f}")
+    print(f"\n平均奖励统计:")
+    print(f"  平均值: {np.mean(average_rewards):.4f}")
+    print(f"  标准差: {np.std(average_rewards):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(convergences):.4f}")
-    print(f"  Standard deviation: {np.std(convergences):.4f}")
+    print(f"\n收敛性统计:")
+    print(f"  平均值: {np.mean(convergences):.4f}")
+    print(f"  标准差: {np.std(convergences):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(environment_adaptabilities):.4f}")
-    print(f"  Standard deviation: {np.std(environment_adaptabilities):.4f}")
+    print(f"\n环境适应性统计:")
+    print(f"  平均值: {np.mean(environment_adaptabilities):.4f}")
+    print(f"  标准差: {np.std(environment_adaptabilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(generalization_abilities):.4f}")
-    print(f"  Standard deviation: {np.std(generalization_abilities):.4f}")
+    print(f"\n泛化能力统计:")
+    print(f"  平均值: {np.mean(generalization_abilities):.4f}")
+    print(f"  标准差: {np.std(generalization_abilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(computational_efficiencies):.2f}")
-    print(f"  Standard deviation: {np.std(computational_efficiencies):.2f}")
+    print(f"\n计算效率统计:")
+    print(f"  平均值: {np.mean(computational_efficiencies):.2f}")
+    print(f"  标准差: {np.std(computational_efficiencies):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(policy_update_frequencies):.4f}")
-    print(f"  Standard deviation: {np.std(policy_update_frequencies):.4f}")
+    print(f"\n策略更新频率统计:")
+    print(f"  平均值: {np.mean(policy_update_frequencies):.4f}")
+    print(f"  标准差: {np.std(policy_update_frequencies):.4f}")
 
-    print(f"\nAverage similarity statistics:")
-    print(f"  : {np.mean(avg_similarities):.4f}")
-    print(f"  Standard deviation: {np.std(avg_similarities):.4f}")
+    print(f"\n平均相似度统计:")
+    print(f"  平均值: {np.mean(avg_similarities):.4f}")
+    print(f"  标准差: {np.std(avg_similarities):.4f}")
 
     print("\n" + "=" * 80)
-    print(f" {EXPERIMENT_CONFIG['NUM_RUNS']} completed!")
+    print(f"全部 {EXPERIMENT_CONFIG['NUM_RUNS']} 次run已完成!")
     print("=" * 80)
 
 

@@ -18,15 +18,10 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
-# === / ===
-# === :  execute_Tr(dx, dy, dz)  ===
-#  Tr , dx/dy/dz  -50~50 .
-# , , , , clip .
 STATE_RANGES = {
-    'dx': (-60, 60),
-    'dy': (-60, 60),
-    'dz': (-60, 60),
+    'dx': (1, 200),
+    'dy': (1, 200),
+    'dz': (2, 150),
 }
 STATE_NAMES = ('dx', 'dy', 'dz')
 STATE_MIN = np.array([STATE_RANGES[name][0] for name in STATE_NAMES], dtype=np.int32)
@@ -83,82 +78,236 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    """ Tr .DQN  dx, dy, dz.
-
-    :  current_x/current_y/current_z ,  DQN .
-     Tr  current_x/current_y/current_z,  6 .
+# === 验证规则执行函数 (使用 dx, dy, dz 变量名，不带 quality_) ===
+def execute_Tr(dx, dy, dz):
     """
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0
+    执行验证规则，返回触发的规则集合
+    """
+    b = set()
 
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
+    # 异常类型1：质量参数乘积异常
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dy * dz) / (dx + 1) > 80):
+        b.add(1)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz * dz) / (dx + 1) > 80):
+        b.add(2)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dx * dz) / (dx + 1) > 80):
+        b.add(3)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz) / (dx + 1) > 60):
+        b.add(4)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz) / (dx + 10) > 80):
+        b.add(5)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz) / (dx + 13) > 80):
+        b.add(6)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz * 5) / (dx + 1) > 80):
+        b.add(7)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz * 2) / (dx + 1) > 80):
+        b.add(8)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dz) / (dx + 1) > 40):
+        b.add(9)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dx) / (dx + 1) > 80):
+        b.add(10)
+    if ((dy * dz) / (dx + 1) > 80) != ((dy * dy) / (dx + 1) > 80):
+        b.add(11)
+    if ((dy * dz) / (dx + 1) > 80) != ((dz * dz) / (dx + 1) > 80):
+        b.add(12)
 
-    triggered = set()
+    # 异常类型2：质量差值异常
+    if ((dz - dx) < 0.4 * dy) != ((dz - dx) < 0.3 * dy):
+        b.add(13)
+    if ((dz - dx) < 0.4 * dy) != ((dz - dx) < 0.5 * dy):
+        b.add(14)
+    if ((dz - dx) < 0.4 * dy) != ((dz - dx) < 0.4 * dz):
+        b.add(15)
+    if ((dz - dx) < 0.4 * dy) != ((dz - dx) < 0.4 * dx):
+        b.add(16)
+    if ((dz - dx) < 0.4 * dy) != ((dz * 1.1 - dx) < 0.4 * dy):
+        b.add(17)
+    if ((dz - dx) < 0.4 * dy) != ((dz * 2 - dx) < 0.4 * dy):
+        b.add(18)
+    if ((dz - dx) < 0.4 * dy) != ((dz * dz - dx) < 0.4 * dy):
+        b.add(19)
+    if ((dz - dx) < 0.4 * dy) != ((dz * dx - dx) < 0.4 * dy):
+        b.add(20)
+    if ((dz - dx) < 0.4 * dy) != ((dz * dy - dx) < 0.4 * dy):
+        b.add(21)
+    if ((dz - dx) < 0.4 * dy) != ((dz * 1.5 - dx) < 0.4 * dy):
+        b.add(22)
 
-    #  current_x/current_y/current_z ..
-    #  (dx, dy, dz) ., .
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-    simulated_y = current_y
+    # 异常类型3：质量立方关系
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 2 + dy ** 3) < dz ** 2):
+        b.add(23)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 2) < dz ** 2):
+        b.add(24)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 3) < dz ** 1):
+        b.add(25)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 3) < dz ** 3):
+        b.add(26)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 3) < dz ** 4):
+        b.add(27)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 4) < dz ** 2):
+        b.add(28)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dx ** 3) < dz ** 2):
+        b.add(29)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 1 + dy ** 3) < dz ** 2):
+        b.add(30)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dx ** 3 + dy ** 1) < dz ** 2):
+        b.add(31)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != (
+            ((dx ** 3) * 2 + dy ** 3) < dz ** 2):
+        b.add(32)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != (
+            (dx ** 3 + (dy ** 3) * 2) < dz ** 2):
+        b.add(33)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != ((dy ** 3 + dy ** 3) < dz ** 2):
+        b.add(34)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != (
+            (dx ** 3 + dy ** 3) < (dz ** 2) * 2):
+        b.add(35)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != (
+            (dx ** 3 + dy ** 3) < (dx ** 2) * 2):
+        b.add(36)
+    if ((dx ** 3 + dy ** 3) < dz ** 2) != (
+            (dx ** 3 + dy ** 3) < (dy ** 2) * 2):
+        b.add(37)
 
-    # --- branch 1-4 ---
-    if (abs(dx) < MIN_PLANNING_X) != (abs(dy) < MIN_PLANNING_X): triggered.add(1)
-    if (abs(dx) < MIN_PLANNING_X) != (abs(dz) < MIN_PLANNING_X): triggered.add(2)
-    if (abs(dx) < MIN_PLANNING_X) != (abs(dx) < MIN_PLANNING_Y): triggered.add(3)
-    if (abs(dx) < MIN_PLANNING_X) != (abs(dx) < MIN_PLANNING_Z): triggered.add(4)
+    # 异常类型6：质量同步性检查
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 2 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(38)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 3 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(39)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 2) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(40)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 3) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(41)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 5) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(42)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 5 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(43)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 2 - dz % 1) < 0.1):
+        b.add(44)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 3 - dz % 1) < 0.1):
+        b.add(45)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 5 - dz % 1) < 0.1):
+        b.add(46)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 2) < 0.1):
+        b.add(47)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 3) < 0.1):
+        b.add(48)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 5) < 0.1):
+        b.add(49)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 4 - dz % 1) < 0.1):
+        b.add(50)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 4) < 0.1):
+        b.add(51)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 4 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(52)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 6) < 0.1 and abs(dy % 1 - dz % 1) < 0.1):
+        b.add(53)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 6 - dy % 1) < 0.1 and abs((dy * 2) % 1 - dz % 1) < 0.1):
+        b.add(54)
+    if (abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 1 - dz % 1) < 0.1) != (
+            abs(dx % 1 - dy % 1) < 0.1 and abs(dy % 6 - (dz * 2) % 1) < 0.1):
+        b.add(55)
 
-    # --- branch 5-9 ---
-    if (abs(dz) > MIN_PLANNING_Z * 2) != (abs(dx) > MIN_PLANNING_Z * 2): triggered.add(5)
-    if (abs(dz) > MIN_PLANNING_Z * 2) != (abs(dy) > MIN_PLANNING_Z * 2): triggered.add(6)
-    if (abs(dz) > MIN_PLANNING_Z * 2) != (abs(dz) > MIN_PLANNING_X * 2): triggered.add(7)
-    if (abs(dz) > MIN_PLANNING_Z * 2) != (abs(dz) > MIN_PLANNING_Y * 2): triggered.add(8)
-    if (abs(dz) > MIN_PLANNING_Z * 2) != (abs(dz) > MIN_PLANNING_Z): triggered.add(9)
+    # 其他复杂检查逻辑
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy + dz) / 2 < 85):
+        b.add(56)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy + dz) / 4 < 85):
+        b.add(57)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx * 2 + dy + dz) / 3 < 85):
+        b.add(58)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy * 2 + dz) / 3 < 85):
+        b.add(59)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy - dz) / 3 < 85):
+        b.add(60)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy * dz * 2) / 3 < 85):
+        b.add(61)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy + dx) / 3 < 85):
+        b.add(62)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 500000 and (dx + dy + dy) / 3 < 85):
+        b.add(63)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz > 600000 and (dx + dy + dz) / 3 < 85):
+        b.add(64)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dz * 2 > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(65)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dy * dy * dz > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(66)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dz * dy * dz > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(67)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dx * dz > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(68)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dx > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(69)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dz * dz > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(70)
+    if (dx * dy * dz > 500000 and (dx + dy + dz) / 3 < 85) != (
+            dx * dy * dy > 500000 and (dx + dy + dz) / 3 < 85):
+        b.add(71)
 
-    # --- branch 10-15 ---
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dy < 10)): triggered.add(10)
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dy < 30)): triggered.add(11)
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dy < 40)): triggered.add(12)
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dy < 50)): triggered.add(13)
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dx < 20)): triggered.add(14)
-    if ((TARGET_Y > simulated_y) and (dy < 20)) != ((TARGET_Y > simulated_y) and (dz < 20)): triggered.add(15)
-
-    # --- branch 16-21 ---
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dx) > CRITICAL_X_VELOCITY * 1.5): triggered.add(16)
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dz) > CRITICAL_X_VELOCITY * 1.5): triggered.add(17)
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dy) > CRITICAL_X_VELOCITY): triggered.add(18)
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dy) > CRITICAL_X_VELOCITY * 2): triggered.add(19)
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dy) > CRITICAL_Z_VELOCITY * 1.5): triggered.add(20)
-    if (abs(dy) > CRITICAL_X_VELOCITY * 1.5) != (abs(dy) > CRITICAL_Y_VELOCITY * 1.5): triggered.add(21)
-
-    # --- branch 22-29 ---
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_X < current_z) and (dz > CRITICAL_Z_VELOCITY)): triggered.add(22)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Y < current_z) and (dz > CRITICAL_Z_VELOCITY)): triggered.add(23)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_x) and (dz > CRITICAL_Z_VELOCITY)): triggered.add(24)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_y) and (dz > CRITICAL_Z_VELOCITY)): triggered.add(25)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_z) and (dx > CRITICAL_Z_VELOCITY)): triggered.add(26)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_z) and (dy > CRITICAL_Z_VELOCITY)): triggered.add(27)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_z) and (dz > CRITICAL_X_VELOCITY)): triggered.add(28)
-    if ((TARGET_Z < current_z) and (dz > CRITICAL_Z_VELOCITY)) != ((TARGET_Z < current_z) and (dz > CRITICAL_Y_VELOCITY)): triggered.add(29)
-
-    return triggered
+    return b
 
 
+# === 目标路径定义 ===
 target_paths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-{5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {1, 2, 3, 4, 7, 8, 9, 10, 11, 19, 20, 21, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54, 55,
+     56, 58, 59, 61, 62, 63, 64, 67, 68, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 18, 19, 20, 21, 22, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55, 56, 58, 59, 61, 64, 66, 71},
+    {1, 2, 3, 4, 7, 8, 9, 12, 13, 17, 18, 19, 20, 21, 22, 26, 27, 40, 41, 42, 44, 45, 46, 48, 49, 50, 51, 52, 53, 55,
+     56, 58, 59, 61, 64, 66, 69, 71},
+    {5, 6, 10, 11, 13, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 42, 43, 44, 46, 49, 50, 52, 53, 54, 55, 56, 58, 59,
+     61, 64, 66, 69, 71},
+    {1, 2, 3, 7, 12, 17, 18, 19, 20, 21, 22, 26, 27, 30, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54,
+     55, 65, 68, 70},
+    {1, 2, 3, 7, 8, 9, 12, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54,
+     55, 57, 60, 63},
+    {1, 2, 3, 4, 7, 8, 9, 12, 23, 24, 26, 27, 30, 31, 34, 35, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+     52, 53, 54, 55},
+    {16, 18, 19, 20, 21, 22, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 58, 59, 61, 63, 64,
+     68, 69, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 14, 15, 16, 26, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 57,
+     60, 62, 63},
+    {5, 6, 10, 13, 15, 16, 18, 19, 20, 21, 22, 27, 29, 31, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55},
+    {1, 2, 3, 7, 8, 9, 12, 25, 28, 29, 32, 33, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55,
+     70}
 ]
 
+
 # 
-target_paths = [set(path) for path in target_paths]
+targetPaths = [set(path) for path in target_paths]
 
 
 def jaccard_similarity(set1, set2):
@@ -196,9 +345,6 @@ def group_paths_by_similarity(paths):
 
 
 # === random grouping ===
-# : , Run "Similarity".
-#  runRun ,  USE_KEYBOARD_INPUT_GROUP_SIZE  True.
-# ,  RANDOM_GROUP_SEED ,  2026; ,  None.
 USE_KEYBOARD_INPUT_GROUP_SIZE = False
 RANDOM_GROUP_SEED = None
 
@@ -206,15 +352,9 @@ RANDOM_GROUP_SEED = None
 def group_paths_randomly(paths, use_keyboard_input=False, seed=None):
     """
     random grouping: .
-    - Random group1: ; 
-    - Random group2: Random group1.
-
-    Random group1 =  group_paths_by_similarity(paths) Run , 
-    random grouping, Path .
     """
     n_paths = len(paths)
 
-    # Similarity, SimilarityPath .
     original_group1, original_group2 = group_paths_by_similarity(paths)
     default_group1_size = len(original_group1)
 
@@ -262,11 +402,10 @@ def compute_robustness(state, path):
     rob, neighbors = 0.0, 0
     for dw in [-1, 0, 1]:
         for dt in [-1, 0, 1]:
-            for dz in [-1, 0, 1]:
-                if dw == dt == dz == 0:
+            for dz_val in [-1, 0, 1]:
+                if dw == dt == dz_val == 0:
                     continue
-                # 
-                neighbor = np.clip(np.array(state) + np.array([dw, dt, dz]),
+                neighbor = np.clip(np.array(state) + np.array([dw, dt, dz_val]),
                                    STATE_MIN, STATE_MAX)
                 neighbor = tuple(neighbor)
                 ndx, ndy, ndz = neighbor
@@ -284,7 +423,6 @@ def compute_q_value_score(state, similar_model):
         return 0.0
 
     try:
-        # 
         normalized_state = normalizer.normalize(state)
         state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -314,14 +452,13 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
     base_dir = r"D:\Experiment\CNN\DQNNEW\path_samples_grouped"
 
     for path_idx in similar_group:
-        path = target_paths[path_idx]
+        path = targetPaths[path_idx]
         path_id = path_idx + 1
         candidate_samples = []
         attempts = 0
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            #  dx/dy/dz 
             state = random_state()
             dx, dy, dz = state
 
@@ -371,14 +508,13 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
     base_dir = r"D:\Experiment\CNN\DQNNEW\path_samples_grouped"
 
     for path_idx in isolated_group:
-        path = target_paths[path_idx]
+        path = targetPaths[path_idx]
         path_id = path_idx + 1
         candidate_samples = []
         attempts = 0
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            #  dx/dy/dz 
             state = random_state()
             dx, dy, dz = state
 
@@ -419,7 +555,7 @@ class GroupExperienceReplay:
         self.capacity = capacity
         self.buffer = deque(maxlen=self.capacity)
         self.priorities = deque(maxlen=self.capacity)
-        self.sampled_indices = set()  # 
+        self.sampled_indices = set()
 
     def append(self, experience):
         self.buffer.append(experience)
@@ -441,17 +577,14 @@ class GroupExperienceReplay:
         return len(self.buffer)
 
     def get_high_reward_samples(self, target_path, num_samples=20):
-        """(, )"""
         if len(self.buffer) == 0:
             return []
 
         samples_with_recalculated_scores = []
         for idx, experience in enumerate(self.buffer):
-            # 
             if idx in self.sampled_indices:
                 continue
 
-            # 
             normalized_state_tensor = experience[0]
             normalized_state = normalized_state_tensor.cpu().numpy().flatten()
             state_tuple = tuple(normalizer.denormalize(normalized_state))
@@ -462,26 +595,19 @@ class GroupExperienceReplay:
             sim = jaccard_similarity(triggered, target_path)
             samples_with_recalculated_scores.append((idx, state_tuple, new_reward, sim, triggered))
 
-        # 
         samples_with_recalculated_scores.sort(key=lambda x: x[2], reverse=True)
-
-        # num_samples
         selected = samples_with_recalculated_scores[:num_samples]
 
-        # 
         for item in selected:
             self.sampled_indices.add(item[0])
 
-        # : (state_tuple, reward, sim, triggered)
         return [(s[1], s[2], s[3], s[4]) for s in selected]
 
     def reset_sampled_indices(self):
-        """"""
         self.sampled_indices.clear()
 
 
 def load_path_data(file_path):
-    """Path ()"""
     path_data = []
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -525,8 +651,7 @@ class DQNAgentWithPER:
         self.target_model.load_state_dict(self.model.state_dict())
 
     def decode_action(self, action_idx):
-        """()"""
-        delta_values = [1, -1]  # , 
+        delta_values = [1, -1]
         dim = action_idx // 2
         delta_idx = action_idx % 2
         delta = delta_values[delta_idx]
@@ -538,7 +663,6 @@ class DQNAgentWithPER:
             return (0, 0, delta)
 
     def act(self, normalized_state):
-        """()"""
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
         state = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
@@ -547,7 +671,6 @@ class DQNAgentWithPER:
         return torch.argmax(q_values, dim=1).item()
 
     def store_transition(self, normalized_state, action, reward, normalized_next_state, done):
-        """()"""
         state = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         next_state = torch.tensor(normalized_next_state, dtype=torch.float32).unsqueeze(0).to(device)
 
@@ -602,13 +725,8 @@ class DQNAgentWithPER:
 
 def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group_name="", pretrained_model=None,
                 sample_group_type=None):
-    """()- 3 minutes"""
-    # sample_group_type : similar / isolated.
-    # "Random group1/Random group2", .
-    if sample_group_type is None:
-        sample_group_type = 'similar' if group_name == '' else 'isolated'
     state_dim = 3
-    action_dim = 6  # 2*3 (2delta * 3)
+    action_dim = 6
 
     agent = DQNAgentWithPER(state_dim, action_dim, replay_buffer)
 
@@ -623,12 +741,11 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
     print(f"Start training{group_name}, Included Paths: {[idx + 1 for idx in group_paths]}")
     start_time = time.time()
 
-    # === 3 minutes ===
-    BATCH_SIZE = 50  # 
-    N_SAMPLES = 200  # 
-    N_STEPS = 3  # 
-    N_ROUNDS = 5  # 
-    N_BATCHES = 4  # 
+    BATCH_SIZE = 50
+    N_SAMPLES = 200
+    N_STEPS = 3
+    N_ROUNDS = 5
+    N_BATCHES = 4
 
     replay_count = 0
 
@@ -639,8 +756,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
             print(f"    : Path {path_idx + 1}, ")
             continue
 
-        path_data = load_path_data(file_path)  # 
-        target_path = target_paths[path_idx]
+        path_data = load_path_data(file_path)
+        target_path = targetPaths[path_idx]
 
         if path_idx not in path_rewards:
             path_rewards[path_idx] = 0
@@ -654,7 +771,6 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                 batch_start = batch_idx * BATCH_SIZE
                 batch_end = min(batch_start + BATCH_SIZE, N_SAMPLES)
 
-                # , 
                 if batch_start >= len(path_data):
                     print(f"       {batch_idx + 1}: , ")
                     break
@@ -665,27 +781,23 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                     if sample_idx >= len(path_data):
                         break
 
-                    state = path_data[sample_idx]  # 
+                    state = path_data[sample_idx]
                     prev_state = None
                     prev_triggered = None
 
                     for step in range(N_STEPS):
-                        # 
                         normalized_state = normalizer.normalize(state)
 
-                        # 
                         legal_actions = []
                         for a in range(agent.action_dim):
-                            dw, dt, dz = agent.decode_action(a)
-                            # 
-                            cand_next = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
+                            dw, dt, dz_val = agent.decode_action(a)
+                            cand_next = tuple(np.clip(np.array(state) + np.array([dw, dt, dz_val]),
                                                       STATE_MIN, STATE_MAX))
                             legal_actions.append(a)
 
                         if not legal_actions:
                             break
 
-                        # 
                         if random.random() < agent.epsilon:
                             action = random.choice(legal_actions)
                         else:
@@ -694,31 +806,25 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                                 q_values = agent.model(state_tensor)[0]
                             action = legal_actions[torch.argmax(q_values[legal_actions]).item()]
 
-                        # ()
-                        dw, dt, dz = agent.decode_action(action)
-                        next_state = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
+                        dw, dt, dz_val = agent.decode_action(action)
+                        next_state = tuple(np.clip(np.array(state) + np.array([dw, dt, dz_val]),
                                                    STATE_MIN, STATE_MAX))
 
-                        # 
                         normalized_next_state = normalizer.normalize(next_state)
 
-                        # ()
                         dx, dy, dz = next_state
                         triggered = execute_Tr(dx, dy, dz)
                         reward = compute_reward(next_state, target_path, triggered,
                                                 prev_triggered, prev_state)
                         done = (step == N_STEPS - 1)
 
-                        # ()
                         agent.store_transition(normalized_state, action, reward, normalized_next_state, done)
 
-                        # 
                         prev_state = state
                         prev_triggered = triggered
                         state = next_state
                         path_rewards[path_idx] += reward
 
-                # 
                 if len(agent.replay_buffer) >= batch_size:
                     agent.train(batch_size)
                     replay_count += 1
@@ -732,7 +838,6 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
 
     training_time = time.time() - start_time
     print(f"\n{group_name}completed!")
-    print(f"  : Path completed{N_ROUNDS}()")
     print(f"  : {replay_count}")
     print(f"  : {training_time:.2f} seconds")
     print(f"  : {len(replay_buffer)}")
@@ -741,7 +846,6 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
 
 
 def generate_and_train_grouped_paths_staged(path_documents, random_group1, random_group2, batch_size=32, run_id=1):
-    """()- random grouping + model reuse"""
     print(f"\n===  {run_id}/20 (3 minutes, random grouping+model reuse) ===")
     random_group1_paths = [idx + 1 for idx in random_group1]
     random_group2_paths = [idx + 1 for idx in random_group2]
@@ -752,7 +856,6 @@ def generate_and_train_grouped_paths_staged(path_documents, random_group1, rando
     total_start_time = time.time()
 
     print(f"\n[1] Random group1...")
-    # Sample generation;  similar, .
     generate_samples_for_similar_paths(random_group1, num_candidates=2000, top_k=200, run_id=run_id)
 
     print(f"\n[2] Random group1(, {5})...")
@@ -763,13 +866,11 @@ def generate_and_train_grouped_paths_staged(path_documents, random_group1, rando
     )
 
     print(f"\n[3] Random group1Random group2...")
-    # model reuse1: Random group2 QValueScore Random group1.
     generate_samples_for_isolated_paths(random_group2, group1_agent.model,
                                         num_candidates=2000, top_k=200, run_id=run_id)
 
     print(f"\n[4] Random group2(Random group1, {5})...")
     group2_replay_buffer = GroupExperienceReplay(capacity=20000)
-    # model reuse2: Random group2Random group1, .
     group2_agent, group2_path_rewards, group2_training_time = train_group(
         random_group2, path_documents, group2_replay_buffer, batch_size,
         group_name="Random group2(model-reuse group)", pretrained_model=group1_agent.model, sample_group_type="isolated"
@@ -787,8 +888,8 @@ def generate_and_train_grouped_paths_staged(path_documents, random_group1, rando
     return group1_agent, group2_agent, group1_replay_buffer, group2_replay_buffer, \
         total_cumulative_reward, total_path_rewards, total_training_time
 
+
 def create_consolidated_excel_report(all_runs_data, similar_group, isolated_group, output_dir):
-    """Excel()"""
     os.makedirs(output_dir, exist_ok=True)
 
     similar_group_paths = [idx + 1 for idx in similar_group]
@@ -822,7 +923,7 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     ws_paths.row_dimensions[1].height = 30
 
-    for path_id in range(1, len(target_paths) + 1):
+    for path_id in range(1, len(targetPaths) + 1):
         row = path_id + 1
 
         if path_id in similar_group_paths:
@@ -878,10 +979,8 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     for col in range(23, 27):
         ws_paths.column_dimensions[get_column_letter(col)].width = 13
 
-    # === 2:  ===
     ws_groups = wb.create_sheet("")
 
-    # ("screening")
     group_headers = ['Group Name', 'Included Paths'] + [f'Run {i}' for i in range(1, 21)] + ['Average Similarity', 'Standard deviation']
     for col, header in enumerate(group_headers, 1):
         cell = ws_groups.cell(row=1, column=col, value=header)
@@ -894,7 +993,6 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     row = 2
 
-    # Similar path group
     cell = ws_groups.cell(row=row, column=1, value="Random group1(pretrained group)")
     cell.font = Font(bold=True, size=11)
     cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -917,7 +1015,6 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.border = thin_border
 
-    # 
     cell = ws_groups.cell(row=row, column=23, value=round(np.mean(group_similarities), 4))
     cell.number_format = '0.0000'
     cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -934,7 +1031,6 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     row += 1
 
-    # Isolated path group
     if isolated_group_paths:
         cell = ws_groups.cell(row=row, column=1, value="Random group2(model-reuse group)")
         cell.font = Font(bold=True, size=11)
@@ -958,7 +1054,6 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
 
-        # 
         cell = ws_groups.cell(row=row, column=23, value=round(np.mean(isolated_similarities), 4))
         cell.number_format = '0.0000'
         cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -973,7 +1068,6 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
         cell.font = Font(bold=True, size=11)
         cell.border = thin_border
 
-    # 
     ws_groups.column_dimensions['A'].width = 16
     ws_groups.column_dimensions['B'].width = 22
     for col in range(3, 23):
@@ -981,10 +1075,8 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     ws_groups.column_dimensions[get_column_letter(23)].width = 14
     ws_groups.column_dimensions[get_column_letter(24)].width = 12
 
-    # === 3: Detailed Sample Data ===
     ws_samples = wb.create_sheet("Detailed Sample Data")
 
-    # ("")
     sample_headers = ['Run', 'Path ID', 'Sample ID', 'Dx', 'Dy', 'Dz', 'Similarity', 'Triggered Rule Set']
     for col, header in enumerate(sample_headers, 1):
         cell = ws_samples.cell(row=1, column=col, value=header)
@@ -996,12 +1088,10 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
     ws_samples.row_dimensions[1].height = 30
 
     sample_row = 2
-    #  runPath 
     for run_idx, run_data in enumerate(all_runs_data, 1):
-        for path_id in range(1, len(target_paths) + 1):
+        for path_id in range(1, len(targetPaths) + 1):
             samples = run_data['path_samples'].get(path_id, [])
 
-            # Path 
             if path_id in similar_group_paths:
                 path_color = similar_group_color
             elif path_id in isolated_group_paths:
@@ -1013,56 +1103,47 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
                 dx, dy, dz = state_tuple
                 triggered_str = ','.join(map(str, sorted(triggered)))
 
-                # Run
                 cell = ws_samples.cell(row=sample_row, column=1, value=f"Run {run_idx}")
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.fill = PatternFill(start_color=path_color, end_color=path_color, fill_type="solid")
                 cell.border = thin_border
 
-                # Path ID
                 cell = ws_samples.cell(row=sample_row, column=2, value=f"Path {path_id}")
                 cell.font = Font(bold=True)
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.fill = PatternFill(start_color=path_color, end_color=path_color, fill_type="solid")
                 cell.border = thin_border
 
-                # Sample ID
                 cell = ws_samples.cell(row=sample_row, column=3, value=sample_idx)
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.border = thin_border
 
-                # Dx, Dy, Dz
                 for col_offset, value in enumerate([dx, dy, dz]):
                     cell = ws_samples.cell(row=sample_row, column=4 + col_offset, value=value)
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                     cell.border = thin_border
 
-                # Similarity
                 cell = ws_samples.cell(row=sample_row, column=7, value=round(sim, 4))
                 cell.number_format = '0.0000'
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.border = thin_border
 
-                # Triggered Rule Set
                 cell = ws_samples.cell(row=sample_row, column=8, value=f"{{{triggered_str}}}")
                 cell.alignment = Alignment(horizontal="left", vertical="center")
                 cell.border = thin_border
 
                 sample_row += 1
 
-    # 
     sample_widths = [13, 13, 11, 10, 12, 8, 12, 45]
     for i, width in enumerate(sample_widths, 1):
         ws_samples.column_dimensions[get_column_letter(i)].width = width
 
-    # 
     output_path = os.path.join(output_dir, "20 run_random grouping_model reuse_3 minutes.xlsx")
     wb.save(output_path)
     print(f"\n Consolidated Excel report generated: {output_path}")
 
 
 def run_20_times_training():
-    """20(3 minutes)- """
     model_path_base = r"D:\Experiment\CNN\DQNNEW\saved_models_random_reuse_3min_version"
     path_documents = r"D:\Experiment\CNN\DQNNEW\path_samples_grouped"
     output_dir = r"D:\Experiment\CNN\ComparisonExperiment2\excel_reports_random_reuse_3min_version"
@@ -1070,10 +1151,8 @@ def run_20_times_training():
     os.makedirs(model_path_base, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    # random grouping: .
-    # Run SimilarityRun ; .
     similar_group, isolated_group, default_group1_size, default_group2_size = group_paths_randomly(
-        target_paths,
+        targetPaths,
         use_keyboard_input=USE_KEYBOARD_INPUT_GROUP_SIZE,
         seed=RANDOM_GROUP_SEED
     )
@@ -1091,9 +1170,7 @@ def run_20_times_training():
     print("   Per sample: 3")
     print("   Sample generation: 2000candidates -> 200final samples")
     print("   : save model parameters only(optimized version)")
-    print("   : ")
     print(f"   Default group size: Random group1={default_group1_size}Path , Random group2={default_group2_size}Path ")
-    print(f"   Keyboard-input group size: {'' if USE_KEYBOARD_INPUT_GROUP_SIZE else ''}")
     print(f"   Random seed: {RANDOM_GROUP_SEED if RANDOM_GROUP_SEED is not None else 'None,  run'}")
     print("=" * 60)
     print(f"\nAutomatic grouping results:")
@@ -1113,17 +1190,14 @@ def run_20_times_training():
             generate_and_train_grouped_paths_staged(path_documents, similar_group, isolated_group, batch_size=32,
                                                     run_id=run_id)
 
-        # === : save model parameters only,  ===
         group1_model_path = os.path.join(model_path_base, f"random_group1_model_run_{run_id}.pth")
         group2_model_path = os.path.join(model_path_base, f"random_group2_model_run_{run_id}.pth")
 
-        # , 
         torch.save(group1_agent.model.state_dict(), group1_model_path)
         torch.save(group2_agent.model.state_dict(), group2_model_path)
 
         print(f"[Run {run_id}] Model saved(optimized version - )")
 
-        # 
         group1_buffer.reset_sampled_indices()
         group2_buffer.reset_sampled_indices()
 
@@ -1137,8 +1211,8 @@ def run_20_times_training():
         }
 
         all_similarities = []
-        for path_idx in range(len(target_paths)):
-            target_path = target_paths[path_idx]
+        for path_idx in range(len(targetPaths)):
+            target_path = targetPaths[path_idx]
             path_id = path_idx + 1
 
             if path_id in similar_group_display:

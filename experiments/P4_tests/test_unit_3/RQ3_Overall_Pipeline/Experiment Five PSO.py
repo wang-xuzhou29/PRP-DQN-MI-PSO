@@ -9,112 +9,219 @@ from openpyxl.utils import get_column_letter
 
 
 def safe_divide(numerator, denominator, default=0.0):
-    """, """
+    """安全除法"""
     if denominator == 0:
         return default
     return numerator / denominator
 
+
+def execute_Tr(x, y, z):
+    """执行71分支逻辑，返回触发的分支集合"""
+    # 初始化分支覆盖数组
+    b = set()
+
+    # 异常类型1：质量参数乘积异常
+    if ((y * z) / (x + 1) > 80) != ((y * y * z) / (x + 1) > 80):
+        b.add(1)
+    if ((y * z) / (x + 1) > 80) != ((y * z * z) / (x + 1) > 80):
+        b.add(2)
+    if ((y * z) / (x + 1) > 80) != ((y * x * z) / (x + 1) > 80):
+        b.add(3)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 1) > 60):
+        b.add(4)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 10) > 80):
+        b.add(5)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 13) > 80):
+        b.add(6)
+    if ((y * z) / (x + 1) > 80) != ((y * z * 5) / (x + 1) > 80):
+        b.add(7)
+    if ((y * z) / (x + 1) > 80) != ((y * z * 2) / (x + 1) > 80):
+        b.add(8)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 1) > 40):
+        b.add(9)
+    if ((y * z) / (x + 1) > 80) != ((y * x) / (x + 1) > 80):
+        b.add(10)
+    if ((y * z) / (x + 1) > 80) != ((y * y) / (x + 1) > 80):
+        b.add(11)
+    if ((y * z) / (x + 1) > 80) != ((z * z) / (x + 1) > 80):
+        b.add(12)
+
+    # 异常类型2：质量差值异常
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.3 * y):
+        b.add(13)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.5 * y):
+        b.add(14)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.4 * z):
+        b.add(15)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.4 * x):
+        b.add(16)
+    if ((z - x) < 0.4 * y) != ((z * 1.1 - x) < 0.4 * y):
+        b.add(17)
+    if ((z - x) < 0.4 * y) != ((z * 2 - x) < 0.4 * y):
+        b.add(18)
+    if ((z - x) < 0.4 * y) != ((z * z - x) < 0.4 * y):
+        b.add(19)
+    if ((z - x) < 0.4 * y) != ((z * x - x) < 0.4 * y):
+        b.add(20)
+    if ((z - x) < 0.4 * y) != ((z * y - x) < 0.4 * y):
+        b.add(21)
+    if ((z - x) < 0.4 * y) != ((z * 1.5 - x) < 0.4 * y):
+        b.add(22)
+
+    # 异常类型3：质量立方关系
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2):
+        b.add(23)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2):
+        b.add(24)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1):
+        b.add(25)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3):
+        b.add(26)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 4):
+        b.add(27)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 4) < z ** 2):
+        b.add(28)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2):
+        b.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2):
+        b.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2):
+        b.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            ((x ** 3) * 2 + y ** 3) < z ** 2):
+        b.add(32)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + (y ** 3) * 2) < z ** 2):
+        b.add(33)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2):
+        b.add(34)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (z ** 2) * 2):
+        b.add(35)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (x ** 2) * 2):
+        b.add(36)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (y ** 2) * 2):
+        b.add(37)
+
+    # 异常类型6：质量同步性检查
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 2 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(38)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 3 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(39)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 2) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(40)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 3) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(41)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 5) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(42)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 5 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(43)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 2 - z % 1) < 0.1):
+        b.add(44)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 3 - z % 1) < 0.1):
+        b.add(45)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 5 - z % 1) < 0.1):
+        b.add(46)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 2) < 0.1):
+        b.add(47)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 3) < 0.1):
+        b.add(48)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 5) < 0.1):
+        b.add(49)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 4 - z % 1) < 0.1):
+        b.add(50)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 4) < 0.1):
+        b.add(51)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 4 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(52)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 6) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(53)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 6 - y % 1) < 0.1 and abs((y * 2) % 1 - z % 1) < 0.1):
+        b.add(54)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 6 - (z * 2) % 1) < 0.1):
+        b.add(55)
+
+    # 其他复杂检查逻辑
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + z) / 2 < 85):
+        b.add(56)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + z) / 4 < 85):
+        b.add(57)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x * 2 + y + z) / 3 < 85):
+        b.add(58)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y * 2 + z) / 3 < 85):
+        b.add(59)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y - z) / 3 < 85):
+        b.add(60)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y * z * 2) / 3 < 85):
+        b.add(61)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + x) / 3 < 85):
+        b.add(62)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + y) / 3 < 85):
+        b.add(63)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 600000 and (x + y + z) / 3 < 85):
+        b.add(64)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z * 2 > 500000 and (x + y + z) / 3 < 85):
+        b.add(65)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            y * y * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(66)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            z * y * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(67)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * x * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(68)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * x > 500000 and (x + y + z) / 3 < 85):
+        b.add(69)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * z * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(70)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * y > 500000 and (x + y + z) / 3 < 85):
+        b.add(71)
+
+    return b
+
+
 def execute_validation_rules(dx: int, dy: int, dz: int) -> Set[int]:
-    """Path """
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 50.0  # 50.0
-    INITIAL_BATTERY = 500.0  # 
-    BATTERY_PER_STEP = 1.0  # 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 50.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 45.0, 45.0, 20.0  # 
-
-    MIN_PLANNING_X = 5.0
-    MIN_PLANNING_Y = 7.5
-    MIN_PLANNING_Z = 4.0
-    CRITICAL_X_VELOCITY = 10.0
-    CRITICAL_Y_VELOCITY = 12.5
-    CRITICAL_Z_VELOCITY = 7.5
-
-    triggered = set()
-
-    # , 1-50
-    current_x = random.uniform(1.0, MAX_GRID_SIZE)
-    current_y = random.uniform(1.0, MAX_GRID_SIZE)
-    current_z = random.uniform(1.0, MAX_GRID_SIZE)
-
-    # ''''
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
-        triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
-        triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
-        triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
-        triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
-        triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
-        triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 5:
-        triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 15:
-        triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 20:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 25:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dx < 10:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dz < 10:
-        triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
-        triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
-        triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
-        triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
-        triggered.add(29)
-
-    return triggered
+    """执行验证规则，返回触发的分支集合（调用105分支版本）"""
+    return execute_Tr(dx, dy, dz)
 
 
 def calculate_fitness(particle: List[float], target_path: Set[int]) -> float:
-    """"""
-    generated_path = execute_validation_rules(particle[0], particle[1], particle[2])
+    """计算适应度"""
+    generated_path = execute_validation_rules(int(particle[0]), int(particle[1]), int(particle[2]))
 
     if target_path.issubset(generated_path):
         return 1.0
@@ -125,20 +232,20 @@ def calculate_fitness(particle: List[float], target_path: Set[int]) -> float:
 
 
 class BasicPSO:
-    """"""
+    """基本PSO优化器"""
 
     def __init__(self, n_particles=20, max_iterations=10000, bounds=None):
         self.n_particles = n_particles
         self.max_iterations = max_iterations
-        # : x:1-50, y:1-50, z:1-50
-        self.bounds = bounds if bounds else [(1, 50), (1, 50), (1, 50)]
+        # 范围: x(1,200), y(1,200), z(2,150)
+        self.bounds = bounds if bounds else [(1, 200), (1, 200), (2, 150)]
         self.dim = len(self.bounds)
         self.w = 0.7
         self.c1 = 1.5
         self.c2 = 1.5
 
     def initialize_particles(self):
-        """"""
+        """初始化粒子"""
         particles = []
         velocities = []
 
@@ -153,7 +260,7 @@ class BasicPSO:
         return particles, velocities
 
     def update_velocity_and_position(self, particle, velocity, pbest, gbest):
-        """"""
+        """更新速度和位置"""
         new_velocity = []
         new_particle = []
 
@@ -177,7 +284,7 @@ class BasicPSO:
         return new_particle, new_velocity
 
     def optimize(self, target_path: Set[int]):
-        """target pathsPSO"""
+        """对目标路径进行PSO优化"""
         start_time = time.time()
 
         particles, velocities = self.initialize_particles()
@@ -200,7 +307,9 @@ class BasicPSO:
                         'success': True,
                         'best_fitness': 1.0,
                         'best_particle': particles[i].copy(),
-                        'best_path': execute_validation_rules(particles[i][0], particles[i][1], particles[i][2]),
+                        'best_path': execute_validation_rules(
+                            int(particles[i][0]), int(particles[i][1]), int(particles[i][2])
+                        ),
                         'iterations': iteration,
                         'time': time.time() - start_time
                     }
@@ -224,7 +333,9 @@ class BasicPSO:
             'success': gbest_fitness == 1.0,
             'best_fitness': gbest_fitness,
             'best_particle': gbest_particle,
-            'best_path': execute_validation_rules(gbest_particle[0], gbest_particle[1], gbest_particle[2]),
+            'best_path': execute_validation_rules(
+                int(gbest_particle[0]), int(gbest_particle[1]), int(gbest_particle[2])
+            ),
             'iterations': self.max_iterations,
             'time': time.time() - start_time
         }
@@ -233,13 +344,14 @@ class BasicPSO:
 
 
 def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iterations=10000):
-    """Path PSO"""
+    """对所有路径运行PSO"""
 
     print(f"\n{'=' * 70}")
-    print(f"baseline PSO - Path ")
+    print(f"Baseline PSO - 路径优化")
     print(f"{'=' * 70}")
-    print(f": {n_particles}, {max_iterations}iterations")
-    print(f"Path : {len(target_paths)}")
+    print(f"粒子数: {n_particles}, 最大迭代次数: {max_iterations}")
+    print(f"路径数量: {len(target_paths)}")
+    print(f"范围: x(2,100), y(1,105), z(1,110)")
     print(f"{'=' * 70}\n")
 
     results = {}
@@ -248,13 +360,13 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
     pso = BasicPSO(n_particles=n_particles, max_iterations=max_iterations)
 
     for i, target_path in enumerate(target_paths):
-        print(f"Path {i + 1}: ", end='')
+        print(f"路径 {i + 1}: ", end='')
 
         result = pso.optimize(target_path)
         results[i] = result
 
-        status = "" if result['success'] else f"({result['best_fitness']:.3f})"
-        print(f"{status} | {result['time']:.2f}s | iterations{result['iterations']}")
+        status = "完美求解" if result['success'] else f"(适应度: {result['best_fitness']:.3f})"
+        print(f"{status} | 耗时: {result['time']:.2f}s | 迭代次数: {result['iterations']}")
 
     total_time = time.time() - total_start
     results['total_time'] = total_time
@@ -263,7 +375,7 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
     success_rate = (success_count / len(target_paths)) * 100
 
     print(f"\n{'=' * 70}")
-    print(f": {success_count}/{len(target_paths)} ({success_rate:.1f}%) | Total elapsed time{total_time:.2f}s")
+    print(f"求解成功: {success_count}/{len(target_paths)} ({success_rate:.1f}%) | 总耗时: {total_time:.2f}s")
     print(f"{'=' * 70}\n")
 
     return results
@@ -271,37 +383,38 @@ def run_pso_for_paths(target_paths: List[Set[int]], n_particles=20, max_iteratio
 
 def run_multiple_experiments(target_paths: List[Set[int]], num_runs=20,
                              n_particles=20, max_iterations=3000):
-    """"""
+    """多次运行实验"""
 
     print(f"\n{'=' * 70}")
-    print(f"baseline PSO - {num_runs}")
+    print(f"Baseline PSO - {num_runs}次运行")
     print(f"{'=' * 70}")
-    print(f": {n_particles}, {max_iterations}iterations, {len(target_paths)}Path ")
+    print(f"粒子数: {n_particles}, 最大迭代次数: {max_iterations}, 路径数: {len(target_paths)}")
+    print(f"范围: x(2,100), y(1,105), z(1,110)")
     print(f"{'=' * 70}\n")
 
     all_results = []
     experiment_start = time.time()
 
     for run_idx in range(1, num_runs + 1):
-        print(f"---  {run_idx}/{num_runs} ---")
+        print(f"--- 第 {run_idx}/{num_runs} 次运行 ---")
 
         results = run_pso_for_paths(target_paths, n_particles, max_iterations)
         all_results.append(results)
 
         success_count = sum(1 for i in range(len(target_paths)) if results[i]['success'])
-        print(f": {success_count}/{len(target_paths)}\n")
+        print(f"求解成功: {success_count}/{len(target_paths)}\n")
 
     total_time = time.time() - experiment_start
 
     print(f"{'=' * 70}")
-    print(f"{num_runs} runcompleted | Total elapsed time{total_time:.2f}s")
+    print(f"{num_runs}次运行完成 | 总耗时: {total_time:.2f}s")
     print(f"{'=' * 70}\n")
 
     return all_results
 
 
 def export_to_excel(all_results, target_paths, filename=None):
-    """Excel"""
+    """导出Excel"""
 
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -323,12 +436,12 @@ def export_to_excel(all_results, target_paths, filename=None):
     center_align = Alignment(horizontal='center', vertical='center')
     left_align = Alignment(horizontal='left', vertical='center')
 
-    # 1: 
+    # Sheet 1: 运行汇总
     ws1 = wb.active
-    ws1.title = ""
+    ws1.title = "运行汇总"
     ws1.sheet_view.showGridLines = False
 
-    headers = ["Run", "", "", "", "Average Iterations", "(s)"]
+    headers = ["运行", "成功率", "求解/总数", "平均适应度", "平均迭代次数", "耗时(s)"]
     col_widths = [12, 12, 12, 14, 14, 14]
 
     for col, (header, width) in enumerate(zip(headers, col_widths), 1):
@@ -347,7 +460,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         total_time = results.get('total_time', 0)
 
         row_data = [
-            f" {run_idx}",
+            f"运行 {run_idx}",
             f"{success_rate:.1f}%",
             f"{success_count}/{len(target_paths)}",
             f"{avg_fitness:.4f}",
@@ -372,11 +485,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws1.freeze_panes = 'A2'
     ws1.auto_filter.ref = f"A1:F{len(all_results) + 1}"
 
-    # 2: Path 
-    ws2 = wb.create_sheet(title="Path ")
+    # Sheet 2: 路径统计
+    ws2 = wb.create_sheet(title="路径统计")
     ws2.sheet_view.showGridLines = False
 
-    headers2 = ["Path ID", "", "", "", "Average Iterations", "Minimum Iterations", "Maximum Iterations"]
+    headers2 = ["路径ID", "求解/总数", "成功率", "平均适应度", "平均迭代次数", "最小迭代次数", "最大迭代次数"]
     col_widths2 = [12, 12, 12, 14, 14, 14, 14]
 
     for col, (header, width) in enumerate(zip(headers2, col_widths2), 1):
@@ -398,7 +511,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         max_iterations = np.max(iterations_list)
 
         row_data = [
-            f"Path  {path_idx + 1}",
+            f"路径 {path_idx + 1}",
             f"{success_count}/{len(all_results)}",
             f"{success_rate:.1f}%",
             f"{avg_fitness:.4f}",
@@ -424,11 +537,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws2.freeze_panes = 'A2'
     ws2.auto_filter.ref = f"A1:G{len(target_paths) + 1}"
 
-    # 3: 
-    ws3 = wb.create_sheet(title="")
+    # Sheet 3: 详细结果
+    ws3 = wb.create_sheet(title="详细结果")
     ws3.sheet_view.showGridLines = False
 
-    headers3 = ["Path ", "", "(x,y,z)", "", "Iterations", "Path "]
+    headers3 = ["路径ID", "运行", "位置(x,y,z)", "适应度", "迭代次数", "触发路径"]
     col_widths3 = [10, 10, 22, 12, 12, 50]
 
     for col, (header, width) in enumerate(zip(headers3, col_widths3), 1):
@@ -452,7 +565,7 @@ def export_to_excel(all_results, target_paths, filename=None):
 
             row_data = [
                 f"Path {path_idx + 1}",
-                f"{run_idx}",
+                f"Run {run_idx}",
                 particle_str,
                 f"{best_fitness:.4f}",
                 iterations,
@@ -480,11 +593,11 @@ def export_to_excel(all_results, target_paths, filename=None):
     ws3.freeze_panes = 'A2'
     ws3.auto_filter.ref = f"A1:F{row_idx - 1}"
 
-    # 4: target paths
-    ws4 = wb.create_sheet(title="target paths")
+    # Sheet 4: 目标路径
+    ws4 = wb.create_sheet(title="目标路径")
     ws4.sheet_view.showGridLines = False
 
-    headers4 = ["Path ID", "target paths", ""]
+    headers4 = ["路径ID", "目标路径", "分支数"]
     col_widths4 = [12, 60, 12]
 
     for col, (header, width) in enumerate(zip(headers4, col_widths4), 1):
@@ -499,7 +612,7 @@ def export_to_excel(all_results, target_paths, filename=None):
         path_str = str(sorted(list(target_path)))
 
         row_data = [
-            f"Path  {path_idx + 1}",
+            f"路径 {path_idx + 1}",
             path_str,
             len(target_path)
         ]
@@ -521,29 +634,51 @@ def export_to_excel(all_results, target_paths, filename=None):
     wb.save(filename)
 
     print(f"\n{'=' * 70}")
-    print(f" : {filename}")
+    print(f"Excel已保存: {filename}")
     print(f"{'=' * 70}")
-    print(f":")
-    print(f"  1.        - {len(all_results)} run")
-    print(f"  2. Path        - Path ")
-    print(f"  3.    -  runPath ")
-    print(f"  4. target paths       - target paths")
+    print(f"包含工作表:")
+    print(f"  1. 运行汇总      - {len(all_results)}次运行汇总")
+    print(f"  2. 路径统计      - 每条路径的统计")
+    print(f"  3. 详细结果      - 每次运行每条路径的详细结果")
+    print(f"  4. 目标路径      - 目标路径定义")
     print(f"{'=' * 70}\n")
 
     return filename
 
 
 def main():
-    """"""
-
+    # 目标路径定义（105分支版本）
     target_paths = [
-        {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-        {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-        {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {1, 2, 3, 4, 7, 8, 9, 10, 11, 19, 20, 21, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54, 55,
+     56, 58, 59, 61, 62, 63, 64, 67, 68, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 18, 19, 20, 21, 22, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55, 56, 58, 59, 61, 64, 66, 71},
+    {1, 2, 3, 4, 7, 8, 9, 12, 13, 17, 18, 19, 20, 21, 22, 26, 27, 40, 41, 42, 44, 45, 46, 48, 49, 50, 51, 52, 53, 55,
+     56, 58, 59, 61, 64, 66, 69, 71},
+    {5, 6, 10, 11, 13, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 42, 43, 44, 46, 49, 50, 52, 53, 54, 55, 56, 58, 59,
+     61, 64, 66, 69, 71},
+    {1, 2, 3, 7, 12, 17, 18, 19, 20, 21, 22, 26, 27, 30, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54,
+     55, 65, 68, 70},
+    {1, 2, 3, 7, 8, 9, 12, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54,
+     55, 57, 60, 63},
+    {1, 2, 3, 4, 7, 8, 9, 12, 23, 24, 26, 27, 30, 31, 34, 35, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+     52, 53, 54, 55},
+    {16, 18, 19, 20, 21, 22, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 58, 59, 61, 63, 64,
+     68, 69, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 14, 15, 16, 26, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 57,
+     60, 62, 63},
+    {5, 6, 10, 13, 15, 16, 18, 19, 20, 21, 22, 27, 29, 31, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55},
+    {1, 2, 3, 7, 8, 9, 12, 25, 28, 29, 32, 33, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55,
+     70}
+
     ]
 
     print("=" * 70)
-    print("baseline PSO")
+    print("Baseline PSO - 105分支版本")
+    print("=" * 70)
+    print(f"范围: x(2,100), y(1,105), z(1,110)")
+    print(f"路径数: {len(target_paths)}")
     print("=" * 70)
 
     all_results = run_multiple_experiments(
@@ -555,7 +690,7 @@ def main():
 
     export_to_excel(all_results, target_paths)
 
-    print("Program completed")
+    print("程序完成")
 
 
 if __name__ == "__main__":

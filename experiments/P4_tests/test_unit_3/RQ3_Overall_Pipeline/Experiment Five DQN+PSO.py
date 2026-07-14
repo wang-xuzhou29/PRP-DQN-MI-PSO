@@ -25,13 +25,12 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # === three-dimensional range settings ===
 # Keep the current DQN state range used by the second script. To use a 0-500 range, modify this section only.
-LIGHT_MIN = 1
-LIGHT_MAX = 50
+LIGHT_MIN = 2
+LIGHT_MAX = 200
 MOISTURE_MIN = 1
-MOISTURE_MAX = 50
-TEMP_MIN = 1
-TEMP_MAX = 50
-
+MOISTURE_MAX = 200
+TEMP_MIN = 2
+TEMP_MAX = 150
 BOUNDS = {
     "light": (LIGHT_MIN, LIGHT_MAX),
     "moisture": (MOISTURE_MIN, MOISTURE_MAX),
@@ -89,114 +88,232 @@ def is_state_valid(state):
     )
 
 
-def execute_Tr(state_or_dx, dy=None, dz=None) -> Set[int]:
+def execute_Tr(x, y, z):
     """
-    Execute the TR path-trigger function.
-    Accepts execute_Tr(state) or execute_Tr(dx, dy, dz).
+    执行验证规则，返回触发的规则集合
     """
-    if dy is None and dz is None:
-        state = np.asarray(state_or_dx, dtype=float)
-        dx, dy, dz = float(state[0]), float(state[1]), float(state[2])
-    else:
-        dx, dy, dz = float(state_or_dx), float(dy), float(dz)
+    b = set()
 
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0
-    INITIAL_BATTERY = 1000.0
-    BATTERY_PER_STEP = 1.0
-    SAFE_DISTANCE = 5.0
-    CRITICAL_BATTERY_LEVEL = 100.0
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0
+    # 异常类型1：质量参数乘积异常
+    if ((y * z) / (x + 1) > 80) != ((y * y * z) / (x + 1) > 80):
+        b.add(1)
+    if ((y * z) / (x + 1) > 80) != ((y * z * z) / (x + 1) > 80):
+        b.add(2)
+    if ((y * z) / (x + 1) > 80) != ((y * x * z) / (x + 1) > 80):
+        b.add(3)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 1) > 60):
+        b.add(4)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 10) > 80):
+        b.add(5)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 13) > 80):
+        b.add(6)
+    if ((y * z) / (x + 1) > 80) != ((y * z * 5) / (x + 1) > 80):
+        b.add(7)
+    if ((y * z) / (x + 1) > 80) != ((y * z * 2) / (x + 1) > 80):
+        b.add(8)
+    if ((y * z) / (x + 1) > 80) != ((y * z) / (x + 1) > 40):
+        b.add(9)
+    if ((y * z) / (x + 1) > 80) != ((y * x) / (x + 1) > 80):
+        b.add(10)
+    if ((y * z) / (x + 1) > 80) != ((y * y) / (x + 1) > 80):
+        b.add(11)
+    if ((y * z) / (x + 1) > 80) != ((z * z) / (x + 1) > 80):
+        b.add(12)
 
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
+    # 异常类型2：质量差值异常
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.3 * y):
+        b.add(13)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.5 * y):
+        b.add(14)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.4 * z):
+        b.add(15)
+    if ((z - x) < 0.4 * y) != ((z - x) < 0.4 * x):
+        b.add(16)
+    if ((z - x) < 0.4 * y) != ((z * 1.1 - x) < 0.4 * y):
+        b.add(17)
+    if ((z - x) < 0.4 * y) != ((z * 2 - x) < 0.4 * y):
+        b.add(18)
+    if ((z - x) < 0.4 * y) != ((z * z - x) < 0.4 * y):
+        b.add(19)
+    if ((z - x) < 0.4 * y) != ((z * x - x) < 0.4 * y):
+        b.add(20)
+    if ((z - x) < 0.4 * y) != ((z * y - x) < 0.4 * y):
+        b.add(21)
+    if ((z - x) < 0.4 * y) != ((z * 1.5 - x) < 0.4 * y):
+        b.add(22)
 
+    # 异常类型3：质量立方关系
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2):
+        b.add(23)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2):
+        b.add(24)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1):
+        b.add(25)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3):
+        b.add(26)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 4):
+        b.add(27)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 4) < z ** 2):
+        b.add(28)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + x ** 3) < z ** 2):
+        b.add(29)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2):
+        b.add(30)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2):
+        b.add(31)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            ((x ** 3) * 2 + y ** 3) < z ** 2):
+        b.add(32)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + (y ** 3) * 2) < z ** 2):
+        b.add(33)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((y ** 3 + y ** 3) < z ** 2):
+        b.add(34)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (z ** 2) * 2):
+        b.add(35)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (x ** 2) * 2):
+        b.add(36)
+    if ((x ** 3 + y ** 3) < z ** 2) != (
+            (x ** 3 + y ** 3) < (y ** 2) * 2):
+        b.add(37)
+
+    # 异常类型6：质量同步性检查
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 2 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(38)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 3 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(39)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 2) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(40)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 3) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(41)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 5) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(42)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 5 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(43)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 2 - z % 1) < 0.1):
+        b.add(44)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 3 - z % 1) < 0.1):
+        b.add(45)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 5 - z % 1) < 0.1):
+        b.add(46)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 2) < 0.1):
+        b.add(47)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 3) < 0.1):
+        b.add(48)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 5) < 0.1):
+        b.add(49)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 4 - z % 1) < 0.1):
+        b.add(50)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 4) < 0.1):
+        b.add(51)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 4 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(52)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 6) < 0.1 and abs(y % 1 - z % 1) < 0.1):
+        b.add(53)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 6 - y % 1) < 0.1 and abs((y * 2) % 1 - z % 1) < 0.1):
+        b.add(54)
+    if (abs(x % 1 - y % 1) < 0.1 and abs(y % 1 - z % 1) < 0.1) != (
+            abs(x % 1 - y % 1) < 0.1 and abs(y % 6 - (z * 2) % 1) < 0.1):
+        b.add(55)
+
+    # 其他复杂检查逻辑
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + z) / 2 < 85):
+        b.add(56)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + z) / 4 < 85):
+        b.add(57)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x * 2 + y + z) / 3 < 85):
+        b.add(58)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y * 2 + z) / 3 < 85):
+        b.add(59)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y - z) / 3 < 85):
+        b.add(60)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y * z * 2) / 3 < 85):
+        b.add(61)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + x) / 3 < 85):
+        b.add(62)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 500000 and (x + y + y) / 3 < 85):
+        b.add(63)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z > 600000 and (x + y + z) / 3 < 85):
+        b.add(64)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * z * 2 > 500000 and (x + y + z) / 3 < 85):
+        b.add(65)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            y * y * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(66)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            z * y * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(67)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * x * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(68)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * x > 500000 and (x + y + z) / 3 < 85):
+        b.add(69)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * z * z > 500000 and (x + y + z) / 3 < 85):
+        b.add(70)
+    if (x * y * z > 500000 and (x + y + z) / 3 < 85) != (
+            x * y * y > 500000 and (x + y + z) / 3 < 85):
+        b.add(71)
     triggered = set()
-
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-    simulated_y = current_y
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
-        triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
-        triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
-        triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
-        triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
-        triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
-        triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
-
-    # --- branch 10-15 ---
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
-        triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
-        triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
-        triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
-
-    # --- branch 22-29 ---
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
-        triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
-        triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
-        triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
-        triggered.add(29)
-
+    for i, val in enumerate(b):
+        if val > 0:
+            triggered.add(i + 1)  # 分支编号从1开始
     return triggered
 
 
 target_paths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29},
+    {1, 2, 3, 4, 7, 8, 9, 10, 11, 19, 20, 21, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54, 55,
+     56, 58, 59, 61, 62, 63, 64, 67, 68, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 18, 19, 20, 21, 22, 27, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55, 56, 58, 59, 61, 64, 66, 71},
+    {1, 2, 3, 4, 7, 8, 9, 12, 13, 17, 18, 19, 20, 21, 22, 26, 27, 40, 41, 42, 44, 45, 46, 48, 49, 50, 51, 52, 53, 55,
+     56, 58, 59, 61, 64, 66, 69, 71},
+    {5, 6, 10, 11, 13, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 42, 43, 44, 46, 49, 50, 52, 53, 54, 55, 56, 58, 59,
+     61, 64, 66, 69, 71},
+    {1, 2, 3, 7, 12, 17, 18, 19, 20, 21, 22, 26, 27, 30, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52, 53, 54,
+     55, 65, 68, 70},
+    {1, 2, 3, 7, 8, 9, 12, 17, 18, 19, 20, 21, 22, 26, 27, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54,
+     55, 57, 60, 63},
+    {1, 2, 3, 4, 7, 8, 9, 12, 23, 24, 26, 27, 30, 31, 34, 35, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+     52, 53, 54, 55},
+    {16, 18, 19, 20, 21, 22, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 58, 59, 61, 63, 64,
+     68, 69, 70},
+    {1, 2, 3, 4, 7, 8, 9, 12, 14, 15, 16, 26, 27, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 57,
+     60, 62, 63},
+    {5, 6, 10, 13, 15, 16, 18, 19, 20, 21, 22, 27, 29, 31, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+     54, 55},
+    {1, 2, 3, 7, 8, 9, 12, 25, 28, 29, 32, 33, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55,
+     70}
 ]
 
 
@@ -312,7 +429,7 @@ class SimpleDQNAgent:
         samples_with_scores = []
         for state_norm, _, _, _, _ in self.replay_buffer.buffer:
             state_original = denormalize_state(state_norm)
-            triggered = execute_Tr(state_original)
+            triggered = execute_Tr(state_original[0], state_original[1], state_original[2])
             reward = compute_reward(state_original, target_path, triggered)
             sim = jaccard_similarity(triggered, target_path)
             samples_with_scores.append((state_original, reward, sim, triggered))
@@ -361,7 +478,7 @@ def train_dqn_for_path(path_idx, target_path, num_samples=200):
                 next_state_original = (state_original[0] + dx, state_original[1] + dy, state_original[2] + dz)
                 next_state_norm = normalize_state(next_state_original)
 
-                triggered = execute_Tr(next_state_original)
+                triggered = execute_Tr(next_state_original[0], next_state_original[1], next_state_original[2])
                 reward = compute_reward(next_state_original, target_path, triggered)
                 done = (step == STEPS_PER_SAMPLE - 1)
 
@@ -441,7 +558,7 @@ class BasicPSO:
 
     def fitness_function(self, position):
         try:
-            triggered = execute_Tr(position)
+            triggered = execute_Tr(position[0], position[1], position[2])
             return jaccard_similarity(triggered, self.target_path)
         except Exception:
             return 0.0

@@ -131,7 +131,7 @@ class BasicPSO:
         self.n_particles = n_particles
         self.max_iterations = max_iterations
         # : x:1-50, y:1-50, z:1-50
-        self.bounds = bounds if bounds else [(1, 50), (1, 50), (1, 50)]
+        self.bounds = bounds if bounds else [(1, 100), (1, 100), (1, 100)]
         self.dim = len(self.bounds)
         self.w = 0.7
         self.c1 = 1.5
@@ -534,7 +534,7 @@ def export_to_excel(all_results, target_paths, filename=None):
 
 
 def main():
-    """"""
+
 
     target_paths = [
         {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},

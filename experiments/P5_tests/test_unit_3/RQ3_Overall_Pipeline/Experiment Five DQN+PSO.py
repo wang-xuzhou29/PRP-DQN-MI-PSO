@@ -26,11 +26,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # === three-dimensional range settings ===
 # Keep the current DQN state range used by the second script. To use a 0-500 range, modify this section only.
 LIGHT_MIN = 1
-LIGHT_MAX = 100
+LIGHT_MAX = 6
 MOISTURE_MIN = 1
-MOISTURE_MAX = 100
+MOISTURE_MAX = 6
 TEMP_MIN = 1
-TEMP_MAX = 100
+TEMP_MAX = 60
 BOUNDS = {
     "light": (LIGHT_MIN, LIGHT_MAX),
     "moisture": (MOISTURE_MIN, MOISTURE_MAX),
@@ -88,114 +88,310 @@ def is_state_valid(state):
     )
 
 
-def execute_Tr(state_or_dx, dy=None, dz=None) -> Set[int]:
-    """
-    Execute the TR path-trigger function.
-    Accepts execute_Tr(state) or execute_Tr(dx, dy, dz).
-    """
-    if dy is None and dz is None:
-        state = np.asarray(state_or_dx, dtype=float)
-        dx, dy, dz = float(state[0]), float(state[1]), float(state[2])
-    else:
-        dx, dy, dz = float(state_or_dx), float(dy), float(dz)
-
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0
-    INITIAL_BATTERY = 1000.0
-    BATTERY_PER_STEP = 1.0
-    SAFE_DISTANCE = 5.0
-    CRITICAL_BATTERY_LEVEL = 100.0
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(weather, time_period, z):
+    """执行验证规则并返回触发的分支"""
     triggered = set()
 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-    simulated_y = current_y
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
+    # Fixed all if statements - using triggered.add() instead of b[0]=1
+    if (weather == 1) != (weather == 2):
         triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
+    if (weather == 2) != (weather == 3):
         triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
+    if (weather == 3) != (weather == 4):
         triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
+    if (weather == 4) != (weather == 5):
         triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
+    if (weather == 5) != (weather == 6):
         triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
+    if (weather == 6) != (weather == 1):
         triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
+
+    # 时间段相关规则 (7-12)
+    if (time_period == 1) != (time_period == 2):
         triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
+    if (time_period == 2) != (time_period == 3):
         triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
+    if (time_period == 3) != (time_period == 4):
         triggered.add(9)
-
-    # --- branch 10-15 ---
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
+    if (time_period == 4) != (time_period == 5):
         triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
+    if (time_period == 5) != (time_period == 6):
         triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
+    if (time_period == 6) != (time_period == 1):
         triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
+
+    # 行人数量相关规则 (13-22)
+    if (z < 20) != (z < 30):
         triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
+    if (z < 30) != (z < 40):
         triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
+    if (z < 40) != (z < 50):
         triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
+    if (z > 20) != (z > 30):
         triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
+    if (z > 30) != (z > 40):
         triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
+    if (z > 40) != (z > 50):
         triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
+    if (z > 50) != (z > 60):
         triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
+    if (10 < z < 50) != (15 < z < 50):
         triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
+    if (15 < z < 45) != (20 < z < 45):
         triggered.add(21)
-
-    # --- branch 22-29 ---
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (20 < z < 40) != (25 < z < 40):
         triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
+
+    # 天气组合规则 (23-31)
+    if (weather in [1, 2]) != (weather in [1, 3]):
         triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
+    if (weather in [2, 3]) != (weather in [2, 4]):
         triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
+    if (weather in [3, 4]) != (weather in [3, 5]):
         triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
+    if (weather in [4, 5]) != (weather in [4, 6]):
         triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
+    if (weather in [5, 6]) != (weather in [5, 1]):
         triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
+    if (weather in [1, 3, 5]) != (weather in [2, 3, 5]):
         triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
+    if (weather in [2, 4, 6]) != (weather in [2, 4, 1]):
         triggered.add(29)
+    if (weather in [1, 2, 3]) != (weather in [1, 2, 4]):
+        triggered.add(30)
+    if (weather in [4, 5, 6]) != (weather in [3, 5, 6]):
+        triggered.add(31)
+
+    # 时间段组合规则 (32-38)
+    if (time_period in [1, 2]) != (time_period in [1, 3]):
+        triggered.add(32)
+    if (time_period in [3, 4]) != (time_period in [3, 5]):
+        triggered.add(33)
+    if (time_period in [5, 6]) != (time_period in [5, 1]):
+        triggered.add(34)
+    if (time_period in [1, 3, 5]) != (time_period in [2, 3, 5]):
+        triggered.add(35)
+    if (time_period in [2, 4, 6]) != (time_period in [2, 4, 1]):
+        triggered.add(36)
+    if (time_period in [1, 2, 3]) != (time_period in [1, 2, 4]):
+        triggered.add(37)
+    if (time_period in [4, 5, 6]) != (time_period in [4, 5, 1]):
+        triggered.add(38)
+
+    # 天气和时间段交互规则 (39-50)
+    if (weather == 1 and time_period in [1, 2]) != (weather == 2 and time_period in [1, 2]):
+        triggered.add(39)
+    if (weather == 1 and time_period in [3, 4]) != (weather == 1 and time_period in [3, 5]):
+        triggered.add(40)
+    if (weather == 1 and time_period in [5, 6]) != (weather == 1 and time_period in [5, 1]):
+        triggered.add(41)
+    if (weather == 2 and time_period in [1, 2]) != (weather == 3 and time_period in [1, 2]):
+        triggered.add(42)
+    if (weather == 2 and time_period in [3, 4]) != (weather == 2 and time_period in [3, 5]):
+        triggered.add(43)
+    if (weather == 2 and time_period in [5, 6]) != (weather == 2 and time_period in [5, 1]):
+        triggered.add(44)
+    if (weather == 3 and time_period in [1, 2]) != (weather == 4 and time_period in [1, 2]):
+        triggered.add(45)
+    if (weather == 3 and time_period in [3, 4]) != (weather == 3 and time_period in [3, 5]):
+        triggered.add(46)
+    if (weather == 3 and time_period in [5, 6]) != (weather == 3 and time_period in [5, 1]):
+        triggered.add(47)
+    if (weather == 4 and time_period in [1, 2]) != (weather == 5 and time_period in [1, 2]):
+        triggered.add(48)
+    if (weather == 4 and time_period in [3, 4]) != (weather == 4 and time_period in [3, 5]):
+        triggered.add(49)
+    if (weather == 4 and time_period in [5, 6]) != (weather == 4 and time_period in [5, 1]):
+        triggered.add(50)
+
+    # 天气和行人数量交互规则 (51-62)
+    if (weather == 1 and z > 30) != (weather == 1 and z > 35):
+        triggered.add(51)
+    if (weather == 1 and z < 40) != (weather == 1 and z < 45):
+        triggered.add(52)
+    if (weather == 2 and z > 25) != (weather == 2 and z > 30):
+        triggered.add(53)
+    if (weather == 2 and z < 45) != (weather == 2 and z < 50):
+        triggered.add(54)
+    if (weather == 3 and z > 20) != (weather == 3 and z > 25):
+        triggered.add(55)
+    if (weather == 3 and z < 50) != (weather == 3 and z < 55):
+        triggered.add(56)
+    if (weather == 4 and z > 15) != (weather == 4 and z > 20):
+        triggered.add(57)
+    if (weather == 4 and z < 45) != (weather == 4 and z < 50):
+        triggered.add(58)
+    if (weather == 5 and z > 25) != (weather == 5 and z > 30):
+        triggered.add(59)
+    if (weather == 5 and z < 40) != (weather == 5 and z < 45):
+        triggered.add(60)
+    if (weather == 6 and z > 15) != (weather == 6 and z > 20):
+        triggered.add(61)
+    if (weather == 6 and z < 35) != (weather == 6 and z < 40):
+        triggered.add(62)
+
+    # 时间段和行人数量交互规则 (63-74)
+    if (time_period == 1 and z > 35) != (time_period == 1 and z > 40):
+        triggered.add(63)
+    if (time_period == 1 and z < 45) != (time_period == 1 and z < 50):
+        triggered.add(64)
+    if (time_period == 2 and z > 30) != (time_period == 2 and z > 35):
+        triggered.add(65)
+    if (time_period == 2 and z < 50) != (time_period == 2 and z < 55):
+        triggered.add(66)
+    if (time_period == 3 and z > 40) != (time_period == 3 and z > 45):
+        triggered.add(67)
+    if (time_period == 3 and z < 35) != (time_period == 3 and z < 30):
+        triggered.add(68)
+    if (time_period == 4 and z > 20) != (time_period == 4 and z > 25):
+        triggered.add(69)
+    if (time_period == 4 and z < 30) != (time_period == 4 and z < 25):
+        triggered.add(70)
+    if (time_period == 5 and z > 45) != (time_period == 5 and z > 50):
+        triggered.add(71)
+    if (time_period == 5 and z < 25) != (time_period == 5 and z < 20):
+        triggered.add(72)
+    if (time_period == 6 and z > 50) != (time_period == 6 and z > 55):
+        triggered.add(73)
+    if (time_period == 6 and z < 20) != (time_period == 6 and z < 15):
+        triggered.add(74)
+
+    # 三元素组合规则 (75-84)
+    if (weather in [1, 2] and time_period in [1, 2] and z > 30) != (
+            weather in [1, 3] and time_period in [1, 2] and z > 30):
+        triggered.add(75)
+    if (weather in [1, 2] and time_period in [1, 2] and z < 40) != (
+            weather in [1, 2] and time_period in [1, 3] and z < 40):
+        triggered.add(76)
+    if (weather in [3, 4] and time_period in [1, 2] and z > 25) != (
+            weather in [3, 5] and time_period in [1, 2] and z > 25):
+        triggered.add(77)
+    if (weather in [3, 4] and time_period in [1, 2] and z < 35) != (
+            weather in [3, 4] and time_period in [1, 3] and z < 35):
+        triggered.add(78)
+    if (weather in [5, 6] and time_period in [1, 2] and z > 20) != (
+            weather in [5, 1] and time_period in [1, 2] and z > 20):
+        triggered.add(79)
+    if (weather in [5, 6] and time_period in [1, 2] and z < 30) != (
+            weather in [5, 6] and time_period in [1, 3] and z < 30):
+        triggered.add(80)
+    if (weather in [1, 3] and time_period in [3, 4] and z > 35) != (
+            weather in [1, 4] and time_period in [3, 4] and z > 35):
+        triggered.add(81)
+    if (weather in [2, 4] and time_period in [3, 4] and z > 30) != (
+            weather in [2, 5] and time_period in [3, 4] and z > 30):
+        triggered.add(82)
+    if (weather in [1, 5] and time_period in [5, 6] and z > 40) != (
+            weather in [1, 6] and time_period in [5, 6] and z > 40):
+        triggered.add(83)
+    if (weather in [2, 6] and time_period in [5, 6] and z > 25) != (
+            weather in [2, 1] and time_period in [5, 6] and z > 25):
+        triggered.add(84)
+
+    # 复杂条件规则 (85-100)
+    if (weather <= 3 and time_period <= 3 and z > 25) != (weather <= 4 and time_period <= 3 and z > 25):
+        triggered.add(85)
+    if (weather >= 4 and time_period >= 4 and z > 20) != (weather >= 3 and time_period >= 4 and z > 20):
+        triggered.add(86)
+    if (weather <= 2 and time_period >= 4 and z < 35) != (weather <= 3 and time_period >= 4 and z < 35):
+        triggered.add(87)
+    if (weather >= 5 and time_period <= 2 and z < 40) != (weather >= 4 and time_period <= 2 and z < 40):
+        triggered.add(88)
+    if (weather % 2 == 1 and time_period % 2 == 1) != (weather % 2 == 0 and time_period % 2 == 1):
+        triggered.add(89)
+    if (weather % 2 == 0 and time_period % 2 == 0) != (weather % 2 == 1 and time_period % 2 == 0):
+        triggered.add(90)
+    if (weather + time_period > 6) != (weather + time_period > 7):
+        triggered.add(91)
+    if (weather + time_period < 5) != (weather + time_period < 4):
+        triggered.add(92)
+    if (weather * time_period > 10) != (weather * time_period > 12):
+        triggered.add(93)
+    if (weather * time_period < 8) != (weather * time_period < 6):
+        triggered.add(94)
+    if (abs(weather - time_period) <= 2) != (abs(weather - time_period) <= 3):
+        triggered.add(95)
+    if (abs(weather - time_period) >= 3) != (abs(weather - time_period) >= 2):
+        triggered.add(96)
+    if (z % 10 < 5) != (z % 10 < 6):
+        triggered.add(97)
+    if (z % 10 >= 5) != (z % 10 >= 4):
+        triggered.add(98)
+    if (z // 10 >= 3) != (z // 10 >= 2):
+        triggered.add(99)
+    if (z // 10 <= 2) != (z // 10 <= 3):
+        triggered.add(100)
+
+    # 高级组合规则 (101-113)
+    if ((weather + time_period + z // 10) % 3 == 0) != ((weather + time_period + z // 10) % 3 == 1):
+        triggered.add(101)
+    if ((weather + time_period + z // 10) % 3 == 1) != ((weather + time_period + z // 10) % 3 == 2):
+        triggered.add(102)
+    if ((weather + time_period + z // 10) % 3 == 2) != ((weather + time_period + z // 10) % 3 == 0):
+        triggered.add(103)
+    if (weather * time_period + z // 10 > 15) != (weather * time_period + z // 10 > 16):
+        triggered.add(104)
+    if (weather * time_period + z // 10 < 12) != (weather * time_period + z // 10 < 11):
+        triggered.add(105)
+    if ((weather * time_period) % (z // 10 + 1) == 0) != ((weather * time_period) % (z // 10 + 2) == 0):
+        triggered.add(106)
+    if (weather > time_period and z > 30) != (weather > time_period and z > 35):
+        triggered.add(107)
+    if (weather < time_period and z < 30) != (weather < time_period and z < 25):
+        triggered.add(108)
+    if (weather == time_period) != (weather == time_period + 1):
+        triggered.add(109)
+    if (weather + time_period == z // 10) != (weather + time_period == z // 10 + 1):
+        triggered.add(110)
+    if (abs(weather - time_period) == z // 10) != (abs(weather - time_period) == z // 10 + 1):
+        triggered.add(111)
+    if (max(weather, time_period) == z // 10) != (max(weather, time_period) == z // 10 + 1):
+        triggered.add(112)
+    if (min(weather, time_period) * 10 <= z) != (min(weather, time_period) * 11 <= z):
+        triggered.add(113)
 
     return triggered
 
-
 target_paths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29},
+    [2, 3, 7, 12, 14, 17, 23, 24, 30, 31, 34, 35, 36, 38, 42, 45, 47, 75, 89, 92, 96, 97, 100, 101, 102, 107, 110,
+     112],
+    [3, 4, 8, 9, 14, 17, 24, 25, 30, 31, 32, 37, 68, 78, 82, 85, 89, 91, 93, 100, 101, 102, 106, 107, 109, 112],
+    [2, 3, 7, 12, 15, 18, 23, 24, 30, 31, 34, 35, 36, 38, 42, 45, 47, 64, 75, 89, 92, 96, 97, 102, 103, 110],
+    [2, 3, 9, 10, 15, 18, 23, 24, 30, 31, 33, 37, 46, 81, 86, 90, 91, 93, 98, 102, 103, 104, 106, 112],
+    [2, 3, 7, 12, 20, 23, 24, 30, 31, 34, 35, 36, 38, 42, 45, 47, 89, 92, 96, 98, 102, 103, 106, 111],
+    [2, 3, 11, 12, 14, 16, 23, 24, 30, 31, 34, 36, 38, 47, 86, 87, 90, 95, 100, 101, 103, 111, 113],
+    [5, 6, 7, 12, 19, 26, 27, 29, 34, 35, 36, 38, 79, 89, 91, 94, 97, 101, 103, 105, 106, 111, 112],
+    [1, 6, 11, 12, 15, 18, 27, 28, 29, 34, 36, 38, 41, 52, 84, 90, 91, 94, 98, 102, 103, 106, 111],
+    [3, 4, 7, 12, 20, 24, 25, 30, 31, 34, 35, 36, 38, 45, 48, 50, 88, 89, 95, 97, 101, 103, 106],
+    [5, 6, 7, 12, 13, 16, 22, 26, 27, 29, 34, 35, 36, 38, 79, 89, 91, 94, 98, 99, 101, 103, 106],
+    [4, 5, 7, 12, 14, 17, 25, 26, 34, 35, 36, 38, 48, 77, 89, 97, 100, 101, 103, 106, 107, 111],
+    [2, 3, 7, 12, 18, 23, 24, 30, 31, 34, 35, 36, 38, 42, 45, 47, 56, 75, 89, 92, 96, 101, 103],
+    [2, 3, 11, 12, 13, 21, 23, 24, 30, 31, 34, 36, 38, 47, 87, 90, 95, 99, 102, 103, 106, 111],
+    [1, 6, 9, 10, 13, 16, 22, 27, 28, 29, 33, 37, 40, 69, 90, 95, 98, 99, 101, 102, 106, 111],
+    [1, 6, 7, 12, 15, 18, 27, 28, 29, 34, 35, 36, 38, 39, 41, 64, 79, 89, 97, 101, 103, 109],
+    [1, 2, 11, 12, 15, 18, 23, 28, 34, 36, 38, 44, 54, 90, 93, 97, 101, 103, 104, 106, 111],
+    [3, 4, 11, 12, 13, 21, 24, 25, 30, 31, 34, 36, 38, 50, 57, 90, 96, 99, 101, 103, 111],
+    [1, 6, 8, 9, 14, 16, 27, 28, 29, 32, 37, 68, 76, 89, 92, 96, 100, 101, 102, 110, 112],
+    [5, 6, 8, 9, 13, 16, 22, 26, 27, 29, 32, 37, 80, 89, 95, 98, 99, 102, 103, 106, 111],
+    [1, 6, 10, 11, 14, 17, 27, 28, 29, 33, 40, 51, 84, 89, 98, 100, 101, 103, 106, 111],
+    [3, 4, 10, 11, 13, 16, 22, 24, 25, 30, 31, 33, 49, 89, 97, 99, 102, 103, 106, 108],
+    [1, 2, 10, 11, 13, 16, 22, 23, 28, 33, 43, 72, 89, 91, 95, 99, 101, 103, 111, 113],
+    [3, 4, 11, 12, 20, 24, 25, 30, 31, 34, 36, 38, 50, 74, 90, 96, 97, 102, 103, 111],
+    [4, 5, 8, 9, 15, 18, 25, 26, 32, 37, 60, 67, 82, 89, 96, 98, 101, 103, 106, 112],
+    [2, 3, 10, 11, 18, 23, 24, 30, 31, 33, 46, 56, 71, 86, 89, 96, 101, 102, 112],
+    [4, 5, 10, 11, 15, 18, 25, 26, 33, 83, 89, 97, 102, 103, 106, 109, 112],
+    [4, 5, 11, 12, 14, 16, 25, 26, 34, 36, 38, 59, 90, 100, 102, 103, 106],
+    [3, 4, 7, 8, 14, 17, 24, 25, 30, 31, 32, 35, 45, 48, 65, 77, 85, 88, 90, 96, 97, 100, 101, 103, 105, 106, 107,
+     112],
+    [3, 4, 7, 12, 15, 17, 24, 25, 30, 31, 34, 35, 36, 38, 45, 48, 50, 63, 77, 85, 89, 95, 101, 103, 110, 112],
+    [2, 3, 8, 9, 13, 16, 22, 23, 24, 30, 31, 32, 37, 55, 78, 89, 97, 99, 102, 103, 105, 106, 109, 112],
+    [1, 2, 9, 10, 13, 16, 22, 23, 28, 33, 37, 43, 69, 70, 90, 96, 97, 99, 102, 103, 106, 108, 111],
+    [5, 6, 7, 12, 14, 17, 26, 27, 29, 34, 35, 36, 38, 62, 79, 89, 91, 94, 97, 100, 101, 102, 107],
+    [1, 2, 9, 10, 14, 16, 23, 28, 33, 37, 43, 53, 90, 96, 100, 101, 103, 105, 106, 112],
+    [3, 4, 7, 8, 18, 24, 25, 30, 31, 32, 35, 45, 48, 66, 77, 85, 90, 96, 102, 103, 110],
+    [4, 5, 11, 12, 19, 25, 26, 34, 36, 38, 73, 83, 90, 98, 101, 102, 106, 112, 113],
+    [3, 4, 10, 11, 15, 18, 24, 25, 30, 31, 33, 49, 58, 89, 97, 101, 102, 106, 112],
+    [5, 6, 11, 12, 13, 21, 26, 27, 29, 34, 36, 38, 61, 90, 99, 102, 103, 109]
 ]
 
 

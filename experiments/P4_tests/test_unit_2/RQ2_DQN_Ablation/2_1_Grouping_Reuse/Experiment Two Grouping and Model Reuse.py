@@ -18,17 +18,18 @@ from openpyxl.utils import get_column_letter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
+# === 全局取值范围配置 ===
+STATE_MIN_W, STATE_MAX_W = 1, 200
+STATE_MIN_T, STATE_MAX_T = 1, 200
+STATE_MIN_Z, STATE_MAX_Z = 2, 150
 # === / ===
 class StateNormalizer:
     """: [0,1]"""
-
     def __init__(self):
-        #  - 
         self.ranges = {
-            'weather': (1, 6),  # 
-            'time_period': (1, 6),  # 
-            'z': (1, 6)  # 
+            'weather': (STATE_MIN_W, STATE_MAX_W),
+            'time_period': (STATE_MIN_T, STATE_MAX_T),
+            'z': (STATE_MIN_Z, STATE_MAX_Z)
         }
 
     def normalize(self, state):
@@ -80,312 +81,226 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_validation_rules_block4(weather, time_period, z):
-    """ - weather, time_period, z"""
-    triggered = set()
+def execute_Tr(x, y, z):
+    # 初始化分支覆盖数组
+    b = [0] * 105  # 根据分支数量调整大小
 
-    # z
-    x = z  # zx
-    y = (weather * time_period * 10 + z) % 100 + 1  # y
+    # --- 分支 1-4 ---
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 120): b[0] = 1
+    if ((y * z) / (x + 1) > 100) != ((y * y) / (x + 1) > 100): b[1] = 2
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 8) > 100): b[2] = 3
+    if ((y * z) / (x + 1) > 100) != ((y + z) / (x + 1) > 100): b[3] = 4
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x * 3 + 1) > 100): b[4] = 5
+    if ((y * z) / (x + 1) > 100) != ((z * z) / (x + 1) > 100): b[5] = 6
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 80): b[6] = 7
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + y) > 100): b[7] = 8
+    if ((y * z) / (x + 1) > 100) != ((y * 10) / (x + 1) > 100): b[8] = 9
+    if ((y * z) / (x + 1) > 100) != ((x * z) / (x + 1) > 100): b[9] = 10
+    if ((y * z) / (x + 1) > 100) != ((y * z * 2) / (x + 1) > 100): b[10] = 11
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 5) > 100): b[11] = 12
+    if ((y * z) / (x + 1) > 100) != ((y * z) / (x + 1) > 200): b[12] = 13
+    if ((y * z) / (x + 1) > 100) != ((5 * z) / (x + 1) > 100): b[13] = 14
 
-    # 1-7: (time_period == 1)
-    if time_period == 1:
-        if x < 60 and y > 75:
-            triggered.add(1)
-        if x > 60 and y > 70:
-            triggered.add(2)
-        if x < 50 and y < 40:
-            triggered.add(3)
-        if x > 78 and 45 < y < 70:
-            triggered.add(4)
-        if 45 < x < 70 and y > 78:
-            triggered.add(5)
-        if x < 55 and 50 < y < 75:
-            triggered.add(6)
-        if 50 < x < 75 and y < 55:
-            triggered.add(7)
+    if ((z - x) < 0.3 * y) != ((z * 1.2 - x) < 0.3 * y): b[14] = 15
+    if ((z - x) < 0.3 * y) != ((z - x * 1.1) < 0.3 * y): b[15] = 16
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.5 * y): b[16] = 17
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * z): b[17] = 18
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * y * y): b[18] = 19
+    if ((z - x) < 0.3 * y) != ((z - y) < 0.3 * y): b[19] = 20
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.8 * y): b[20] = 21
+    if ((z - x) < 0.3 * y) != ((z - x) < 0.3 * x): b[21] = 22
 
-    # 8-14: (time_period == 2)
-    if time_period == 2:
-        if x < 60 and y > 75:
-            triggered.add(8)
-        if x > 60 and y > 70:
-            triggered.add(9)
-        if x < 55 and y < 45:
-            triggered.add(10)
-        if 45 < x < 70 and y > 78:
-            triggered.add(11)
-        if x > 78 and 45 < y < 70:
-            triggered.add(12)
-        if 55 < x < 75 and y < 50:
-            triggered.add(13)
-        if x < 50 and 55 < y < 75:
-            triggered.add(14)
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3): b[22] = 23
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 * y ** 3) < z ** 4): b[23] = 24
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[24] = 25
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2): b[25] = 26
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < (z ** 2)): b[26] = 27
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * x ** 3) < z ** 2): b[27] = 28
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2): b[28] = 29
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2): b[29] = 30
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[30] = 31
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[31] = 32
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): b[32] = 33
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** x + y ** 3) < z ** 2): b[33] = 34
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[34] = 35
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 1.5): b[35] = 36
 
-    # 15-19: (time_period == 3)
-    if time_period == 3:
-        if x > 60 and 40 < y < 65:
-            triggered.add(15)
-        if 40 < x < 65 and y > 60:
-            triggered.add(16)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(17)
-        if x < 50 and y < 40:
-            triggered.add(18)
-        if x > 65 and y < 45:
-            triggered.add(19)
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 or (y / (z + 0.001) < 0.2)): b[
+        36] = 37
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y % (z + 0.001) < 0.2)): b[
+        37] = 38
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z - 0.001) < 0.4)): b[
+        38] = 39
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.3)): b[
+        39] = 40
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.1)): b[
+        40] = 41
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 8 and (y / (z + 0.001) < 0.2)): b[
+        41] = 42
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 2 and (y / (z + 0.001) < 0.2)): b[
+        42] = 43
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 1 and (y / (z + 0.001) < 0.2)): b[
+        43] = 44
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 10 and (y / (z + 0.001) < 0.2)): b[
+        44] = 45
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x * y / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)):
+        b[45] = 46
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x * x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)):
+        b[46] = 47
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * x / (z + 0.001) < 0.2)):
+        b[47] = 48
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * y / (z + 0.001) < 0.2)):
+        b[48] = 49
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y * z / (z + 0.001) < 0.2)):
+        b[49] = 50
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y / (z + 0.001) < 0.5)): b[
+        50] = 51
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x / (y + 0.001)) > 5 and (y - (z + 0.001) < 0.2)): b[
+        51] = 52
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x + (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)): b[
+        52] = 53
+    if ((x / (y + 0.001)) > 5 and (y / (z + 0.001)) < 0.2) != ((x - (y + 0.001)) > 5 and (y / (z + 0.001) < 0.2)): b[
+        53] = 54
 
-    # 20-25: (time_period == 4)
-    if time_period == 4:
-        if x < 45 and y < 35:
-            triggered.add(20)
-        if x > 60 and y < 40:
-            triggered.add(21)
-        if x < 50 and y > 70:
-            triggered.add(22)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(23)
-        if x < 35 and y < 25:
-            triggered.add(24)
-        if 40 < x < 65 and y < 45:
-            triggered.add(25)
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 20): b[54] = 55
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 12.9): b[55] = 56
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(20 - z) < 5): b[56] = 57
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - 80) > 10 and abs(x - z) < 5): b[57] = 58
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x + z) < 5): b[58] = 59
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 7): b[59] = 60
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 15 and abs(10 - z) < 10): b[60] = 61
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - 8) < 5): b[61] = 62
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - 2) < 5): b[62] = 63
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * 4 - z) < 5): b[63] = 64
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * z) < 5): b[64] = 65
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x + z) < 5): b[65] = 66
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * y - z) < 5): b[66] = 67
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 2): b[67] = 68
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - y) < 5): b[68] = 69
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 15): b[69] = 70
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * 2 - z) < 5): b[70] = 71
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(y - z) < 5): b[71] = 72
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * z - z) < 5): b[72] = 73
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z * 2) < 5): b[73] = 74
+    if (abs(x - y) > 10 and abs(y - z) > 10 and abs(x - z) < 5) != (
+            abs(x - y) > 10 and abs(y - z) > 10 and abs(x * x - z) < 5): b[74] = 75
 
-    # 26-28: (time_period == 5)
-    if time_period == 5:
-        if x < 60 and y < 50:
-            triggered.add(26)
-        if x > 65 and y > 75:
-            triggered.add(27)
-        if x > 60 and y < 45:
-            triggered.add(28)
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[75] = 76
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * y > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[76] = 77
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * z > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[77] = 78
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * y > 80 or y < 3) and (z > 75 or z < 2)): b[78] = 79
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * z > 80 or y < 3) and (z > 75 or z < 2)): b[79] = 80
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y * x > 80 or y < 3) and (z > 75 or z < 2)): b[80] = 81
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * 10 > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[81] = 82
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x * 15 > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[82] = 83
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 50 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)): b[83] = 84
+    if ((x > 90 or x < 5) and (y > 80 or y < 3) and (z > 75 or z < 2)) != (
+            (x > 90 or x < 5) and (y > 80 or y < 3) and (z * 40 > 75 or z < 2)): b[84] = 85
 
-    # 29-33: (time_period == 6)
-    if time_period == 6:
-        if 40 < x < 70 and 40 < y < 60:
-            triggered.add(29)
-        if x < 55 and y < 45:
-            triggered.add(30)
-        if x > 60 and y < 50:
-            triggered.add(31)
-        if x < 60 and y > 70:
-            triggered.add(32)
-        if x > 65 and y > 75:
-            triggered.add(33)
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * x) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[85] = 86
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * 60) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[86] = 87
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((y * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[87] = 88
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((70 * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[88] = 89
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) + (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2):
+        b[89] = 90
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 70 and x ** 2 + y ** 2 > z ** 2):
+        b[90] = 91
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 80 and x ** 2 + y ** 2 > z ** 2):
+        b[91] = 92
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 1.5 + y ** 2 > z ** 2):
+        b[92] = 93
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2.2):
+        b[93] = 94
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2.5):
+        b[94] = 95
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 1.5 > z ** 2):
+        b[95] = 96
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 80 and x ** 2 + y ** 2 > z ** 2):
+        b[96] = 97
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 65 and x ** 2 + y ** 2 > z ** 2):
+        b[97] = 98
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 1.2 + y ** 2 > z ** 2):
+        b[98] = 99
+    if ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 1.2 > z ** 2):
+        b[99] = 100
 
-    # 34-68: 
-    if weather == 1:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(34)
-        if time_period in [1, 2] and y > 70:
-            triggered.add(35)
-        if time_period in [3, 4] and x < 50:
-            triggered.add(36)
-        if time_period in [3, 4] and y < 50:
-            triggered.add(37)
-        if time_period in [5, 6] and 40 < x < 80:
-            triggered.add(38)
-        if time_period in [5, 6] and 40 < y < 80:
-            triggered.add(39)
-
-    if weather == 2:  # 
-        if time_period in [1, 2] and x > 75:
-            triggered.add(40)
-        if time_period in [1, 2] and y < 60:
-            triggered.add(41)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(42)
-        if time_period in [3, 4] and y > 65:
-            triggered.add(43)
-        if time_period in [5, 6] and 35 < x < 75:
-            triggered.add(44)
-        if time_period in [5, 6] and 35 < y < 75:
-            triggered.add(45)
-
-    if weather == 3:  # 
-        if time_period in [1, 2] and x > 60:
-            triggered.add(46)
-        if time_period in [1, 2] and y > 65:
-            triggered.add(47)
-        if time_period in [3, 4] and x < 55:
-            triggered.add(48)
-        if time_period in [3, 4] and y < 55:
-            triggered.add(49)
-        if time_period in [5, 6] and 30 < x < 70:
-            triggered.add(50)
-        if time_period in [5, 6] and 30 < y < 70:
-            triggered.add(51)
-
-    if weather == 4:  # 
-        if time_period in [1, 2] and x > 65:
-            triggered.add(52)
-        if time_period in [1, 2] and y < 55:
-            triggered.add(53)
-        if time_period in [3, 4] and x < 40:
-            triggered.add(54)
-        if time_period in [3, 4] and y > 60:
-            triggered.add(55)
-        if time_period in [5, 6] and 25 < x < 65:
-            triggered.add(56)
-        if time_period in [5, 6] and 25 < y < 65:
-            triggered.add(57)
-
-    if weather == 5:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(58)
-        if time_period in [1, 2] and y > 60:
-            triggered.add(59)
-        if time_period in [3, 4] and x < 35:
-            triggered.add(60)
-        if time_period in [3, 4] and y < 40:
-            triggered.add(61)
-        if time_period in [5, 6] and 20 < x < 60:
-            triggered.add(62)
-        if time_period in [5, 6] and 20 < y < 60:
-            triggered.add(63)
-
-    if weather == 6:  # 
-        if time_period in [1, 2] and x > 55:
-            triggered.add(64)
-        if time_period in [1, 2] and y > 55:
-            triggered.add(65)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(66)
-        if time_period in [3, 4] and y < 45:
-            triggered.add(67)
-        if time_period in [5, 6] and 15 < x < 55:
-            triggered.add(68)
-
-    # 69-78: ()
-    if weather + time_period > 6:
-        if x > 50 and y > 50:
-            triggered.add(69)
-        if x < 50 and y < 50:
-            triggered.add(70)
-        if x > y:
-            triggered.add(71)
-        if x < y:
-            triggered.add(72)
-        if abs(x - y) < 20:
-            triggered.add(73)
-
-    if weather + time_period <= 6:
-        if x > 60 or y > 60:
-            triggered.add(74)
-        if x < 40 or y < 40:
-            triggered.add(75)
-        if x + y > 100:
-            triggered.add(76)
-        if x + y < 80:
-            triggered.add(77)
-        if abs(x - y) > 30:
-            triggered.add(78)
-
-    # 79-88: Value
-    if weather % 2 == time_period % 2:  # 
-        if x % 10 < 5:
-            triggered.add(79)
-        if y % 10 >= 5:
-            triggered.add(80)
-        if (x + y) % 3 == 0:
-            triggered.add(81)
-        if (x * y) % 7 == 0:
-            triggered.add(82)
-        if x // 10 == y // 10:
-            triggered.add(83)
-
-    if weather % 2 != time_period % 2:  # 
-        if x > 75 or y > 75:
-            triggered.add(84)
-        if x < 25 or y < 25:
-            triggered.add(85)
-        if max(x, y) - min(x, y) > 40:
-            triggered.add(86)
-        if (x + y) // 2 > 50:
-            triggered.add(87)
-        if weather * time_period > 15:
-            triggered.add(88)
-
-    # 89-95: ()
-    if weather in [1, 3, 5]:  # 
-        if time_period in [1, 3, 5] and x > 40:
-            triggered.add(89)
-        if time_period in [2, 4, 6] and y > 40:
-            triggered.add(90)
-        if x % 20 < 10 and y % 20 < 10:
-            triggered.add(91)
-        if x + weather * 10 > 50:
-            triggered.add(92)
-        if y + time_period * 10 > 50:
-            triggered.add(93)
-        if time_period in [1, 3, 5] and x < 60:
-            triggered.add(94)
-        if time_period in [2, 4, 6] and y < 60:
-            triggered.add(95)
-
-    # 96-98: 
-    if weather in [2, 4, 6]:  # 
-        if (x + y) % weather == 0:
-            triggered.add(96)
-        if x * weather > 100:
-            triggered.add(97)
-        if y * time_period > 100:
-            triggered.add(98)
-
-    # 99-100: 
-    if (weather * time_period + z) % 7 == 0:
-        triggered.add(99)
-    if max(weather, time_period) * min(x, y) > 150:
-        triggered.add(100)
-
-    return triggered
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.7 > (x + y) / 2 and x * y * z > 1000): b[100] = 101
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (x + y) / 6 and x * y * z > 1000): b[101] = 102
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.8 > (x + y) / 2 and x * y * z > 1000): b[102] = 103
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (x + x) / 2 and x * y * z > 1000): b[103] = 104
+    if (z ** 0.5 > (x + y) / 2 and x * y * z > 1000) != (z ** 0.5 > (y + y) / 2 and x * y * z > 1000): b[104] = 105
 
 
-def execute_Tr(weather, time_period, z):
-    """"""
-    return execute_validation_rules_block4(weather, time_period, z)
-
-
-# === target path definitions ===
-target_paths = [
-    [15, 16, 48, 49, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [16, 18, 19, 60, 61, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [1, 4, 6, 46, 47, 74, 75, 76, 77, 78, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [30, 31, 50, 51, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [18, 19, 36, 37, 74, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [20, 24, 25, 36, 37, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 99, 100],
-    [8, 12, 34, 35, 74, 75, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 100],
-    [8, 10, 58, 59, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [8, 14, 46, 47, 75, 76, 77, 78, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99, 100],
-    [1, 2, 6, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 100],
-    [39, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [20, 21, 60, 61, 70, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99],
-    [8, 9, 11, 13, 40, 41, 75, 76, 77, 78, 79, 80, 81, 83, 96, 97, 98, 100],
-    [18, 19, 54, 55, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [25, 48, 49, 69, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [26, 28, 62, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [32, 33, 68, 69, 71, 72, 73, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [1, 52, 53, 74, 75, 76, 77, 78, 84, 85, 86, 87, 88, 97, 98, 99, 100],
-    [8, 12, 14, 64, 65, 69, 71, 72, 73, 80, 81, 82, 83, 96, 97, 98, 100],
-    [1, 3, 64, 65, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [22, 36, 37, 76, 77, 78, 85, 86, 87, 88, 90, 91, 93, 95, 100],
-    [31, 45, 70, 71, 72, 73, 79, 80, 81, 83, 96, 97, 98, 99, 100],
-    [22, 66, 67, 69, 71, 72, 73, 79, 80, 82, 83, 97, 98, 100],
-    [44, 45, 69, 71, 72, 73, 79, 80, 83, 96, 97, 98, 99, 100],
-    [57, 71, 72, 73, 79, 80, 83, 97, 98, 100],
-    [15, 16, 17, 48, 49, 74, 75, 76, 77, 78, 79, 80, 82, 83, 89, 91, 92, 93, 94, 100],
-    [1, 2, 5, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [20, 21, 25, 42, 43, 74, 76, 77, 78, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [2, 5, 7, 40, 41, 75, 76, 77, 78, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 56, 57, 70, 71, 72, 73, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 38, 74, 76, 77, 78, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [30, 31, 62, 63, 70, 71, 72, 73, 84, 86, 87, 88, 90, 91, 92, 93, 95],
-    [29, 62, 63, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [23, 25, 60, 61, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100]
+targetPaths = [
+    {15, 20, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 79,
+     80, 81, 86, 87, 90},  # A1
+    {6, 10, 15, 20, 23, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73,
+     74, 75, 79, 80, 81},  # A2
+    {1, 3, 4, 5, 6, 8, 9, 10, 13, 14, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 77, 78, 82,
+     83, 84, 94, 95, 100},  # A3
+    {16, 17, 18, 19, 21, 22, 23, 29, 31, 32, 38, 41, 45, 48, 49, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72,
+     73, 74, 75, 105},  # A4
+    {6, 7, 10, 11, 15, 57, 58, 59, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 79, 80, 81, 92, 93, 94, 95,
+     96, 97, 99, 100},  # A5
+    {1, 2, 3, 4, 5, 8, 9, 10, 13, 14, 16, 17, 18, 19, 20, 21, 23, 76, 77, 78, 82, 83, 84, 87, 91, 92, 93, 94, 95, 96,
+     97, 98, 99, 100},  # A6
+    {11, 15, 20, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74, 75, 79, 80, 81, 88, 89, 91, 92, 93, 94, 95, 97,
+     98, 99, 100},  # A7
+    {1, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 18, 22, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 86, 87,
+     91, 92, 97, 98},  # A8
+    {16, 18, 19, 21, 22, 23, 24, 25, 29, 31, 32, 35, 38, 48, 50, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74,
+     75, 105},  # A9
+    {15, 20, 29, 31, 32, 38, 41, 42, 45, 48, 49, 50, 59, 62, 63, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 87, 90,
+     102, 105},  # A10
+    {1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 19, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 35, 37, 46, 47, 53, 101, 102,
+     103},  # A11
+    {3, 4, 5, 6, 8, 10, 12, 13, 14, 18, 22, 57, 59, 62, 64, 65, 66, 67, 68, 69, 72, 73, 74, 85, 86, 87, 91, 92, 97, 98},
+    # A12
+    {15, 20, 23, 29, 31, 32, 37, 43, 44, 46, 47, 53, 54, 57, 59, 61, 62, 63, 64, 65, 66, 67, 69, 71, 72, 73, 74, 75},
+    # A13
+    {6, 10, 16, 18, 19, 21, 22, 23, 25, 29, 31, 32, 35, 38, 45, 48, 49, 50, 55, 56, 60, 70, 79, 80, 81, 105},  # A14
+    {3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 17, 19, 20, 21, 27, 30, 33, 55, 57, 61, 63, 64, 70, 88, 89, 90, 104},  # A15
+    {2, 3, 4, 5, 8, 9, 10, 14, 19, 23, 24, 26, 27, 28, 30, 33, 62, 63, 67, 101, 102, 103, 104},  # A16
+    {1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 19, 28, 34, 36, 37, 46, 47, 53, 101, 102, 103},  # A17
+    {15, 20, 29, 31, 32, 37, 39, 40, 51, 52, 55, 56, 70, 79, 80, 81, 86, 87, 90}  # A18
 ]
 
+
 # 
-target_paths = [set(path) for path in target_paths]
+target_paths = [set(path) for path in targetPaths]
 
 
 def jaccard_similarity(set1, set2):
@@ -435,9 +350,9 @@ def compute_robustness(state, path):
             for dz in [-1, 0, 1]:
                 if dw == dt == dz == 0:
                     continue
-                # 
                 neighbor = np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                   [1, 1, 1], [6, 6, 6])
+                                    [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                    [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z])
                 neighbor = tuple(neighbor)
                 nw, nt, nz = neighbor
                 n_trig = execute_Tr(nw, nt, nz)
@@ -491,10 +406,10 @@ def generate_samples_for_similar_paths(similar_group, num_candidates=2000, top_k
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -550,10 +465,10 @@ def generate_samples_for_isolated_paths(isolated_group, similar_model, num_candi
 
         while len(candidate_samples) < num_candidates and attempts < num_candidates * 10:
             attempts += 1
-            # 
-            weather = random.randint(1, 6)  # 
-            time_period = random.randint(1, 6)  # 
-            z = random.randint(1, 6)  # 
+
+            weather = random.randint(STATE_MIN_W, STATE_MAX_W)
+            time_period = random.randint(STATE_MIN_T, STATE_MAX_T)
+            z = random.randint(STATE_MIN_Z, STATE_MAX_Z)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -848,7 +763,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                             dw, dt, dz = agent.decode_action(a)
                             # 
                             cand_next = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                      [1, 1, 1], [6, 6, 6]))
+                                                      [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                      [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
                             legal_actions.append(a)
 
                         if not legal_actions:
@@ -866,7 +782,8 @@ def train_group(group_paths, path_documents, replay_buffer, batch_size=32, group
                         # ()
                         dw, dt, dz = agent.decode_action(action)
                         next_state = tuple(np.clip(np.array(state) + np.array([dw, dt, dz]),
-                                                   [1, 1, 1], [6, 6, 6]))
+                                                   [STATE_MIN_W, STATE_MIN_T, STATE_MIN_Z],
+                                                   [STATE_MAX_W, STATE_MAX_T, STATE_MAX_Z]))
 
                         # 
                         normalized_next_state = normalizer.normalize(next_state)

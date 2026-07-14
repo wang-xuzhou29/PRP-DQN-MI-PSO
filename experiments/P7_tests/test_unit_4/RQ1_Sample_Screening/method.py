@@ -14,32 +14,93 @@ from openpyxl.styles import Font, PatternFill, Alignment
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
+STATE_MIN_X, STATE_MAX_X = 1, 100
+STATE_MIN_Y, STATE_MAX_Y = 1, 100
+STATE_MIN_Z, STATE_MAX_Z = 1, 100
 def generate_input():
     return [
-        random.randint(1, 30),
-        random.randint(1, 40),
-        random.randint(1, 2100)
+        random.randint(STATE_MIN_X, STATE_MAX_X),
+        random.randint(STATE_MIN_Y, STATE_MAX_Y),
+        random.randint(STATE_MIN_Z, STATE_MAX_Z)
     ]
 
 
-def execute_Tr(a):
-    cpu_cores, memory_gb, disk_space_gb = int(a[0]), float(a[1]), float(a[2])
+
+def execute_Tr(dx: int, dy: int, dz: int):
+
+ 
+    MAX_GRID_SIZE = 500.0  
+    INITIAL_BATTERY = 1000.0 
+    BATTERY_PER_STEP = 1.0 
+    SAFE_DISTANCE = 5.0 
+    CRITICAL_BATTERY_LEVEL = 100.0 
+    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0 
+
+    MIN_PLANNING_X = 10.0
+    MIN_PLANNING_Y = 15.0
+    MIN_PLANNING_Z = 8.0
+    CRITICAL_X_VELOCITY = 20.0
+    CRITICAL_Y_VELOCITY = 25.0
+    CRITICAL_Z_VELOCITY = 15.0
+
     triggered = set()
-    b = {}
 
-    if (cpu_cores >= 16) != (cpu_cores >= 13):
-        b[0] = 1
-        triggered.add(1)
-    if (cpu_cores >= 16) != (cpu_cores >= 18):
-        b[1] = 2
-        triggered.add(2)
-    if (cpu_cores >= 16) != (cpu_cores >= 21):
-        b[2] = 3
-        triggered.add(3)
-    if (cpu_cores >= 16) != (cpu_cores >= 24):
-        b[3] = 4
-        triggered.add(4)
+    # 模拟环境状态变量，以修复原始代码中的语法错误
+    # 这些变量在原始代码中未定义，这里随机生成以确保代码可执行
+    current_x = random.uniform(0.0, MAX_GRID_SIZE)
+    current_y = random.uniform(0.0, MAX_GRID_SIZE)
+    current_z = random.uniform(0.0, MAX_GRID_SIZE)
 
+    # 为了模仿原始代码可能试图比较的'当前位置'与'速度'的关系，
+    # 针对第10-15分支中的 'self.y' 采用一个模拟值。
+    simulated_y = current_y  # 使用 current_y 作为 self.y 的模拟
+
+    # --- 分支 1-4 ---
+    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
+    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
+    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
+    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+
+    # --- 分支 5-9 ---
+    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
+    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
+    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
+    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
+    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
+
+    # --- 分支 10-15 --- (使用 simulated_y 替代 self.y)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
+    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
+
+    # --- 分支 16-21 ---
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
+    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
+
+    # --- 分支 22-29 --- (使用 current_x, current_y, current_z 替代未定义的变量)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
+        22)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
+        23)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
+        24)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
+        25)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
+        26)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
+        27)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
+        28)
+    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
+        29)
     return triggered
 
 
@@ -54,8 +115,9 @@ def jaccard_similarity(set1, set2):
 
 
 targetPaths = [
-    {2, 3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 16, 17, 19, 22, 27, 30, 33, 36, 38, 44, 46, 47, 50, 53, 55, 61, 63, 65, 67,
-     71, 79, 80, 81, 83, 84, 85, 87, 93, 94},
+    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
+    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
+    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
 ]
 
 
@@ -74,7 +136,7 @@ class ExperimentConfig:
 
 
 def compute_robustness(state, path):
-    base = execute_Tr(state)
+    base = execute_Tr(*state)
     if not base:
         return 0.0
 
@@ -85,11 +147,11 @@ def compute_robustness(state, path):
                 if dx == dy == dz == 0:
                     continue
                 neighbor = np.array([
-                    np.clip(state[0] + dx, 1, 30),
-                    np.clip(state[1] + dy, 1, 40),
-                    np.clip(state[2] + dz, 1, 2100)
-                ])
-                n_trig = execute_Tr(neighbor)
+                        np.clip(state[0] + dx, STATE_MIN_X, STATE_MAX_X),
+                        np.clip(state[1] + dy, STATE_MIN_Y, STATE_MAX_Y),
+                        np.clip(state[2] + dz, STATE_MIN_Z, STATE_MAX_Z)
+                    ])
+                n_trig = execute_Tr(*neighbor)
                 if not n_trig:
                     continue
                 rob += jaccard_similarity(base, n_trig)
@@ -105,11 +167,11 @@ def generate_candidate_samples(target_path_idx, sample_count=1000):
     while len(samples) < sample_count and attempts < sample_count * 10:
         attempts += 1
         state = np.array([
-            random.randint(1, 30),
-            random.randint(1, 40),
-            random.randint(1, 2100)
+            random.randint(STATE_MIN_X, STATE_MAX_X),
+            random.randint(STATE_MIN_Y, STATE_MAX_Y),
+            random.randint(STATE_MIN_Z, STATE_MAX_Z)
         ])
-        triggered = execute_Tr(state)
+        triggered = execute_Tr(*state)
 
         if not triggered:
             continue
@@ -158,11 +220,11 @@ def generate_samples_with_strategy(target_path_idx, strategy_name, weights, conf
         while len(samples) < config.top_k_samples and attempts < config.top_k_samples * 10:
             attempts += 1
             state = np.array([
-                random.randint(1, 30),
-                random.randint(1, 40),
-                random.randint(1, 2100)
+                random.randint(STATE_MIN_X, STATE_MAX_X),
+                random.randint(STATE_MIN_Y, STATE_MAX_Y),
+                random.randint(STATE_MIN_Z, STATE_MAX_Z)
             ])
-            triggered = execute_Tr(state)
+            triggered = execute_Tr(*state)
 
             if not triggered:
                 continue

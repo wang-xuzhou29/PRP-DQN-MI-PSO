@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,8 +20,8 @@ print(f"Using device: {device}")
 EXPERIMENT_CONFIG = {
     'STATE_DIM': 3,
     'ACTION_DIM': 3,
-    'MIN_VALUE': 1,
-    'MAX_VALUE': 128,
+    'MIN_VALUES': np.array([1, 1, 2]),
+    'MAX_VALUES': np.array([200, 200, 150]),
     'SAMPLES_PER_PATH': 200,
     'BATCH_SIZE_SAMPLES': 50,
     'STEPS_PER_SAMPLE': 3,
@@ -40,151 +39,237 @@ EXPERIMENT_CONFIG = {
     'NUM_RUNS': 20,
     'TOP_K_SAMPLES': 20,
     'TARGET_PATHS': [
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
-        {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
-        {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
-        {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
-        {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
+        {9, 10, 11, 13, 14, 15, 16, 18, 19, 31, 32, 33, 34, 36, 75, 78, 81, 83, 84, 85, 86, 87},
+        {25, 26, 27, 29, 30, 33, 37, 42, 52, 53, 56, 57, 58, 61, 62, 88, 93, 95, 96, 97},
+        {16, 31, 32, 33, 35, 36, 51, 52, 53, 57, 59, 62, 75, 78, 81, 83, 84, 85, 86, 87},
+        {2, 5, 6, 7, 9, 10, 31, 32, 33, 34, 35, 39, 44, 47, 75, 81, 83, 84, 85, 86, 87},
+        {2, 5, 6, 7, 8, 9, 10, 20, 31, 33, 34, 35, 75, 78, 81, 83, 84, 85, 86, 87, 98},
+        {6, 9, 10, 11, 14, 15, 16, 18, 19, 31, 34, 35, 36, 64, 65, 76, 77, 79, 80, 82},
+        {1, 2, 5, 6, 7, 8, 9, 10, 20, 31, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+        {21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 43, 47, 91, 92},
+        {21, 24, 25, 26, 27, 29, 30, 37, 42, 52, 53, 56, 57, 62, 63, 88, 93, 95, 96},
+        {3, 31, 32, 33, 34, 35, 36, 39, 40, 41, 44, 45, 47, 88, 89, 90, 95, 96, 97},
+        {1, 2, 6, 7, 9, 10, 17, 20, 32, 33, 34, 35, 36, 70, 72, 93, 94, 98, 99},
+        {3, 4, 20, 33, 36, 54, 58, 60, 61, 63, 70, 72, 88, 89, 90, 95, 96, 97},
+        {6, 9, 10, 20, 31, 32, 34, 35, 69, 71, 74, 77, 79, 80, 82, 94, 98, 99},
+        {1, 2, 3, 6, 7, 8, 9, 10, 50, 56, 57, 60, 62, 67, 78, 81, 84, 85, 87},
+        {1, 2, 3, 6, 7, 8, 9, 10, 12, 17, 20, 51, 52, 53, 56, 57, 62, 70, 72},
+        {21, 24, 25, 26, 27, 29, 30, 31, 37, 39, 42, 44, 48, 57, 88, 95, 96},
+        {9, 10, 17, 20, 31, 33, 34, 35, 70, 72, 73, 77, 80, 82, 94, 98, 99},
+        {9, 10, 11, 16, 18, 19, 32, 66, 69, 75, 78, 81, 83, 84, 85, 86, 87},
+        {1, 2, 3, 6, 7, 9, 10, 11, 13, 14, 15, 16, 18, 19, 32, 55, 70, 72},
+        {21, 24, 25, 26, 27, 29, 30, 32, 34, 35, 38, 43, 47, 88, 95, 96},
+        {3, 32, 39, 40, 41, 44, 45, 47, 49, 88, 89, 90, 95, 96, 97},
+        {3, 31, 32, 34, 37, 42, 46, 88, 90, 95, 96, 97},
+        {2, 3, 6, 7, 8, 9, 10, 57, 62, 68, 78, 84}
     ],
 }
 
 # ===  ===
-def execute_Tr(state):
-    """, Path """
-    if isinstance(state, (list, np.ndarray)):
-        x, y, z = int(state[0]), int(state[1]), int(state[2])
-    else:
-        x, y, z = state
+def execute_Tr(x, y, z):
+    # 初始化分支覆盖数组
+    b = [0] * 99  # 根据分支数量调整大小
 
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 200): b[0] = 1
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * 2 + 1) > 150): b[1] = 2
+    if ((x * y) / (z + 1) > 150) != ((x * x) / (z + 1) > 150): b[2] = 3
+    if ((x * y) / (z + 1) > 150) != ((x * 2 * y) / (z + 1) > 150): b[3] = 4
+    if ((x * y) / (z + 1) > 150) != ((y * y) / (z + 1) > 150): b[4] = 5
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 1) > 500): b[5] = 6
+    if ((x * y) / (z + 1) > 150) != ((x * 0.5 * y) / (z + 1) > 150): b[6] = 7
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z + 10) > 150): b[7] = 8
+    if ((x * y) / (z + 1) > 150) != ((x * y) / (z * z + 1) > 150): b[8] = 9
+    if ((x * y) / (z + 1) > 150) != ((x / y) / (z + 1) > 150): b[9] = 10
+
+    # 验证规则2：相对偏差检测
+    if ((y - x) < 0.2 * z) != ((y - x * 2) < 0.2 * z): b[10] = 11
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.1 * z): b[11] = 12
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.3 * z): b[12] = 13
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.5 * z): b[13] = 14
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.38 * z): b[14] = 15
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * z * x): b[15] = 16
+    if ((y - x) < 0.2 * z) != ((y * 1.3 - x) < 0.2 * z): b[16] = 17
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * x): b[17] = 18
+    if ((y - x) < 0.2 * z) != ((y - x) < 0.2 * y): b[18] = 19
+    if ((y - x) < 0.2 * z) != ((y * 2 - x) < 0.2 * z): b[19] = 20
+
+    # 验证规则3：立方根关系验证
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 2 + y ** 3) < z ** 2): b[20] = 21
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 2) < z ** 2): b[21] = 22
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 1) < z ** 2): b[22] = 23
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 2.9): b[23] = 24
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1.8 + y ** 3) < z ** 2): b[24] = 25
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 1 + y ** 3) < z ** 2): b[25] = 26
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x * 3 + y ** 3) < z ** 2): b[26] = 27
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y * 3) < z ** 2): b[27] = 28
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3) < z ** 3): b[28] = 29
+    if ((x ** 3 + y ** 3) < z ** 2) != ((x ** 3 + y ** 3.2) < z ** 3): b[29] = 30
+
+    # 验证规则6：整数同余检查
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 2 == int(y) % 3 == int(z) % 3 == 0): b[30] = 31
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 2 == int(z) % 3 == 0): b[31] = 32
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 2 == 0): b[32] = 33
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 5 == int(y) % 3 == int(z) % 3 == 0): b[33] = 34
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 5 == int(z) % 3 == 0): b[34] = 35
+    if (int(x) % 3 == int(y) % 3 == int(z) % 3 == 0) != (
+            int(x) % 3 == int(y) % 3 == int(z) % 5 == 0): b[35] = 36
+
+    # 验证规则7：比值范围检查
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (z + 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[36] = 37
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 1 and (y / (z + 0.1)) < 0.3): b[37] = 38
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[38] = 39
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.2 + 0.1)) < 0.3): b[39] = 40
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.5): b[40] = 41
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 0.1)) < 0.3): b[41] = 42
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y * 0.1)) > 3 and (y / (z + 0.1)) < 0.3): b[42] = 43
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x + (y + 0.1)) > 3 and (y / (x + 0.1)) < 0.3): b[43] = 44
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z * 1.5 + 0.1)) < 0.3): b[44] = 45
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 0)) < 0.3): b[45] = 46
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 or (y / (z + 0.1)) < 0.3): b[46] = 47
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 2)) > 3 and (y / (z + 0.1)) < 0.3): b[47] = 48
+    if ((x / (y + 0.1)) > 3 and (y / (z + 0.1)) < 0.3) != (
+            (x / (y + 0.1)) > 3 and (y / (z + 5)) < 0.3): b[48] = 49
+
+    # 验证规则8：差值阈值检查
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[49] = 50
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 20 and abs(y - z) > 20 and abs(x - z) < 8): b[50] = 51
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 30 and abs(y - z) > 20 and abs(x - z) < 8): b[51] = 52
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 40 and abs(x - z) < 8): b[52] = 53
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * z - z) > 20 and abs(x - z) < 8): b[53] = 54
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 12): b[54] = 55
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z * 2) < 8): b[55] = 56
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * 2 - z) < 8): b[56] = 57
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * 2 - z) > 20 and abs(x - z) < 8): b[57] = 58
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x * 2 - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8): b[58] = 59
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z * z) > 20 and abs(x - z) < 8): b[59] = 60
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * y - z) > 20 and abs(x - z) < 8): b[60] = 61
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y - z) > 20 and abs(x * x - z) < 8): b[61] = 62
+    if (abs(x - y) > 15 and abs(y - z) > 20 and abs(x - z) < 8) != (
+            abs(x - y) > 15 and abs(y * x - z) > 20 and abs(x - z) < 8): b[62] = 63
+
+    # 验证规则9：极值范围检查
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x * 2 > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[63] = 64
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 60 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[64] = 65
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 115 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[65] = 66
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 18) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[66] = 67
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 5) and (y > 85 or y < 2) and (z > 180 or z < 40)): b[67] = 68
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 130 or y < 2) and (z > 180 or z < 40)): b[68] = 69
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * z > 180 or z < 40)): b[69] = 70
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 30)): b[70] = 71
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z * 50 > 180 or z < 40)): b[71] = 72
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 60)): b[72] = 73
+    if ((x > 95 or x < 8) and (y > 85 or y < 2) and (z > 180 or z < 40)) != (
+            (x > 95 or x < 8) and (y > 100 or y < 2) and (z > 180 or z < 40)): b[73] = 74
+
+    # 额外的复杂验证逻辑
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.3 + y ** 0.5 > z and x * y > z ** 1.5): b[74] = 75
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.6 + y ** 0.5 > z and x * y > z ** 1.5): b[75] = 76
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.7 > z and x * y > z ** 1.5): b[76] = 77
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.5 > z ** 1.5): b[77] = 78
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            (x ** 0.5) * 2 + y ** 0.5 > z and x * y > z ** 1.5): b[78] = 79
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y * 0.5 > z and x * y > z ** 1.5): b[79] = 80
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 2 and x * y > z ** 1.5): b[80] = 81
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z * 0.5 and x * y > z ** 1.5): b[81] = 82
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.3 * y > z ** 1.5): b[82] = 83
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * 0.1 > z ** 1.5): b[83] = 84
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.2 * y > z ** 1.5): b[84] = 85
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and 0.5 * y > z ** 1.5): b[85] = 86
+    if (x ** 0.5 + y ** 0.5 > z and x * y > z ** 1.5) != (
+            x ** 0.5 + y ** 0.5 > z and x * y > z ** 8): b[86] = 87
+
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[87] = 88
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 3 and x > y): b[88] = 89
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 2 and x > y): b[89] = 90
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * x > y): b[90] = 91
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 4 and x * 2 > y): b[91] = 92
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + 50) ** 2 < z ** 2 * 4 and x > y): b[92] = 93
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 3 * 4 and x > y): b[93] = 94
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 3 < z ** 2 * 4 and x > y): b[94] = 95
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 4 < z ** 2 * 4 and x > y): b[95] = 96
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * 1 and x > y): b[96] = 97
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * x and x > y): b[97] = 98
+    if ((x + y) ** 2 < z ** 2 * 4 and x > y) != (
+            (x + y) ** 2 < z ** 2 * y and x > y): b[98] = 99
+
+    # 返回触发的分支索引集合
     triggered = set()
-
-    # Rule Group 1: (x > y) related
-    if (x > y) != (x > 5):
-        triggered.add(1)
-    if (x > y) != (x * x > y):
-        triggered.add(2)
-    if (x > y) != (x > y * y):
-        triggered.add(3)
-
-    # Rule Group 2: (x > z) related
-    if (x > z) != (x > 10):
-        triggered.add(4)
-    if (x > z) != (x * x > z):
-        triggered.add(5)
-    if (x > z) != (x > z * z):
-        triggered.add(6)
-
-    # Rule Group 3: (y > z) related
-    if (y > z) != (y > 8):
-        triggered.add(7)
-    if (y > z) != (y * y > z):
-        triggered.add(8)
-    if (y > z) != (y > z * z):
-        triggered.add(9)
-    if (y > z) != (10 > z):
-        triggered.add(10)
-
-    # Rule Group 4: (x + y <= z) related
-    if (x + y <= z) != (x + y <= z * x):
-        triggered.add(11)
-    if (x + y <= z) != (x + y <= z * y):
-        triggered.add(12)
-    if (x + y <= z) != (x * y <= z * z):
-        triggered.add(13)
-    if (x + y <= z) != (x - y <= z):
-        triggered.add(14)
-
-    #  15: 
-    cond_xy_le_z = (x + y <= z)
-    cond_x_div_y_le_z = False
-    if y != 0:
-        cond_x_div_y_le_z = (x / y <= z)
-
-    if cond_xy_le_z != cond_x_div_y_le_z:
-        triggered.add(15)
-
-    if (x + y <= z) != (x + y <= 15):
-        triggered.add(16)
-    if (x + y <= z) != (x + y <= 20):
-        triggered.add(17)
-    if (x + y <= z) != (x + 5 <= z):
-        triggered.add(18)
-    if (x + y <= z) != (10 + y <= z):
-        triggered.add(19)
-    if (x + y <= z) != (x + 8 <= z):
-        triggered.add(20)
-
-    # Rule Group 5: (x == y == z) related
-    if (x == y == z) != (x <= y == z):
-        triggered.add(21)
-    if (x == y == z) != (x == y != z):
-        triggered.add(22)
-    if (x == y == z) != (x != y == z):
-        triggered.add(23)
-    if (x == y == z) != (x == y <= z):
-        triggered.add(24)
-
-    # Rule Group 6: Modulo operations
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
-        triggered.add(25)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
-        triggered.add(26)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
-        triggered.add(27)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
-        triggered.add(28)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
-        triggered.add(29)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
-        triggered.add(30)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
-        triggered.add(31)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
-        triggered.add(32)
-
-    # Rule Group 7: Quadratic equation discriminant like conditions
-    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
-
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
-        triggered.add(33)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
-        triggered.add(34)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
-        triggered.add(35)
-
-    # Rule Group 8: System of equations like conditions
-    cond_eq_main_part = (x + y == z and y + z == 2 * x)
-
-    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
-        triggered.add(36)
-    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
-        triggered.add(37)
-    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
-        triggered.add(38)
-    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
-        triggered.add(39)
-
+    for i, val in enumerate(b):
+        if val > 0:
+            triggered.add(val)
     return triggered
 
-# ===  ===
+# === 状态处理辅助函数 ===
 def clip_state(state):
-    return np.clip(state, EXPERIMENT_CONFIG['MIN_VALUE'], EXPERIMENT_CONFIG['MAX_VALUE'])
+    return np.clip(state, EXPERIMENT_CONFIG['MIN_VALUES'], EXPERIMENT_CONFIG['MAX_VALUES'])
 
 def denormalize_state(normalized_state):
-    """"""
-    min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-    max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-    return normalized_state * (max_val - min_val) / 2 + (min_val + max_val) / 2
+    """将归一化状态还原为原始状态"""
+    min_vals = EXPERIMENT_CONFIG['MIN_VALUES']
+    max_vals = EXPERIMENT_CONFIG['MAX_VALUES']
+    return normalized_state * (max_vals - min_vals) / 2 + (min_vals + max_vals) / 2
 
 def coverage_similarity(triggered, target_path):
     """
@@ -359,10 +444,11 @@ class PPOBuffer:
                 original_state = denormalize_state(normalized_state)
                 original_state_int = np.round(original_state).astype(int)
 
+                triggered = execute_Tr(*original_state_int)
                 top_k_results[path_idx].append({
                     'state': original_state_int,
                     'similarity': sample[1],
-                    'triggered': execute_Tr(original_state_int)
+                    'triggered': triggered
                 })
 
         return top_k_results
@@ -396,9 +482,9 @@ class PPOAgent:
         self.update_count = 0
 
     def get_action(self, state):
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        min_vals = EXPERIMENT_CONFIG['MIN_VALUES']
+        max_vals = EXPERIMENT_CONFIG['MAX_VALUES']
+        normalized_state = (state - (min_vals + max_vals) / 2) / ((max_vals - min_vals) / 2)
         state_tensor = torch.FloatTensor(normalized_state).unsqueeze(0).to(device)
 
         with torch.no_grad():
@@ -412,9 +498,9 @@ class PPOAgent:
         return action, log_prob, value
 
     def store_experience(self, state, action, reward, value, log_prob, done, path_idx, similarity):
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        min_vals = EXPERIMENT_CONFIG['MIN_VALUES']
+        max_vals = EXPERIMENT_CONFIG['MAX_VALUES']
+        normalized_state = (state - (min_vals + max_vals) / 2) / ((max_vals - min_vals) / 2)
         self.buffer.store(normalized_state, action, reward, value, log_prob, done, path_idx, similarity)
 
     def update(self):
@@ -450,28 +536,13 @@ class PPOAgent:
         self.buffer.clear()
 
         if self.update_count % 2 == 0:
-            print(f"  -> PPOcompleted (Run {self.update_count})")
+            print(f"  -> PPO completed (Run {self.update_count})")
 
 # === Metric ===
 def calculate_run_performance(run_idx, ppo_results, training_time, total_steps, update_count, agent):
     """ runMetric"""
     target_paths = EXPERIMENT_CONFIG['TARGET_PATHS']
     num_paths = len(target_paths)
-
-    # 1. (Total Reward)
-    total_reward = 0
-    # 2. (Average Reward)
-    average_reward = 0
-    # 5. (Convergence)
-    convergence = 0
-    # 12. (Environment Adaptability)
-    environment_adaptability = 0
-    # 13. (Generalization Ability)
-    generalization_ability = 0
-    # 15. (Computational Efficiency)
-    computational_efficiency = 0
-    # 16. (Policy Update Frequency)
-    policy_update_frequency = 0
 
     # Similarity
     all_similarities = []
@@ -488,63 +559,57 @@ def calculate_run_performance(run_idx, ppo_results, training_time, total_steps, 
             reward = unified_reward_function(triggered, target_path)
             similarity = sample['similarity']
 
-            total_reward += reward
             all_rewards.append(reward)
             all_similarities.append(similarity)
             total_samples += 1
 
-    # 1. 
-    total_reward = total_reward
+    # 1. Total Reward
+    total_reward = sum(all_rewards)
 
-    # 2. 
-    if total_samples > 0:
-        average_reward = total_reward / total_samples
+    # 2. Average Reward
+    average_reward = total_reward / total_samples if total_samples > 0 else 0
 
-    # 5. (Average Similarity)
-    if all_similarities:
-        convergence = np.mean(all_similarities)
+    # 5. Convergence (Average Similarity)
+    convergence = np.mean(all_similarities) if all_similarities else 0
 
-    # 12. (Similarity)
-    if len(all_similarities) > 1:
-        environment_adaptability = 1 / (np.std(all_similarities) + 1e-8)
+    # 12. Environment Adaptability (1/std of similarity)
+    environment_adaptability = 1 / (np.std(all_similarities) + 1e-8) if len(all_similarities) > 1 else 0
 
-    # 13. (Average Similarity)
+    # 13. Generalization Ability (Average Similarity)
     generalization_ability = convergence
 
-    # 15. (/ seconds)
-    if training_time > 0:
-        computational_efficiency = total_steps / training_time
+    # 15. Computational Efficiency (steps/second)
+    computational_efficiency = total_steps / training_time if training_time > 0 else 0
 
-    # 16. 
-    if training_time > 0:
-        policy_update_frequency = update_count / training_time
+    # 16. Policy Update Frequency
+    policy_update_frequency = update_count / training_time if training_time > 0 else 0
 
-    # Similarity
+    # Similarity statistics
     avg_similarity = np.mean(all_similarities) if all_similarities else 0
     max_similarity = np.max(all_similarities) if all_similarities else 0
     min_similarity = np.min(all_similarities) if all_similarities else 0
 
     return {
-        '': run_idx + 1,
+        'Run': run_idx + 1,
 
         # Metric
-        '': round(total_reward, 2),
-        '': round(average_reward, 4),
-        '': round(convergence, 4),
-        '': round(environment_adaptability, 4),
-        '': round(generalization_ability, 4),
-        '': round(computational_efficiency, 2),
-        '': round(policy_update_frequency, 4),
+        'Total Reward': round(total_reward, 2),
+        'Average Reward': round(average_reward, 4),
+        'Convergence': round(convergence, 4),
+        'Environment Adaptability': round(environment_adaptability, 4),
+        'Generalization Ability': round(generalization_ability, 4),
+        'Computational Efficiency': round(computational_efficiency, 2),
+        'Policy Update Frequency': round(policy_update_frequency, 4),
 
         # Similarity
         'Average Similarity': round(avg_similarity, 4),
-        'Similarity': round(max_similarity, 4),
-        'Similarity': round(min_similarity, 4),
+        'Max Similarity': round(max_similarity, 4),
+        'Min Similarity': round(min_similarity, 4),
     }
 
 # === Excel ===
-def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_path="PPO_20 run.xlsx"):
-    """20 runPPOExcel"""
+def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_path="PPO_20_run.xlsx"):
+    """20 run PPO Excel"""
     print("\nExcel...")
 
     # 
@@ -553,7 +618,7 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
 
     #  run
     for run_idx, (ppo_results, performance_data) in enumerate(zip(all_ppo_results, all_performance_data)):
-        # ===== Sheet1: PPOPath  =====
+        # ===== Sheet1: PPO Path  =====
         ppo_summary_data = []
         for path_idx in range(len(target_paths)):
             target_path = target_paths[path_idx]
@@ -561,39 +626,39 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
 
             if len(samples) == 0:
                 ppo_summary_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
-                    '': len(target_path),
-                    '': 0,
+                    'Target Rule Count': len(target_path),
+                    'Sample Count': 0,
                     'Average Similarity': 0,
-                    'Similarity': 0,
-                    'Similarity': 0,
-                    'SimilarityStandard deviation': 0,
-                    '': '',
-                    'target paths': ', '.join(map(str, sorted(target_path)))
+                    'Max Similarity': 0,
+                    'Min Similarity': 0,
+                    'Similarity Std': 0,
+                    'Perfect Coverage': 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
                 continue
 
             similarities = [s['similarity'] for s in samples]
             perfect_count = sum(1 for s in similarities if abs(s - 1.0) < 0.001)
-            is_perfect = '' if perfect_count > 0 else ''
+            is_perfect = 'Yes' if perfect_count > 0 else 'No'
 
             ppo_summary_data.append({
-                '': run_idx + 1,
+                'Run': run_idx + 1,
                 'Path ID': path_idx + 1,
-                '': len(target_path),
-                '': len(samples),
+                'Target Rule Count': len(target_path),
+                'Sample Count': len(samples),
                 'Average Similarity': round(np.mean(similarities), 4),
-                'Similarity': round(max(similarities), 4),
-                'Similarity': round(min(similarities), 4),
-                'SimilarityStandard deviation': round(np.std(similarities), 4),
-                '': is_perfect,
-                'target paths': ', '.join(map(str, sorted(target_path)))
+                'Max Similarity': round(max(similarities), 4),
+                'Min Similarity': round(min(similarities), 4),
+                'Similarity Std': round(np.std(similarities), 4),
+                'Perfect Coverage': is_perfect,
+                'Target Paths': ', '.join(map(str, sorted(target_path)))
             })
 
         all_ppo_summary_data.extend(ppo_summary_data)
 
-        # ===== Sheet2: PPODetailed Sample Data =====
+        # ===== Sheet2: PPO Detailed Sample Data =====
         ppo_detailed_data = []
         for path_idx in range(len(target_paths)):
             target_path = target_paths[path_idx]
@@ -605,18 +670,16 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
                 triggered = sample['triggered']
 
                 ppo_detailed_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
                     'Sample ID': sample_idx + 1,
-                    'X': int(state[0]),
-                    'Y': int(state[1]),
-                    'Z': int(state[2]),
-                    'Similarity': round(similarity, 4),
-                    '': '' if abs(similarity - 1.0) < 0.001 else '',
-                    'target paths': ', '.join(map(str, sorted(target_path))),
-                    '': ', '.join(map(str, sorted(triggered))),
-                    '': len(target_path.intersection(triggered)),
-                    '': len(target_path)
+                    'X': state[0],
+                    'Y': state[1],
+                    'Z': state[2],
+                    'Similarity': similarity,
+                    'Triggered Branches': len(triggered),
+                    'Triggered Branch List': ', '.join(map(str, sorted(triggered))),
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
 
         all_ppo_detailed_data.extend(ppo_detailed_data)
@@ -627,21 +690,22 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
     performance_df = pd.DataFrame(all_performance_data)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # Sheet1: PPOPath 
-        ppo_summary_df.to_excel(writer, sheet_name='PPOPath ', index=False)
+        # Sheet1: PPO Path 
+        ppo_summary_df.to_excel(writer, sheet_name='PPO Path Summary', index=False)
 
-        # Sheet2: PPODetailed Sample Data
-        ppo_detailed_df.to_excel(writer, sheet_name='PPODetailed Sample Data', index=False)
+        # Sheet2: PPO Detailed Sample Data
+        ppo_detailed_df.to_excel(writer, sheet_name='PPO Detailed Sample Data', index=False)
 
         # Sheet3: Metric - 
         selected_columns = [
-            '',
-            '', '', '', '',
-            '', '', '',
-            'Average Similarity', 'Similarity', 'Similarity'
+            'Run',
+            'Total Reward', 'Average Reward', 'Convergence',
+            'Environment Adaptability', 'Generalization Ability',
+            'Computational Efficiency', 'Policy Update Frequency',
+            'Average Similarity', 'Max Similarity', 'Min Similarity'
         ]
         performance_df_selected = performance_df[selected_columns]
-        performance_df_selected.to_excel(writer, sheet_name='Metric', index=False)
+        performance_df_selected.to_excel(writer, sheet_name='Performance Metrics', index=False)
 
         # 
         workbook = writer.book
@@ -652,7 +716,7 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
         perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 
 
         # === Sheet1 ===
-        ws1 = writer.sheets['PPOPath ']
+        ws1 = writer.sheets['PPO Path Summary']
         for cell in ws1[1]:
             cell.fill = header_fill
             cell.font = header_font
@@ -660,23 +724,23 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
 
         # 
         for row_idx in range(2, ws1.max_row + 1):
-            if ws1.cell(row_idx, 9).value == '':  # Run 9""
+            if ws1.cell(row_idx, 9).value == 'Yes':  # Column 9 is Perfect Coverage
                 for col_idx in range(1, ws1.max_column + 1):
                     ws1.cell(row_idx, col_idx).fill = perfect_fill
 
         ws1.column_dimensions['A'].width = 12
         ws1.column_dimensions['B'].width = 12
-        ws1.column_dimensions['C'].width = 12
-        ws1.column_dimensions['D'].width = 12
-        ws1.column_dimensions['E'].width = 15
-        ws1.column_dimensions['F'].width = 15
-        ws1.column_dimensions['G'].width = 15
-        ws1.column_dimensions['H'].width = 15
-        ws1.column_dimensions['I'].width = 15
+        ws1.column_dimensions['C'].width = 18
+        ws1.column_dimensions['D'].width = 15
+        ws1.column_dimensions['E'].width = 20
+        ws1.column_dimensions['F'].width = 18
+        ws1.column_dimensions['G'].width = 18
+        ws1.column_dimensions['H'].width = 18
+        ws1.column_dimensions['I'].width = 18
         ws1.column_dimensions['J'].width = 50
 
         # === Sheet2 ===
-        ws2 = writer.sheets['PPODetailed Sample Data']
+        ws2 = writer.sheets['PPO Detailed Sample Data']
         for cell in ws2[1]:
             cell.fill = header_fill
             cell.font = header_font
@@ -688,15 +752,13 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
         ws2.column_dimensions['D'].width = 10
         ws2.column_dimensions['E'].width = 10
         ws2.column_dimensions['F'].width = 10
-        ws2.column_dimensions['G'].width = 12
-        ws2.column_dimensions['H'].width = 15
+        ws2.column_dimensions['G'].width = 15
+        ws2.column_dimensions['H'].width = 18
         ws2.column_dimensions['I'].width = 40
-        ws2.column_dimensions['J'].width = 40
-        ws2.column_dimensions['K'].width = 15
-        ws2.column_dimensions['L'].width = 15
+        ws2.column_dimensions['J'].width = 50
 
         # === Sheet3 ===
-        ws3 = writer.sheets['Metric']
+        ws3 = writer.sheets['Performance Metrics']
         for cell in ws3[1]:
             cell.fill = header_fill
             cell.font = header_font
@@ -705,12 +767,12 @@ def export_to_excel(all_ppo_results, all_performance_data, target_paths, output_
         # 
         columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
         for col in columns:
-            ws3.column_dimensions[col].width = 18
+            ws3.column_dimensions[col].width = 22
 
     print(f"Excel: {output_path}")
-    print(f"  - Sheet1: PPOPath  ({len(all_ppo_summary_data)})")
-    print(f"  - Sheet2: PPODetailed Sample Data ({len(all_ppo_detailed_data)})")
-    print(f"  - Sheet3: Metric ({len(all_performance_data)})")
+    print(f"  - Sheet1: PPO Path Summary ({len(all_ppo_summary_data)})")
+    print(f"  - Sheet2: PPO Detailed Sample Data ({len(all_ppo_detailed_data)})")
+    print(f"  - Sheet3: Performance Metrics ({len(all_performance_data)})")
 
 # === PPO ===
 def train_ppo_workflow():
@@ -726,27 +788,30 @@ def train_ppo_workflow():
     start_time = time.time()
     total_steps = 0
 
-    # 
     print(f"\n: Path {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']}")
     path_samples = {}
+    min_vals = EXPERIMENT_CONFIG['MIN_VALUES']
+    max_vals = EXPERIMENT_CONFIG['MAX_VALUES']
+
     for path_idx in range(num_paths):
         samples = []
         for _ in range(EXPERIMENT_CONFIG['SAMPLES_PER_PATH']):
-            state = np.random.randint(
-                EXPERIMENT_CONFIG['MIN_VALUE'],
-                EXPERIMENT_CONFIG['MAX_VALUE'] + 1,
-                EXPERIMENT_CONFIG['STATE_DIM']
-            ).astype(np.float32)
+            # 分别生成 X, Y, Z 的随机整数
+            state = np.array([
+                np.random.randint(min_vals[0], max_vals[0] + 1),
+                np.random.randint(min_vals[1], max_vals[1] + 1),
+                np.random.randint(min_vals[2], max_vals[2] + 1)
+            ], dtype=np.float32)
             samples.append(state)
         path_samples[path_idx] = samples
-        print(f"  Path  {path_idx + 1}/{num_paths}:  {len(samples)} ")
+        print(f"  Path {path_idx + 1}/{num_paths}: {len(samples)} ")
 
     # 
     batch_size = EXPERIMENT_CONFIG['BATCH_SIZE_SAMPLES']
     num_batches = EXPERIMENT_CONFIG['SAMPLES_PER_PATH'] // batch_size
 
     print(f"\n: {batch_size},{EXPERIMENT_CONFIG['STEPS_PER_SAMPLE']}")
-    print(f": {num_batches} /Path  x {num_paths} Path  = {num_batches * num_paths} ")
+    print(f": {num_batches} /Path x {num_paths} Path = {num_batches * num_paths} ")
     print("-" * 80)
 
     global_buffer = PPOBuffer()
@@ -772,15 +837,16 @@ def train_ppo_workflow():
                     next_state = state + action
                     next_state = clip_state(next_state)
 
-                    triggered = execute_Tr(next_state)
+                    triggered = execute_Tr(*next_state)
                     reward = unified_reward_function(triggered, target_path)
                     similarity = coverage_similarity(triggered, target_path)
 
                     done = (step == EXPERIMENT_CONFIG['STEPS_PER_SAMPLE'] - 1)
 
                     agent.store_experience(state, action, reward, value, log_prob, done, path_idx, similarity)
+                    normalized_state = (state - (min_vals + max_vals) / 2) / ((max_vals - min_vals) / 2)
                     global_buffer.store(
-                        (state - (EXPERIMENT_CONFIG['MIN_VALUE'] + EXPERIMENT_CONFIG['MAX_VALUE']) / 2) / ((EXPERIMENT_CONFIG['MAX_VALUE'] - EXPERIMENT_CONFIG['MIN_VALUE']) / 2),
+                        normalized_state,
                         action, reward, value, log_prob, done, path_idx, similarity
                     )
 
@@ -803,13 +869,13 @@ def train_ppo_workflow():
     training_time = time.time() - start_time
 
     print("\n" + "=" * 80)
-    print(f"PPOcompleted! Total elapsed time: {training_time:.2f} seconds, : {total_steps}")
+    print(f"PPO completed! Total elapsed time: {training_time:.2f} seconds, : {total_steps}")
     print(f": {len(global_buffer)}")
     print(f"PPO: {agent.update_count}")
     print("=" * 80)
 
     # Top-K
-    print(f"\nPath SimilarityMaximum{EXPERIMENT_CONFIG['TOP_K_SAMPLES']}...")
+    print(f"\nPath Similarity Maximum {EXPERIMENT_CONFIG['TOP_K_SAMPLES']}...")
     ppo_top_k_results = global_buffer.get_top_k_per_path(num_paths, EXPERIMENT_CONFIG['TOP_K_SAMPLES'])
 
     return agent, ppo_top_k_results, training_time, total_steps, agent.update_count
@@ -828,7 +894,7 @@ def main():
     # 20
     for run_idx in range(EXPERIMENT_CONFIG['NUM_RUNS']):
         print(f"\n{'=' * 80}")
-        print(f"Start run  {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']}  run")
+        print(f"Start run {run_idx + 1}/{EXPERIMENT_CONFIG['NUM_RUNS']} run")
         print(f"{'=' * 80}")
 
         # PPO
@@ -843,14 +909,14 @@ def main():
         all_ppo_results.append(ppo_results)
         all_performance_data.append(performance_data)
 
-        print(f"\nRun  {run_idx + 1}  runcompleted!")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
+        print(f"\nRun {run_idx + 1} run completed!")
+        print(f"  Total Reward: {performance_data['Total Reward']}")
+        print(f"  Average Reward: {performance_data['Average Reward']}")
+        print(f"  Average Similarity: {performance_data['Average Similarity']}")
 
     # Excel(20 run)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"PPO_20 run_{timestamp}.xlsx"
+    output_path = f"PPO_20_runs_{timestamp}.xlsx"
     export_to_excel(all_ppo_results, all_performance_data, target_paths, output_path)
 
     # 
@@ -859,46 +925,42 @@ def main():
     print("=" * 80)
 
     # Metric
-    total_rewards = [p[''] for p in all_performance_data]
-    average_rewards = [p[''] for p in all_performance_data]
-    convergences = [p[''] for p in all_performance_data]
-    environment_adaptabilities = [p[''] for p in all_performance_data]
-    generalization_abilities = [p[''] for p in all_performance_data]
-    computational_efficiencies = [p[''] for p in all_performance_data]
-    policy_update_frequencies = [p[''] for p in all_performance_data]
+    total_rewards = [p['Total Reward'] for p in all_performance_data]
+    average_rewards = [p['Average Reward'] for p in all_performance_data]
+    convergences = [p['Convergence'] for p in all_performance_data]
+    environment_adaptabilities = [p['Environment Adaptability'] for p in all_performance_data]
+    generalization_abilities = [p['Generalization Ability'] for p in all_performance_data]
+    computational_efficiencies = [p['Computational Efficiency'] for p in all_performance_data]
+    policy_update_frequencies = [p['Policy Update Frequency'] for p in all_performance_data]
     avg_similarities = [p['Average Similarity'] for p in all_performance_data]
 
-    print(f":")
-    print(f"  : {np.mean(total_rewards):.2f}")
+    print(f"\nTotal Reward Statistics:")
+    print(f"  Mean: {np.mean(total_rewards):.2f}")
     print(f"  Standard deviation: {np.std(total_rewards):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(average_rewards):.4f}")
+    print(f"\nAverage Reward Statistics:")
+    print(f"  Mean: {np.mean(average_rewards):.4f}")
     print(f"  Standard deviation: {np.std(average_rewards):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(convergences):.4f}")
+    print(f"\nConvergence Statistics:")
+    print(f"  Mean: {np.mean(convergences):.4f}")
     print(f"  Standard deviation: {np.std(convergences):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(environment_adaptabilities):.4f}")
+    print(f"\nEnvironment Adaptability Statistics:")
+    print(f"  Mean: {np.mean(environment_adaptabilities):.4f}")
     print(f"  Standard deviation: {np.std(environment_adaptabilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(generalization_abilities):.4f}")
+    print(f"\nGeneralization Ability Statistics:")
+    print(f"  Mean: {np.mean(generalization_abilities):.4f}")
     print(f"  Standard deviation: {np.std(generalization_abilities):.4f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(computational_efficiencies):.2f}")
+    print(f"\nComputational Efficiency Statistics:")
+    print(f"  Mean: {np.mean(computational_efficiencies):.2f}")
     print(f"  Standard deviation: {np.std(computational_efficiencies):.2f}")
 
-    print(f"\n:")
-    print(f"  : {np.mean(policy_update_frequencies):.4f}")
+    print(f"\nPolicy Update Frequency Statistics:")
+    print(f"  Mean: {np.mean(policy_update_frequencies):.4f}")
     print(f"  Standard deviation: {np.std(policy_update_frequencies):.4f}")
-
-    print(f"\nAverage similarity statistics:")
-    print(f"  : {np.mean(avg_similarities):.4f}")
-    print(f"  Standard deviation: {np.std(avg_similarities):.4f}")
 
     print("\n" + "=" * 80)
     print(f" {EXPERIMENT_CONFIG['NUM_RUNS']} completed!")
