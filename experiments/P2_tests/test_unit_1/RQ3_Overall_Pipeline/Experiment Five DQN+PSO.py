@@ -26,12 +26,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # === three-dimensional range settings ===
 # Keep the current DQN state range used by the second script. To use a 0-500 range, modify this section only.
 LIGHT_MIN = 1
-LIGHT_MAX = 50
+LIGHT_MAX = 128
 MOISTURE_MIN = 1
-MOISTURE_MAX = 50
+MOISTURE_MAX = 128
 TEMP_MIN = 1
-TEMP_MAX = 50
-
+TEMP_MAX = 128
 BOUNDS = {
     "light": (LIGHT_MIN, LIGHT_MAX),
     "moisture": (MOISTURE_MIN, MOISTURE_MAX),
@@ -88,115 +87,137 @@ def is_state_valid(state):
         and BOUNDS["temp"][0] <= state[2] <= BOUNDS["temp"][1]
     )
 
-
-def execute_Tr(state_or_dx, dy=None, dz=None) -> Set[int]:
-    """
-    Execute the TR path-trigger function.
-    Accepts execute_Tr(state) or execute_Tr(dx, dy, dz).
-    """
-    if dy is None and dz is None:
-        state = np.asarray(state_or_dx, dtype=float)
-        dx, dy, dz = float(state[0]), float(state[1]), float(state[2])
-    else:
-        dx, dy, dz = float(state_or_dx), float(dy), float(dz)
-
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0
-    INITIAL_BATTERY = 1000.0
-    BATTERY_PER_STEP = 1.0
-    SAFE_DISTANCE = 5.0
-    CRITICAL_BATTERY_LEVEL = 100.0
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(state):
+    x, y, z = int(state[0]), int(state[1]), int(state[2])
     triggered = set()
-
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-    simulated_y = current_y
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
+    # Rule Group 1: (x > y) related
+    if (x > y) != (x > 5):
         triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
+    if (x > y) != (x * x > y):
         triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
+    if (x > y) != (x > y * y):
         triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
+
+        # Rule Group 2: (x > z) related
+    if (x > z) != (x > 10):
         triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
+    if (x > z) != (x * x > z):
         triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
+    if (x > z) != (x > z * z):
         triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
 
-    # --- branch 10-15 ---
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
+        # Rule Group 3: (y > z) related
+    if (y > z) != (y > 8):
+        triggered.add(7)
+    if (y > z) != (y * y > z):
+        triggered.add(8)
+    if (y > z) != (y > z * z):
+        triggered.add(9)
+    if (y > z) != (10 > z):
         triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
+
+        # Rule Group 4: (x + y <= z) related
+    if (x + y <= z) != (x + y <= z * x):
         triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
+    if (x + y <= z) != (x + y <= z * y):
         triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
+    if (x + y <= z) != (x * y <= z * z):
         triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
+    if (x + y <= z) != (x - y <= z):
         triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
+
+        # 修正后的规则 15：安全处理除以零
+    cond_xy_le_z = (x + y <= z)
+    cond_x_div_y_le_z = False
+    if y != 0:
+        cond_x_div_y_le_z = (x / y <= z)
+
+    if cond_xy_le_z != cond_x_div_y_le_z:
         triggered.add(15)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
+    if (x + y <= z) != (x + y <= 15):
         triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
+    if (x + y <= z) != (x + y <= 20):
         triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
+    if (x + y <= z) != (x + 5 <= z):
         triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
+    if (x + y <= z) != (10 + y <= z):
         triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
+    if (x + y <= z) != (x + 8 <= z):
         triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
 
-    # --- branch 22-29 ---
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
+        # Rule Group 5: (x == y == z) related
+    if (x == y == z) != (x <= y == z):
+        triggered.add(21)
+    if (x == y == z) != (x == y != z):
         triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (x == y == z) != (x != y == z):
         triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
+
+    if (x == y == z) != (x == y <= z):
         triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
+
+        # Rule Group 6: Modulo operations
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
         triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
         triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
         triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
         triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
         triggered.add(29)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+        triggered.add(30)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+        triggered.add(31)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+        triggered.add(32)
+
+        # Rule Group 7: Quadratic equation discriminant like conditions
+    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
+
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+        triggered.add(33)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+        triggered.add(34)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+        triggered.add(35)
+
+    # Rule Group 8: System of equations like conditions
+    cond_eq_main_part = (x + y == z and y + z == 2 * x)
+
+    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+        triggered.add(36)
+
+    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+        triggered.add(37)
+
+    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+        triggered.add(38)
+    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+        triggered.add(39)
 
     return triggered
 
 
 target_paths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
+    {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
+    {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
+    {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
+    {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
 ]
 
 

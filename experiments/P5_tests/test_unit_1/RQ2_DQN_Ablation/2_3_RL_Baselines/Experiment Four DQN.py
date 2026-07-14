@@ -20,8 +20,9 @@ print(f"Using device: {device}")
 # ===  ===
 EXPERIMENT_CONFIG = {
     'STATE_DIM': 3,
-    'MIN_VALUE': 1,
-    'MAX_VALUE': 128,  # 50
+    'MIN_X': 1, 'MAX_X': 100,
+    'MIN_Y': 1, 'MAX_Y': 100,
+    'MIN_Z': 1, 'MAX_Z': 100,
     'SAMPLES_PER_PATH': 200,
     'BATCH_SIZE_SAMPLES': 50,
     'STEPS_PER_SAMPLE': 5,
@@ -34,37 +35,53 @@ EXPERIMENT_CONFIG = {
     'LEARNING_RATE': 3e-4,
     'NUM_RUNS': 20,  # 20 run
     'TOP_K_SAMPLES': 20,
-    'REPLAY_BUFFER_CAPACITY': 20000,  # Path 
+    'REPLAY_BUFFER_CAPACITY': 20000,  # Path
     'TARGET_PATHS': [
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
-        {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
-        {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
-        {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
-        {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
-        {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
-        {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
-        {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
-        {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
+        [19, 24, 37, 47, 48, 51, 54, 55, 57, 58, 59, 61, 69, 70, 79, 82, 87, 88, 90, 91, 92, 93, 94, 95, 97, 100, 119,
+         120],
+        [19, 24, 37, 47, 48, 51, 54, 55, 57, 58, 59, 61, 69, 70, 79, 82, 87, 88, 90, 91, 92, 93, 95, 97, 100, 119, 120],
+        [19, 24, 37, 47, 48, 51, 54, 55, 58, 59, 61, 69, 70, 79, 82, 87, 88, 91, 92, 93, 95, 97, 99, 100, 119, 120],
+        [19, 24, 37, 47, 48, 51, 54, 55, 58, 59, 61, 69, 70, 79, 82, 87, 88, 90, 91, 92, 93, 96, 98, 99, 119, 120],
+        [6, 14, 18, 31, 48, 60, 61, 82, 87, 88, 90, 91, 92, 93, 96, 99, 100, 101, 102, 109, 110, 115, 116, 118],
+        [5, 6, 10, 30, 31, 34, 36, 37, 39, 43, 44, 46, 48, 61, 69, 79, 82, 84, 87, 88, 90, 91, 92, 93, 99, 120],
+        [19, 24, 37, 47, 48, 51, 54, 55, 56, 57, 58, 59, 61, 69, 70, 82, 87, 88, 89, 94, 95, 97, 100, 119, 120],
+        [19, 20, 24, 47, 48, 51, 54, 55, 58, 59, 69, 70, 79, 82, 87, 88, 90, 91, 92, 93, 94, 95, 97, 100, 119],
+        [19, 37, 53, 62, 64, 66, 70, 87, 91, 92, 93, 94, 95, 97, 99, 100, 101, 102, 109, 110, 116, 118, 120],
+        [5, 6, 18, 19, 31, 44, 47, 48, 60, 79, 80, 82, 83, 87, 88, 94, 95, 97, 99, 100, 101, 109, 110, 117],
+        [5, 6, 7, 18, 31, 44, 48, 60, 79, 80, 82, 83, 87, 88, 94, 95, 97, 99, 100, 101, 109, 110, 113, 117],
+        [5, 6, 18, 31, 44, 47, 48, 60, 79, 80, 82, 83, 85, 87, 88, 94, 95, 97, 99, 100, 101, 109, 110, 117],
+        [19, 24, 37, 47, 48, 51, 52, 53, 61, 69, 70, 79, 80, 82, 83, 85, 87, 88, 94, 95, 97, 99, 100, 120],
+        [6, 37, 48, 62, 64, 66, 67, 79, 82, 87, 88, 90, 91, 92, 93, 99, 101, 102, 109, 110, 116, 118, 120],
+        [6, 18, 30, 31, 32, 35, 44, 48, 60, 87, 88, 91, 92, 93, 94, 95, 99, 100, 101, 109, 110, 114, 117],
+        [6, 18, 30, 31, 32, 35, 42, 43, 44, 48, 60, 87, 88, 94, 95, 97, 99, 100, 101, 109, 110, 114, 117],
+        [5, 30, 31, 34, 36, 37, 39, 43, 44, 46, 53, 61, 69, 70, 76, 79, 82, 84, 87, 88, 91, 92, 93, 120],
+        [5, 10, 30, 31, 34, 41, 43, 44, 46, 53, 61, 69, 70, 76, 82, 84, 87, 88, 90, 91, 92, 93, 99, 120],
+        [5, 10, 11, 19, 20, 25, 30, 31, 36, 37, 43, 44, 69, 79, 82, 84, 86, 87, 90, 91, 92, 93, 99, 102],
+        [5, 6, 18, 30, 31, 33, 43, 44, 45, 48, 69, 79, 82, 87, 88, 90, 91, 92, 93, 99, 100, 109, 110],
+        [5, 6, 10, 16, 30, 31, 33, 36, 43, 44, 45, 48, 69, 79, 80, 82, 83, 84, 87, 88, 100, 109, 110],
+        [5, 30, 31, 34, 36, 37, 38, 43, 44, 46, 53, 61, 69, 70, 76, 84, 87, 88, 89, 94, 99, 119, 120],
+        [6, 14, 18, 31, 44, 48, 60, 61, 79, 82, 87, 88, 90, 91, 92, 93, 94, 95, 101, 102, 112, 118],
+        [37, 52, 53, 60, 61, 69, 70, 71, 79, 80, 82, 83, 87, 88, 95, 97, 99, 100, 101, 109, 120],
+        [5, 6, 18, 19, 31, 44, 47, 48, 60, 81, 84, 86, 94, 95, 97, 99, 100, 101, 109, 110, 117],
+        [11, 20, 25, 60, 61, 79, 82, 84, 86, 87, 90, 91, 92, 93, 99, 104, 106, 107, 109, 110]
     ],
 }
 
 
 # ===  ===
-def clip_state(state):
-    return np.clip(state, EXPERIMENT_CONFIG['MIN_VALUE'], EXPERIMENT_CONFIG['MAX_VALUE'])
+def get_bounds():
+    mins = np.array([EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MIN_Z']])
+    maxs = np.array([EXPERIMENT_CONFIG['MAX_X'], EXPERIMENT_CONFIG['MAX_Y'], EXPERIMENT_CONFIG['MAX_Z']])
+    return mins, maxs
 
+def clip_state(state):
+    mins, maxs = get_bounds()
+    return np.clip(state, mins, maxs)
 
 def denormalize_state(normalized_state):
     """"""
-    min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-    max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-    return normalized_state * (max_val - min_val) / 2 + (min_val + max_val) / 2
+    mins, maxs = get_bounds()
+    return normalized_state * (maxs - mins) / 2 + (mins + maxs) / 2
 
 
 def coverage_similarity(triggered, target_path):
@@ -93,123 +110,271 @@ def unified_reward_function(triggered, target_path):
 
 
 # ===   ===
-def execute_Tr(a):
-    x, y, z = int(a[0]), int(a[1]), int(a[2])
+def execute_Tr(x, y, z):
     triggered = set()
+    actions = []
 
-    # Rule Group 1: (x > y) related
-    if (x > y) != (x > 5):
+    devices = {
+        'main_light': 'green',
+        'side_light': 'red',
+        'pedestrian_light': 'red',
+        'warning_system': 'off'
+    }
+
+    # Fixed syntax: properly formatted if statements
+    if (x > 85 and y < 40 and z < 25) != (x > 90 and y < 40 and z < 25):
         triggered.add(1)
-    if (x > y) != (x * x > y):
+    if (x > 85 and y < 40 and z < 25) != (x > 85 and y < 35 and z < 25):
         triggered.add(2)
-    if (x > y) != (x > y * y):
+    if (x > 85 and y < 40 and z < 25) != (x > 85 and y < 40 and z < 20):
         triggered.add(3)
-
-        # Rule Group 2: (x > z) related
-    if (x > z) != (x > 10):
+    if (x > 85 and y < 40 and z < 25) != (x > 80 and y < 40 and z < 25):
         triggered.add(4)
-    if (x > z) != (x * x > z):
+    if (x > 80 and y < 45 and z > 40) != (x > 80 or y < 45 and z > 40):
         triggered.add(5)
-    if (x > z) != (x > z * z):
+    if (x > 80 and y < 45 and z > 40) != (x > 80 and y < 45 or z > 40):
         triggered.add(6)
-
-        # Rule Group 3: (y > z) related
-    if (y > z) != (y > 8):
+    if (x > 80 and y < 45 and z > 40) != (x > 60 and y < 45 and z > 40):
         triggered.add(7)
-    if (y > z) != (y * y > z):
+    if (x > 80 and y < 45 and z > 40) != (x > 80 and y < 25 and z > 40):
         triggered.add(8)
-    if (y > z) != (y > z * z):
+    if (x > 80 and y < 45 and z > 40) != (x > 80 and y < 45 and z > 20):
         triggered.add(9)
-    if (y > z) != (10 > z):
+    if (x > 92 and y < 30 and z < 15) != (x > 92 or y < 30 and z < 15):
         triggered.add(10)
-
-        # Rule Group 4: (x + y <= z) related
-    if (x + y <= z) != (x + y <= z * x):
+    if (x > 92 and y < 30 and z < 15) != (x > 92 and y < 30 or z < 15):
         triggered.add(11)
-    if (x + y <= z) != (x + y <= z * y):
+    if (x > 92 and y < 30 and z < 15) != (x > 72 and y < 30 and z < 15):
         triggered.add(12)
-    if (x + y <= z) != (x * y <= z * z):
+    if (x > 92 and y < 30 and z < 15) != (x > 92 and y < 10 and z < 15):
         triggered.add(13)
-    if (x + y <= z) != (x - y <= z):
+    if (x > 75 and 45 < y < 65 and z > 50) != (x > 55 and 45 < y < 65 and z > 50):
         triggered.add(14)
-
-        #  15: 
-    cond_xy_le_z = (x + y <= z)
-    cond_x_div_y_le_z = False
-    if y != 0:
-        cond_x_div_y_le_z = (x / y <= z)
-
-    if cond_xy_le_z != cond_x_div_y_le_z:
+    if (x > 75 and 45 < y < 65 and z > 50) != (x > 75 and 35 < y < 65 and z > 50):
         triggered.add(15)
-
-    if (x + y <= z) != (x + y <= 15):
+    if (x > 75 and 45 < y < 65 and z > 50) != (x > 75 and 45 < y < 55 and z > 50):
         triggered.add(16)
-    if (x + y <= z) != (x + y <= 20):
+    if (x > 75 and 45 < y < 65 and z > 50) != (x > 75 and 45 < y < 65 and z > 40):
         triggered.add(17)
-    if (x + y <= z) != (x + 5 <= z):
+    if (x > 75 and 45 < y < 65 and z > 50) != (x > 75 and 45 < y < 65 or z > 50):
         triggered.add(18)
-    if (x + y <= z) != (10 + y <= z):
+    if (x < 50 and y > 80 and z < 25) != (x < 50 or y > 80 and z < 25):
         triggered.add(19)
-    if (x + y <= z) != (x + 8 <= z):
+    if (x < 50 and y > 80 and z < 25) != (x < 50 and y > 80 or z < 25):
         triggered.add(20)
-
-        # Rule Group 5: (x == y == z) related
-    if (x == y == z) != (x <= y == z):
+    if (x < 50 and y > 80 and z < 25) != (x < 25 and y > 80 and z < 25):
         triggered.add(21)
-    if (x == y == z) != (x == y != z):
+    if (x < 50 and y > 80 and z < 25) != (x < 50 and y > 40 and z < 25):
         triggered.add(22)
-    if (x == y == z) != (x != y == z):
+    if (x < 50 and y > 80 and z < 25) != (x < 50 and y > 80 and z < 15):
         triggered.add(23)
-
-    if (x == y == z) != (x == y <= z):
+    if (x < 30 and y > 92 and z < 15) != (x < 30 or y > 92 and z < 15):
         triggered.add(24)
-
-        # Rule Group 6: Modulo operations
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+    if (x < 30 and y > 92 and z < 15) != (x < 30 and y > 92 or z < 15):
         triggered.add(25)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+    if (x < 30 and y > 92 and z < 15) != (x < 70 and y > 92 and z < 15):
         triggered.add(26)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+    if (x < 30 and y > 92 and z < 15) != (x < 30 and y > 42 and z < 15):
         triggered.add(27)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+    if (x < 30 and y > 92 and z < 15) != (x < 30 and y > 92 and z < 5):
         triggered.add(28)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+    if (x < 30 and y > 92 and z < 15) != (x < 30 and y > 62 and z < 15):
         triggered.add(29)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+    if (x > 70 and y > 70 and z > 45) != (x > 70 or y > 70 and z > 45):
         triggered.add(30)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+    if (x > 70 and y > 70 and z > 45) != (x > 70 and y > 70 or z > 45):
         triggered.add(31)
-    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+    if (x > 70 and y > 70 and z > 45) != (x > 50 and y > 70 and z > 45):
         triggered.add(32)
-
-        # Rule Group 7: Quadratic equation discriminant like conditions
-    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
-
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+    if (x > 70 and y > 70 and z > 45) != (x > 70 and y > 50 and z > 45):
         triggered.add(33)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+    if (x > 70 and y > 70 and z > 45) != (x > 70 and y > 70 and z > 25):
         triggered.add(34)
-    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+    if (x > 70 and y > 70 and z > 45) != (x > 35 and y > 70 and z > 45):
         triggered.add(35)
-
-    # Rule Group 8: System of equations like conditions
-    cond_eq_main_part = (x + y == z and y + z == 2 * x)
-
-    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 88 or y > 88 and 25 < z < 45):
         triggered.add(36)
-
-    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 88 and y > 88 or 25 < z < 45):
         triggered.add(37)
-
-    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 44 and y > 88 and 25 < z < 45):
         triggered.add(38)
-    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 88 and y > 44 and 25 < z < 45):
         triggered.add(39)
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 88 and y > 88 and 15 < z < 45):
+        triggered.add(40)
+    if (x > 88 and y > 88 and 25 < z < 45) != (x > 88 and y > 88 and 25 < z < 25):
+        triggered.add(41)
+    if (x > 75 and y > 75 and z > 55) != (x > 35 and y > 75 and z > 55):
+        triggered.add(42)
+    if (x > 75 and y > 75 and z > 55) != (x > 75 or y > 75 and z > 55):
+        triggered.add(43)
+    if (x > 75 and y > 75 and z > 55) != (x > 75 and y > 75 or z > 55):
+        triggered.add(44)
+    if (x > 75 and y > 75 and z > 55) != (x > 75 and y > 35 and z > 55):
+        triggered.add(45)
+    if (x > 75 and y > 75 and z > 55) != (x > 75 and y > 75 and z > 25):
+        triggered.add(46)
+    if (x < 40 and y < 40 and z > 40) != (x < 40 or y < 40 and z > 40):
+        triggered.add(47)
+    if (x < 40 and y < 40 and z > 40) != (x < 40 and y < 40 or z > 40):
+        triggered.add(48)
+    if (x < 40 and y < 40 and z > 40) != (x < 20 and y < 40 and z > 40):
+        triggered.add(49)
+    if (x < 40 and y < 40 and z > 40) != (x < 40 and y < 20 and z > 40):
+        triggered.add(50)
+    if (x < 40 and y < 40 and z > 40) != (x < 40 and y < 40 and z > 20):
+        triggered.add(51)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 or y < 25 and 20 < z < 40):
+        triggered.add(52)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 and y < 25 or 20 < z < 40):
+        triggered.add(53)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 15 and y < 25 and 20 < z < 40):
+        triggered.add(54)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 5 and y < 25 and 20 < z < 40):
+        triggered.add(55)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 and y < 15 and 20 < z < 40):
+        triggered.add(56)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 and y < 5 and 20 < z < 40):
+        triggered.add(57)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 and y < 25 and 20 < z < 20):
+        triggered.add(58)
+    if (x < 25 and y < 25 and 20 < z < 40) != (x < 25 and y < 25 and 20 < z < 10):
+        triggered.add(59)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 70 or 45 < y < 70 and 25 < z < 45):
+        triggered.add(60)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 70 and 45 < y < 70 or 25 < z < 45):
+        triggered.add(61)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 35 and 45 < y < 70 and 25 < z < 45):
+        triggered.add(62)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (20 < x < 70 and 45 < y < 70 and 25 < z < 45):
+        triggered.add(63)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 70 and 45 < y < 55 and 25 < z < 45):
+        triggered.add(64)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 70 and 45 < y < 70 and 15 < z < 45):
+        triggered.add(65)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 70 and 45 < y < 70 and 25 < z < 35):
+        triggered.add(66)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (45 < x < 60 and 45 < y < 70 and 25 < z < 45):
+        triggered.add(67)
+    if (45 < x < 70 and 45 < y < 70 and 25 < z < 45) != (15 < x < 70 and 45 < y < 70 and 25 < z < 45):
+        triggered.add(68)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 or y < 42 and 20 < z < 40):
+        triggered.add(69)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 42 or 20 < z < 40):
+        triggered.add(70)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 48 and y < 42 and 20 < z < 40):
+        triggered.add(71)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 22 and 20 < z < 40):
+        triggered.add(72)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 42 and 10 < z < 40):
+        triggered.add(73)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 42 and 20 < z < 30):
+        triggered.add(74)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 42 and 20 < z < 50):
+        triggered.add(75)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and z < 42 and 20 < z < 40):
+        triggered.add(76)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x > 78 and y < 42 and 20 < y < 40):
+        triggered.add(77)
+    if (x > 78 and y < 42 and 20 < z < 40) != (x + z > 98 and y < 42 and 20 < z < 40):
+        triggered.add(78)
+    if (x > y + 30) != (x > y + 10):
+        triggered.add(79)
+    if (x > y + 30) != (x > y + 20):
+        triggered.add(80)
+    if (x > y + 30) != (x > y + 40):
+        triggered.add(81)
+    if (x > y + 30) != (x > y):
+        triggered.add(82)
+    if (x > y + 30) != (x + 10 > y + 30):
+        triggered.add(83)
+    if (x > y + 30) != (x > z + 30):
+        triggered.add(84)
+    if (x > y + 30) != (z > y + 30):
+        triggered.add(85)
+    if (x > y + 30) != (x > y + z):
+        triggered.add(86)
+    if (x > y + 30) != (x > y - z):
+        triggered.add(87)
+    if (x > y + 30) != (x + z > y + 30):
+        triggered.add(88)
+    if (abs(x - y) < 10) != (abs(x + y) < 10):
+        triggered.add(89)
+    if (abs(x - y) < 10) != (abs(x - y) < 15):
+        triggered.add(90)
+    if (abs(x - y) < 10) != (abs(x - y) < 16):
+        triggered.add(91)
+    if (abs(x - y) < 10) != (abs(x - y) < 17):
+        triggered.add(92)
+    if (abs(x - y) < 10) != (abs(x - y) < 20):
+        triggered.add(93)
+    if (abs(x - y) < 10) != (abs(x - z) < 10):
+        triggered.add(94)
+    if (abs(x - z) < 15) != (abs(x + z) < 15):
+        triggered.add(95)
+    if (abs(x - z) < 15) != (abs(x - z) < 25):
+        triggered.add(96)
+    if (abs(x - z) < 15) != (abs(x - z) < 5):
+        triggered.add(97)
+    if (abs(x - z) < 15) != (abs(x - z) <= 15):
+        triggered.add(98)
+    if (abs(x - z) < 15) != (abs(x - y) < 15):
+        triggered.add(99)
+    if (abs(x - z) < 15) != (abs(y - z) < 15):
+        triggered.add(100)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 or 45 < y < 70 and z < 12):
+        triggered.add(101)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 and 45 < y < 70 or z < 12):
+        triggered.add(102)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (25 < x < 70 and 45 < y < 70 and z < 12):
+        triggered.add(103)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 50 and 45 < y < 70 and z < 12):
+        triggered.add(104)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 and 25 < y < 70 and z < 12):
+        triggered.add(105)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 and 45 < y < 50 and z < 12):
+        triggered.add(106)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 and 45 < y < 70 and z < 10):
+        triggered.add(107)
+    if (45 < x < 70 and 45 < y < 70 and z < 12) != (45 < x < 70 and 45 < y < 70 and z < 20):
+        triggered.add(108)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 or 45 < y < 70 and z > 55):
+        triggered.add(109)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < y < 70 or z > 55):
+        triggered.add(110)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (25 < x < 70 and 45 < y < 70 and z > 55):
+        triggered.add(111)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 60 and 45 < y < 70 and z > 55):
+        triggered.add(112)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 40 < y < 70 and z > 55):
+        triggered.add(113)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < y < 80 and z > 55):
+        triggered.add(114)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < y < 70 and z > 45):
+        triggered.add(115)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < y < 70 and z > 35):
+        triggered.add(116)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < z < 70 and z > 55):
+        triggered.add(117)
+    if (45 < x < 70 and 45 < y < 70 and z > 55) != (45 < x < 70 and 45 < y < 70 and y > 55):
+        triggered.add(118)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 22 or y > 92 and 25 < z < 45):
+        triggered.add(119)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 22 and y > 92 or 25 < z < 45):
+        triggered.add(120)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 12 and y > 92 and 25 < z < 45):
+        triggered.add(121)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 22 and y > 52 and 25 < z < 45):
+        triggered.add(122)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 22 and y > 92 and 15 < z < 45):
+        triggered.add(123)
+    if (x < 22 and y > 92 and 25 < z < 45) != (x < 22 and y > 92 and 25 < z < 35):
+        triggered.add(124)
 
     return triggered
 
 
-# 
+#
 execute_Tr = execute_Tr
 
 # === DQN ===
@@ -279,7 +444,7 @@ class PathReplayBuffer:
             results.append({
                 'state': original_state_int,
                 'similarity': similarity,
-                'triggered': execute_Tr(original_state_int)
+                'triggered': execute_Tr(*original_state_int)
             })
 
         return results
@@ -303,7 +468,7 @@ class ImprovedDQNAgent:
         lr = EXPERIMENT_CONFIG['LEARNING_RATE']
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
 
-        # Path 
+        # Path
         capacity = EXPERIMENT_CONFIG['REPLAY_BUFFER_CAPACITY']
         self.replay_buffers = {}
         for path_idx in range(num_paths):
@@ -313,7 +478,7 @@ class ImprovedDQNAgent:
         self.update_target_network()
 
     def discrete_to_action_delta(self, action_idx):
-        # 
+        #
         delta_values = [5, 3, 2, 1, 0.5, -0.5, -1, -2, -3, -5]
 
         if action_idx >= 30:
@@ -329,9 +494,8 @@ class ImprovedDQNAgent:
         return action_delta
 
     def get_action(self, state):
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         if random.random() < self.epsilon:
             action_idx = random.randint(0, self.action_size - 1)
@@ -346,10 +510,9 @@ class ImprovedDQNAgent:
 
     def store_experience(self, path_idx, state, action_idx, reward, next_state, done, similarity):
         """Path """
-        min_val = EXPERIMENT_CONFIG['MIN_VALUE']
-        max_val = EXPERIMENT_CONFIG['MAX_VALUE']
-        normalized_state = (state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
-        normalized_next_state = (next_state - (min_val + max_val) / 2) / ((max_val - min_val) / 2)
+        mins, maxs = get_bounds()
+        normalized_state = (state - (mins + maxs) / 2) / ((maxs - mins) / 2)
+        normalized_next_state = (next_state - (mins + maxs) / 2) / ((maxs - mins) / 2)
 
         self.replay_buffers[path_idx].push(
             normalized_state, action_idx, reward,
@@ -447,10 +610,10 @@ def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, 
             all_similarities.append(similarity)
             total_samples += 1
 
-    # 1. 
+    # 1.
     total_reward = total_reward
 
-    # 2. 
+    # 2.
     if total_samples > 0:
         average_reward = total_reward / total_samples
 
@@ -469,7 +632,7 @@ def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, 
     if training_time > 0:
         computational_efficiency = total_steps / training_time
 
-    # 16. 
+    # 16.
     if training_time > 0:
         policy_update_frequency = update_count / training_time
 
@@ -479,21 +642,21 @@ def calculate_run_performance(run_idx, dqn_results, training_time, total_steps, 
     min_similarity = np.min(all_similarities) if all_similarities else 0
 
     return {
-        '': run_idx + 1,
+        'Run': run_idx + 1,
 
         # Metric
-        '': round(total_reward, 2),
-        '': round(average_reward, 4),
-        '': round(convergence, 4),
-        '': round(environment_adaptability, 4),
-        '': round(generalization_ability, 4),
-        '': round(computational_efficiency, 2),
-        '': round(policy_update_frequency, 4),
+        'Total Reward': round(total_reward, 2),
+        'Average Reward': round(average_reward, 4),
+        'Convergence': round(convergence, 4),
+        'Environment Adaptability': round(environment_adaptability, 4),
+        'Generalization Ability': round(generalization_ability, 4),
+        'Computational Efficiency': round(computational_efficiency, 2),
+        'Policy Update Frequency': round(policy_update_frequency, 4),
 
         # Similarity
         'Average Similarity': round(avg_similarity, 4),
-        'Similarity': round(max_similarity, 4),
-        'Similarity': round(min_similarity, 4),
+        'Max Similarity': round(max_similarity, 4),
+        'Min Similarity': round(min_similarity, 4),
     }
 
 
@@ -502,7 +665,7 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
     """20 runDQNExcel"""
     print("\nExcel...")
 
-    # 
+    #
     all_dqn_summary_data = []
     all_dqn_detailed_data = []
 
@@ -516,36 +679,35 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
 
             if len(samples) == 0:
                 dqn_summary_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
-                    '': len(target_path),
-                    '': 0,
+                    'Target Rule Count': len(target_path),
+                    'Sample Count': 0,
                     'Average Similarity': 0,
-                    'Similarity': 0,
-                    'Similarity': 0,
-                    'SimilarityStandard deviation': 0,
-                    '': '',
-                    'target paths': ', '.join(map(str, sorted(target_path)))
+                    'Max Similarity': 0,
+                    'Min Similarity': 0,
+                    'Similarity Std': 0,
+                    'Perfect Coverage': 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path)))
                 })
                 continue
 
             similarities = [s['similarity'] for s in samples]
             perfect_count = sum(1 for s in similarities if abs(s - 1.0) < 0.001)
-            is_perfect = '' if perfect_count > 0 else ''
+            is_perfect = 'Yes' if perfect_count > 0 else 'No'
 
             dqn_summary_data.append({
-                '': run_idx + 1,
+                'Run': run_idx + 1,
                 'Path ID': path_idx + 1,
-                '': len(target_path),
-                '': len(samples),
+                'Target Rule Count': len(target_path),
+                'Sample Count': len(samples),
                 'Average Similarity': round(np.mean(similarities), 4),
-                'Similarity': round(max(similarities), 4),
-                'Similarity': round(min(similarities), 4),
-                'SimilarityStandard deviation': round(np.std(similarities), 4),
-                '': is_perfect,
-                'target paths': ', '.join(map(str, sorted(target_path)))
+                'Max Similarity': round(max(similarities), 4),
+                'Min Similarity': round(min(similarities), 4),
+                'Similarity Std': round(np.std(similarities), 4),
+                'Perfect Coverage': is_perfect,
+                'Target Paths': ', '.join(map(str, sorted(target_path)))
             })
-
         all_dqn_summary_data.extend(dqn_summary_data)
 
         # ===== Sheet2: DQNDetailed Sample Data =====
@@ -560,20 +722,19 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
                 triggered = sample['triggered']
 
                 dqn_detailed_data.append({
-                    '': run_idx + 1,
+                    'Run': run_idx + 1,
                     'Path ID': path_idx + 1,
                     'Sample ID': sample_idx + 1,
                     'X': int(state[0]),
                     'Y': int(state[1]),
                     'Z': int(state[2]),
                     'Similarity': round(similarity, 4),
-                    '': '' if abs(similarity - 1.0) < 0.001 else '',
-                    'target paths': ', '.join(map(str, sorted(target_path))),
-                    '': ', '.join(map(str, sorted(triggered))),
-                    '': len(target_path.intersection(triggered)),
-                    '': len(target_path)
+                    'Perfect Coverage': 'Yes' if abs(similarity - 1.0) < 0.001 else 'No',
+                    'Target Paths': ', '.join(map(str, sorted(target_path))),
+                    'Triggered Rules': ', '.join(map(str, sorted(triggered))),
+                    'Hit Rule Count': len(target_path.intersection(triggered)),
+                    'Target Rule Count': len(target_path)
                 })
-
         all_dqn_detailed_data.extend(dqn_detailed_data)
 
     # Excel
@@ -582,29 +743,30 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
     performance_df = pd.DataFrame(all_performance_data)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # Sheet1: DQNPath 
+        # Sheet1: DQNPath
         dqn_summary_df.to_excel(writer, sheet_name='DQNPath ', index=False)
 
         # Sheet2: DQNDetailed Sample Data
         dqn_detailed_df.to_excel(writer, sheet_name='DQNDetailed Sample Data', index=False)
 
-        # Sheet3: Metric - 
+        # Sheet3: Metric
         selected_columns = [
-            '',
-            '', '', '', '',
-            '', '', '',
-            'Average Similarity', 'Similarity', 'Similarity'
+            'Run',
+            'Total Reward', 'Average Reward', 'Convergence',
+            'Environment Adaptability', 'Generalization Ability',
+            'Computational Efficiency', 'Policy Update Frequency',
+            'Average Similarity', 'Max Similarity', 'Min Similarity'
         ]
         performance_df_selected = performance_df[selected_columns]
         performance_df_selected.to_excel(writer, sheet_name='Metric', index=False)
 
-        # 
+        #
         workbook = writer.book
 
-        # 
+        #
         header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
         header_font = Font(name='Microsoft YaHei', size=11, bold=True, color='FFFFFF')
-        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  # 
+        perfect_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')  #
 
         # === Sheet1 ===
         ws1 = writer.sheets['DQNPath ']
@@ -613,7 +775,7 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         for row_idx in range(2, ws1.max_row + 1):
             if ws1.cell(row_idx, 9).value == '':  # Run 9""
                 for col_idx in range(1, ws1.max_column + 1):
@@ -657,7 +819,7 @@ def export_to_excel(all_dqn_results, all_performance_data, target_paths, output_
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
         for col in columns:
             ws3.column_dimensions[col].width = 18
@@ -687,22 +849,21 @@ def train_dqn_workflow():
     start_time = time.time()
     total_steps = 0
 
-    # 
     print(f"\n: Path {EXPERIMENT_CONFIG['SAMPLES_PER_PATH']}")
     path_samples = {}
     for path_idx in range(num_paths):
         samples = []
         for _ in range(EXPERIMENT_CONFIG['SAMPLES_PER_PATH']):
-            state = np.random.randint(
-                EXPERIMENT_CONFIG['MIN_VALUE'],
-                EXPERIMENT_CONFIG['MAX_VALUE'] + 1,
-                EXPERIMENT_CONFIG['STATE_DIM']
-            ).astype(np.float32)
+            state = np.array([
+                random.randint(EXPERIMENT_CONFIG['MIN_X'], EXPERIMENT_CONFIG['MAX_X']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Y'], EXPERIMENT_CONFIG['MAX_Y']),
+                random.randint(EXPERIMENT_CONFIG['MIN_Z'], EXPERIMENT_CONFIG['MAX_Z'])
+            ], dtype=np.float32)
             samples.append(state)
         path_samples[path_idx] = samples
         print(f"  Path  {path_idx + 1}/{num_paths}:  {len(samples)} ")
 
-    # 
+    #
     batch_size = EXPERIMENT_CONFIG['BATCH_SIZE_SAMPLES']
     num_batches = EXPERIMENT_CONFIG['SAMPLES_PER_PATH'] // batch_size
     num_rounds = EXPERIMENT_CONFIG['NUM_ROUNDS']
@@ -716,7 +877,7 @@ def train_dqn_workflow():
         f"  - : {num_paths} Path  x {num_rounds}  x {num_batches}  = {num_paths * num_rounds * num_batches} ")
     print("-" * 80)
 
-    # :completedPath ,Path 
+    # :completedPath ,Path
     for path_idx in range(num_paths):
         target_path = target_paths[path_idx]
         print(f"\n{'=' * 80}")
@@ -735,13 +896,13 @@ def train_dqn_workflow():
             for batch_idx in range(num_batches):
                 print(f"\n   {batch_idx + 1}/{num_batches} (Path {path_idx + 1}, Run {round_idx + 1})")
 
-                # 
+                #
                 batch_samples = path_samples[path_idx][batch_idx * batch_size:(batch_idx + 1) * batch_size]
 
                 batch_rewards = []
                 batch_similarities = []
 
-                # 
+                #
                 for sample_idx, initial_state in enumerate(batch_samples):
                     state = initial_state.copy()
                     episode_reward = 0
@@ -754,13 +915,13 @@ def train_dqn_workflow():
                         next_state = state + action_delta
                         next_state = clip_state(next_state)
 
-                        triggered = execute_Tr(next_state)  # 
+                        triggered = execute_Tr(*next_state)  #
                         reward = unified_reward_function(triggered, target_path)
                         similarity = coverage_similarity(triggered, target_path)
 
                         done = (step == EXPERIMENT_CONFIG['STEPS_PER_SAMPLE'] - 1)
 
-                        # Path 
+                        # Path
                         agent.store_experience(
                             path_idx, state, action_idx, reward, next_state, done, similarity
                         )
@@ -773,18 +934,18 @@ def train_dqn_workflow():
                     batch_rewards.append(episode_reward)
                     batch_similarities.append(final_similarity)
 
-                # 
+                #
                 avg_reward = np.mean(batch_rewards)
                 avg_similarity = np.mean(batch_similarities)
                 max_similarity = np.max(batch_similarities)
                 print(f"    ={avg_reward:.2f}, Average Similarity={avg_similarity:.4f}, "
                       f"Similarity={max_similarity:.4f}, epsilon={agent.epsilon:.3f}")
 
-                # Path 
+                # Path
                 print(f"    (Path {path_idx})...")
                 agent.replay_train(path_idx)
 
-                # Path 
+                # Path
                 buffer_size = len(agent.replay_buffers[path_idx])
                 print(f"    Path {path_idx}: {buffer_size}, : {agent.replay_train_count}")
 
@@ -795,7 +956,7 @@ def train_dqn_workflow():
     print(f": {agent.replay_train_count}")
     print(f": {agent.replay_train_count // 2}")
 
-    # Path 
+    # Path
     print("\nPath :")
     buffer_stats = agent.get_buffer_stats()
     for path_idx, size in buffer_stats.items():
@@ -835,33 +996,34 @@ def main():
             run_idx, dqn_results, training_time, total_steps, update_count, dqn_agent
         )
 
-        # 
+        #
         all_dqn_results.append(dqn_results)
         all_performance_data.append(performance_data)
 
-        print(f"\nRun  {run_idx + 1}  runcompleted!")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
-        print(f"  : {performance_data['']}")
+        print(f"\nRun {run_idx + 1} completed!")
+        print(f"  Total Reward: {performance_data['Total Reward']}")
+        print(f"  Average Reward: {performance_data['Average Reward']}")
+        print(f"  Convergence: {performance_data['Convergence']}")
 
     # Excel(20 run)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = f"DQN_20 run_{timestamp}.xlsx"
     export_to_excel(all_dqn_results, all_performance_data, target_paths, output_path)
 
-    # 
+    #
     print("\n" + "=" * 80)
     print("20 run")
     print("=" * 80)
 
     # Metric
-    total_rewards = [p[''] for p in all_performance_data]
-    average_rewards = [p[''] for p in all_performance_data]
-    convergences = [p[''] for p in all_performance_data]
-    environment_adaptabilities = [p[''] for p in all_performance_data]
-    generalization_abilities = [p[''] for p in all_performance_data]
-    computational_efficiencies = [p[''] for p in all_performance_data]
-    policy_update_frequencies = [p[''] for p in all_performance_data]
+    # Metric Extraction
+    total_rewards = [p['Total Reward'] for p in all_performance_data]
+    average_rewards = [p['Average Reward'] for p in all_performance_data]
+    convergences = [p['Convergence'] for p in all_performance_data]
+    environment_adaptabilities = [p['Environment Adaptability'] for p in all_performance_data]
+    generalization_abilities = [p['Generalization Ability'] for p in all_performance_data]
+    computational_efficiencies = [p['Computational Efficiency'] for p in all_performance_data]
+    policy_update_frequencies = [p['Policy Update Frequency'] for p in all_performance_data]
     avg_similarities = [p['Average Similarity'] for p in all_performance_data]
 
     print(f":")

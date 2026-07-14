@@ -19,9 +19,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # ===  ===
-dx_min, dx_max = 1, 50  # dx
-dy_min, dy_max = 1, 50  # dy
-dz_min, dz_max = 1, 50  # dz
+dx_min, dx_max = 1, 100  # dx
+dy_min, dy_max = 1, 100  # dy
+dz_min, dz_max = 1, 100  # dz
 
 
 # ===  ===
@@ -39,7 +39,7 @@ def normalize_state(state):
 
 def denormalize_state(normalized_state):
     """
-    
+
     """
     norm_dx, norm_dy, norm_dz = normalized_state
     dx = int(norm_dx * (dx_max - dx_min) + dx_min)
@@ -99,10 +99,10 @@ class PrioritizedMetricsCollector:
         self.similar_paths_performance = []
         self.isolated_paths_performance = []
 
-        # 
+        #
         self.milestone_data = {}
 
-        # 
+        #
         self.convergence_window = 20
         self.convergence_threshold = 0.02
         self.convergence_detected_episode = None
@@ -111,7 +111,7 @@ class PrioritizedMetricsCollector:
         self.sample_efficiency_data = []
         self.performance_milestones = [0.6, 0.7, 0.75, 0.8]
 
-        # 
+        #
         self.learning_curve_characteristics = {}
         self.early_vs_late_performance = {}
 
@@ -257,84 +257,120 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    """"""
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(x, y, z):
+    x, y, z = int(x), int(y), int(z)
     triggered = set()
 
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
+    # Rule Group 1: (x > y) related
+    if (x > y) != (x > 5):
+        triggered.add(1)
+    if (x > y) != (x * x > y):
+        triggered.add(2)
+    if (x > y) != (x > y * y):
+        triggered.add(3)
 
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
+        # Rule Group 2: (x > z) related
+    if (x > z) != (x > 10):
+        triggered.add(4)
+    if (x > z) != (x * x > z):
+        triggered.add(5)
+    if (x > z) != (x > z * z):
+        triggered.add(6)
 
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+        # Rule Group 3: (y > z) related
+    if (y > z) != (y > 8):
+        triggered.add(7)
+    if (y > z) != (y * y > z):
+        triggered.add(8)
+    if (y > z) != (y > z * z):
+        triggered.add(9)
+    if (y > z) != (10 > z):
+        triggered.add(10)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
+        # Rule Group 4: (x + y <= z) related
+    if (x + y <= z) != (x + y <= z * x):
+        triggered.add(11)
+    if (x + y <= z) != (x + y <= z * y):
+        triggered.add(12)
+    if (x + y <= z) != (x * y <= z * z):
+        triggered.add(13)
+    if (x + y <= z) != (x - y <= z):
+        triggered.add(14)
 
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
+        # 修正后的规则 15：安全处理除以零
+    cond_xy_le_z = (x + y <= z)
+    cond_x_div_y_le_z = False
+    if y != 0:
+        cond_x_div_y_le_z = (x / y <= z)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
+    if cond_xy_le_z != cond_x_div_y_le_z:
+        triggered.add(15)
 
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
+    if (x + y <= z) != (x + y <= 15):
+        triggered.add(16)
+    if (x + y <= z) != (x + y <= 20):
+        triggered.add(17)
+    if (x + y <= z) != (x + 5 <= z):
+        triggered.add(18)
+    if (x + y <= z) != (10 + y <= z):
+        triggered.add(19)
+    if (x + y <= z) != (x + 8 <= z):
+        triggered.add(20)
+
+        # Rule Group 5: (x == y == z) related
+    if (x == y == z) != (x <= y == z):
+        triggered.add(21)
+    if (x == y == z) != (x == y != z):
+        triggered.add(22)
+    if (x == y == z) != (x != y == z):
+        triggered.add(23)
+
+    if (x == y == z) != (x == y <= z):
+        triggered.add(24)
+
+        # Rule Group 6: Modulo operations
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+        triggered.add(25)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+        triggered.add(26)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+        triggered.add(27)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+        triggered.add(28)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+        triggered.add(29)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+        triggered.add(30)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+        triggered.add(31)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+        triggered.add(32)
+
+        # Rule Group 7: Quadratic equation discriminant like conditions
+    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
+
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+        triggered.add(33)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+        triggered.add(34)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+        triggered.add(35)
+
+    # Rule Group 8: System of equations like conditions
+    cond_eq_main_part = (x + y == z and y + z == 2 * x)
+
+    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+        triggered.add(36)
+
+    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+        triggered.add(37)
+
+    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+        triggered.add(38)
+    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+        triggered.add(39)
 
     return triggered
-
 
 def jaccard_similarity(set1, set2):
     """Compute Jaccard similarity"""
@@ -359,9 +395,21 @@ def compute_path_similarity_matrix(paths):
 
 
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
+    {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
+    {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
+    {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
+    {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
 ]
 
 
@@ -426,7 +474,7 @@ class PrioritizedExperienceReplay:
         # replace=False
         indices = np.random.choice(self.size, batch_size, p=probs, replace=False)
 
-        # : 
+        # :
         unique_batch = []
         unique_indices = []
         seen_states = set()
@@ -434,7 +482,7 @@ class PrioritizedExperienceReplay:
         for idx in indices:
             experience = self.buffer[idx]
             state_tensor = experience[0]
-            # 
+            #
             state_tuple = tuple(state_tensor.cpu().numpy().flatten())
 
             if state_tuple not in seen_states:
@@ -442,7 +490,7 @@ class PrioritizedExperienceReplay:
                 unique_batch.append(experience)
                 unique_indices.append(idx)
 
-        # , 
+        # ,
         if len(unique_batch) < batch_size:
             remaining_indices = [i for i in range(self.size) if i not in unique_indices]
             if remaining_indices:
@@ -515,7 +563,7 @@ class PrioritizedExperienceReplay:
         for experience in self.buffer:
             state_tensor = experience[0]
             state_tuple = tuple(state_tensor.cpu().numpy().flatten().astype(int))
-            triggered = execute_Tr(*state_tuple)  #  dx, dy, dz
+            triggered = execute_Tr(*state_tuple)  # dx, dy, dz
             new_reward = compute_reward(state_tuple, target_path, triggered, None, None)
             sim = jaccard_similarity(triggered, target_path)
             samples_with_recalculated_scores.append((state_tuple, new_reward, sim, triggered))
@@ -569,13 +617,13 @@ class PrioritizedDQNAgent:
 
     def decode_action(self, action_idx):
         """
-        
+
         : 30 = 3 x 10
         - 0: dx (1-50)
         - 1: dy (1-50)
         - 2: dz (1-50)
 
-        : 
+        :
         - dx, dy, dz: +/-35(70%), +/-25(50%), +/-10(20%), +/-5(10%), +/-2(5%)(50)
         """
         # : 50
@@ -605,7 +653,7 @@ class PrioritizedDQNAgent:
 
     def store_transition(self, state, action, reward, next_state, done):
         """, TD()"""
-        # 
+        #
         normalized_state = normalize_state(state)
         normalized_next_state = normalize_state(next_state)
 
@@ -633,7 +681,7 @@ class PrioritizedDQNAgent:
 
         states, actions, rewards, next_states, dones, _ = zip(*batch)
 
-        # tensor, 
+        # tensor,
         states = torch.tensor(np.array([s.cpu().numpy().flatten() for s in states]), dtype=torch.float32).to(device)
         actions = torch.tensor(actions, dtype=torch.long).to(device)
         rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
@@ -671,7 +719,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
         return len(a & b) / len(a | b) if a | b else 0.0
 
     def compute_robustness(state, path):
-        base = execute_Tr(*state)  #  dx, dy, dz
+        base = execute_Tr(*state)  # dx, dy, dz
         if not base:
             return 0.0
         rob, neighbors = 0.0, 0
@@ -684,7 +732,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
                     if not is_valid_state(neighbor_state):
                         continue
                     neighbor = clip_state(neighbor_state)
-                    n_trig = execute_Tr(*neighbor)  #  dx, dy, dz
+                    n_trig = execute_Tr(*neighbor)  # dx, dy, dz
                     if not n_trig:
                         continue
                     rob += jaccard_similarity_local(base, n_trig)
@@ -713,7 +761,7 @@ def generate_samples_for_similar_paths(similar_group_indices, num_total=2000, to
                 np.random.randint(dy_min, dy_max + 1),
                 np.random.randint(dz_min, dz_max + 1)
             )
-            triggered = execute_Tr(*state)  #  dx, dy, dz
+            triggered = execute_Tr(*state)  # dx, dy, dz
             if not triggered:
                 continue
             sim = jaccard_similarity_local(triggered, path)
@@ -747,7 +795,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
             path_data = load_path_data(file_path)
             target_path = targetPaths[path_idx]
 
-            # 
+            #
             BATCH_SIZE = 50
             N_SAMPLES = 200
             N_STEPS = 3
@@ -781,7 +829,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
                             if random.random() < agent.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                # 
+                                #
                                 normalized_state = normalize_state(state)
                                 state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                     device)
@@ -792,7 +840,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
                             ddx, ddy, ddz = agent.decode_action(action)
                             next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                            triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                            triggered = execute_Tr(*next_state)  # dx, dy, dz
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
                             done = (step == N_STEPS - 1)
 
@@ -841,7 +889,7 @@ def prioritized_generate_and_train_for_similar_paths(agent, similar_group, path_
 def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_group_indices, num_total=2000, top_k=200):
     def compute_q_value_normalized_complement(state, agent):
         """Q"""
-        # 
+        #
         normalized_state = normalize_state(state)
         state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -862,7 +910,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
         return complement_q
 
     def compute_robustness(state, path):
-        base = execute_Tr(*state)  #  dx, dy, dz
+        base = execute_Tr(*state)  # dx, dy, dz
         if not base:
             return 0.0
         rob, neighbors = 0.0, 0
@@ -875,7 +923,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
                     if not is_valid_state(neighbor_state):
                         continue
                     neighbor = clip_state(neighbor_state)
-                    n_trig = execute_Tr(*neighbor)  #  dx, dy, dz
+                    n_trig = execute_Tr(*neighbor)  # dx, dy, dz
                     if not n_trig:
                         continue
                     rob += jaccard_similarity(base, n_trig)
@@ -904,7 +952,7 @@ def generate_samples_for_isolated_paths_prioritized(agent_similar, isolated_grou
                 np.random.randint(dy_min, dy_max + 1),
                 np.random.randint(dz_min, dz_max + 1)
             )
-            triggered = execute_Tr(*state)  #  dx, dy, dz
+            triggered = execute_Tr(*state)  # dx, dy, dz
             if not triggered:
                 continue
             sim = jaccard_similarity(triggered, path)
@@ -945,7 +993,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
             stage1_samples = stage1_samples_pool.get(path_idx, [])
             target_path = targetPaths[path_idx]
 
-            # 
+            #
             BATCH_SIZE = 50
             N_SAMPLES_STAGE2 = min(140, len(stage2_path_data))
             N_SAMPLES_STAGE1 = min(60, len(stage1_samples))
@@ -983,7 +1031,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                             if random.random() < agent_isolated.epsilon:
                                 action = random.choice(legal_actions)
                             else:
-                                # 
+                                #
                                 normalized_state = normalize_state(state)
                                 state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                     device)
@@ -994,7 +1042,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                             ddx, ddy, ddz = agent_isolated.decode_action(action)
                             next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                            triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                            triggered = execute_Tr(*next_state)  # dx, dy, dz
                             reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
 
                             if target_path.issubset(triggered):
@@ -1059,7 +1107,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                                 if random.random() < agent_isolated.epsilon:
                                     action = random.choice(legal_actions)
                                 else:
-                                    # 
+                                    #
                                     normalized_state = normalize_state(state)
                                     state_tensor = torch.tensor(normalized_state, dtype=torch.float32).unsqueeze(0).to(
                                         device)
@@ -1070,7 +1118,7 @@ def prioritized_generate_and_train_for_isolated_paths(agent_similar, agent_isola
                                 ddx, ddy, ddz = agent_isolated.decode_action(action)
                                 next_state = clip_state((state[0] + ddx, state[1] + ddy, state[2] + ddz))
 
-                                triggered = execute_Tr(*next_state)  #  dx, dy, dz
+                                triggered = execute_Tr(*next_state)  # dx, dy, dz
                                 reward = compute_reward(next_state, target_path, triggered, prev_triggered, prev_state)
                                 reward *= 0.8
 

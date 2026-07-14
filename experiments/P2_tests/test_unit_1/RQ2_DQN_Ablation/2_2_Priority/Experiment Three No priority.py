@@ -20,11 +20,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # X, Y, Z - 150
 X_MIN = 1
-X_MAX = 50
+X_MAX = 128
 Y_MIN = 1
-Y_MAX = 50
+Y_MAX = 128
 Z_MIN = 1
-Z_MAX = 50
+Z_MAX = 128
 
 
 # ===  ===
@@ -51,7 +51,7 @@ def denormalize_state(norm_state):
     x = int(round(norm_x * (X_MAX - X_MIN) + X_MIN))
     y = int(round(norm_y * (Y_MAX - Y_MIN) + Y_MIN))
     z = int(round(norm_z * (Z_MAX - Z_MIN) + Z_MIN))
-    # 
+    #
     x = max(X_MIN, min(X_MAX, x))
     y = max(Y_MIN, min(Y_MAX, y))
     z = max(Z_MIN, min(Z_MAX, z))
@@ -106,16 +106,16 @@ class EnhancedStandardMetricsCollector:
         # ()
         self.milestone_data = {}  # episode 50, 100, 150, 200
 
-        # 
-        self.convergence_window = 20  # 
-        self.convergence_threshold = 0.02  # 
+        #
+        self.convergence_window = 20  #
+        self.convergence_threshold = 0.02  #
         self.convergence_detected_episode = None
 
         # Metric
         self.sample_efficiency_data = []  # (episode, )
-        self.performance_milestones = [0.6, 0.7, 0.75, 0.8]  # 
+        self.performance_milestones = [0.6, 0.7, 0.75, 0.8]  #
 
-        # 
+        #
         self.learning_curve_characteristics = {}
         self.early_vs_late_performance = {}
 
@@ -276,80 +276,118 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(x, y, z):
+    x, y, z = int(x), int(y), int(z)
     triggered = set()
 
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
+    # Rule Group 1: (x > y) related
+    if (x > y) != (x > 5):
+        triggered.add(1)
+    if (x > y) != (x * x > y):
+        triggered.add(2)
+    if (x > y) != (x > y * y):
+        triggered.add(3)
 
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
+        # Rule Group 2: (x > z) related
+    if (x > z) != (x > 10):
+        triggered.add(4)
+    if (x > z) != (x * x > z):
+        triggered.add(5)
+    if (x > z) != (x > z * z):
+        triggered.add(6)
 
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+        # Rule Group 3: (y > z) related
+    if (y > z) != (y > 8):
+        triggered.add(7)
+    if (y > z) != (y * y > z):
+        triggered.add(8)
+    if (y > z) != (y > z * z):
+        triggered.add(9)
+    if (y > z) != (10 > z):
+        triggered.add(10)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
+        # Rule Group 4: (x + y <= z) related
+    if (x + y <= z) != (x + y <= z * x):
+        triggered.add(11)
+    if (x + y <= z) != (x + y <= z * y):
+        triggered.add(12)
+    if (x + y <= z) != (x * y <= z * z):
+        triggered.add(13)
+    if (x + y <= z) != (x - y <= z):
+        triggered.add(14)
 
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
+        # 修正后的规则 15：安全处理除以零
+    cond_xy_le_z = (x + y <= z)
+    cond_x_div_y_le_z = False
+    if y != 0:
+        cond_x_div_y_le_z = (x / y <= z)
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
+    if cond_xy_le_z != cond_x_div_y_le_z:
+        triggered.add(15)
 
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
+    if (x + y <= z) != (x + y <= 15):
+        triggered.add(16)
+    if (x + y <= z) != (x + y <= 20):
+        triggered.add(17)
+    if (x + y <= z) != (x + 5 <= z):
+        triggered.add(18)
+    if (x + y <= z) != (10 + y <= z):
+        triggered.add(19)
+    if (x + y <= z) != (x + 8 <= z):
+        triggered.add(20)
+
+        # Rule Group 5: (x == y == z) related
+    if (x == y == z) != (x <= y == z):
+        triggered.add(21)
+    if (x == y == z) != (x == y != z):
+        triggered.add(22)
+    if (x == y == z) != (x != y == z):
+        triggered.add(23)
+
+    if (x == y == z) != (x == y <= z):
+        triggered.add(24)
+
+        # Rule Group 6: Modulo operations
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+        triggered.add(25)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+        triggered.add(26)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+        triggered.add(27)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+        triggered.add(28)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+        triggered.add(29)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+        triggered.add(30)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+        triggered.add(31)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+        triggered.add(32)
+
+        # Rule Group 7: Quadratic equation discriminant like conditions
+    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
+
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+        triggered.add(33)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+        triggered.add(34)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+        triggered.add(35)
+
+    # Rule Group 8: System of equations like conditions
+    cond_eq_main_part = (x + y == z and y + z == 2 * x)
+
+    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+        triggered.add(36)
+
+    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+        triggered.add(37)
+
+    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+        triggered.add(38)
+    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+        triggered.add(39)
 
     return triggered
 
@@ -375,11 +413,22 @@ def compute_path_similarity_matrix(paths):
 
 
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
+    {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
+    {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
+    {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
+    {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
 ]
-
 
 # === Path  ===
 def group_paths_by_similarity(paths):
@@ -409,12 +458,12 @@ class StandardExperienceReplay:
 
     def sample(self, batch_size):
         """
-        
-        , 
+
+        ,
         """
         if len(self.buffer) < batch_size:
             return [], [], None
-        # replace=False 
+        # replace=False
         batch_indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         batch = [self.buffer[idx] for idx in batch_indices]
         return batch, batch_indices, None
@@ -428,10 +477,10 @@ class StandardExperienceReplay:
             return []
         samples_with_recalculated_scores = []
         for experience in self.buffer:
-            # , 
+            # ,
             norm_state_tensor = experience[0]
             norm_state = tuple(norm_state_tensor.cpu().numpy().flatten())
-            # 
+            #
             state_tuple = denormalize_state(norm_state)
             triggered = execute_Tr(state_tuple[0], state_tuple[1], state_tuple[2])
             new_reward = compute_reward(state_tuple, target_path, triggered, None, None)
@@ -498,12 +547,12 @@ class StandardDQNAgent:
 
     def act(self, state):
         """
-        
+
         :  (1-50)
         """
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
-        # 
+        #
         norm_state = normalize_state(state)
         state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -512,11 +561,11 @@ class StandardDQNAgent:
 
     def store_transition(self, state, action, reward, next_state, done):
         """
-        , 
+        ,
         :  (1-50)
         :  (0-1)
         """
-        # 
+        #
         norm_state = normalize_state(state)
         norm_next_state = normalize_state(next_state)
 
@@ -532,14 +581,14 @@ class StandardDQNAgent:
             target_q_values = reward + (self.gamma * max_next_q_values * (1 - done))
             td_error = torch.abs(q_values[0][action] - target_q_values).item()
 
-        # 
+        #
         self.replay_buffer.append((norm_state_tensor, action, reward, norm_next_state_tensor, done))
         return td_error
 
     def train(self, batch_size=32):
         """
-        
-        , 
+
+        ,
         """
         if len(self.replay_buffer) < batch_size:
             return
@@ -665,7 +714,7 @@ def enhanced_standard_generate_and_train_for_similar_paths(agent, similar_group,
                         break
 
                     step_count = 0
-                    state = path_data[test_data]  #  (1-50)
+                    state = path_data[test_data]  # (1-50)
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -810,11 +859,11 @@ def generate_samples_for_isolated_paths_standard(agent_similar, isolated_group_i
         print(f"Path  {path_idx + 1}:  {len(samples_raw)} ")
         print(f"  Q: [{q_min:.4f}, {q_max:.4f}]")
 
-        # Run : Q, 
+        # Run : Q,
         samples_final = []
         for state, sim, len_diff, rob, q_value in samples_raw:
             # : (q - q_min) / (q_max - q_min)
-            if q_max - q_min > 1e-6:  # 
+            if q_max - q_min > 1e-6:  #
                 q_normalized = (q_value - q_min) / (q_max - q_min)
             else:
                 q_normalized = 0.5  # Q, 0.5
@@ -879,7 +928,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         break
 
                     step_count = 0
-                    state = stage2_path_data[test_data_idx]  # 
+                    state = stage2_path_data[test_data_idx]  #
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -898,7 +947,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         if random.random() < agent_isolated.epsilon:
                             action = random.choice(legal_actions)
                         else:
-                            # 
+                            #
                             norm_state = normalize_state(state)
                             state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
                             with torch.no_grad():
@@ -945,7 +994,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                     # stage1_samples
                     stage1_state_tuple, _, _, _ = stage1_samples[sample_idx]
                     step_count = 0
-                    state = stage1_state_tuple  # 
+                    state = stage1_state_tuple  #
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -964,7 +1013,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         if random.random() < agent_isolated.epsilon:
                             action = random.choice(legal_actions)
                         else:
-                            # 
+                            #
                             norm_state = normalize_state(state)
                             state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
                             with torch.no_grad():
@@ -1037,16 +1086,15 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
     performance_row = {
         'Run': run_number,
         'Average Similarity': f"{avg_similarity:.4f}",
-        'TD': f"{avg_td_error:.4f}",
-        '': f"{action_improve_rate:.4f}",
-        'Training Time( seconds)': f"{training_time:.2f}",
-        '(MB)': f"{avg_memory:.2f}"
+        'TD Error': f"{avg_td_error:.4f}",
+        'Action Improve Rate': f"{action_improve_rate:.4f}",
+        'Memory(MB)': f"{avg_memory:.2f}"
     }
 
     # ===== final samples =====
     sample_rows = []
 
-    # 
+    #
     for path_idx in similar_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent_similar.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
@@ -1054,20 +1102,19 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Similar',  #
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
-
-    # 
+    #
     for path_idx in isolated_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent_isolated.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
@@ -1075,23 +1122,23 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Isolated',  # 修复此处
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
 
     # ===== Excel =====
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-    # 
+    #
     if os.path.exists(filepath):
         # Metricsheet
         try:
@@ -1123,18 +1170,18 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         # ===== Metricsheet =====
         ws_performance = writer.sheets['Metric']
 
-        # 
+        #
         ws_performance.column_dimensions['A'].width = 15
-        for col in ['B', 'C', 'D', 'E', 'F']:
+        for col in ['B', 'C', 'D', 'E']:
             ws_performance.column_dimensions[col].width = 20
 
-        # 
+        #
         header_font = Font(bold=True, size=11)
         for cell in ws_performance[1]:
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         for row in ws_performance.iter_rows(min_row=2, max_row=ws_performance.max_row):
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center')
@@ -1142,7 +1189,7 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         # ===== sheet =====
         ws_samples = writer.sheets['final samples']
 
-        # 
+        #
         column_widths = {
             'A': 12, 'B': 15, 'C': 12, 'D': 10, 'E': 10, 'F': 10,
             'G': 12, 'H': 12, 'I': 12, 'J': 12, 'K': 40, 'L': 40
@@ -1150,12 +1197,12 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for col, width in column_widths.items():
             ws_samples.column_dimensions[col].width = width
 
-        # 
+        #
         for cell in ws_samples[1]:
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         for row in ws_samples.iter_rows(min_row=2, max_row=ws_samples.max_row):
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
@@ -1182,7 +1229,7 @@ def run_single_experiment(run_number, results_save_dir):
 
     similar_group, isolated_group = group_paths_by_similarity(targetPaths)
 
-    # Run : Path 
+    # Run : Path
     if run_number == 1:
         generate_samples_for_similar_paths(similar_group, num_total=2000, top_k=200)
 
@@ -1201,11 +1248,11 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent.epsilon
     }, model_path_similar)
 
-    # Run : Path 
+    # Run : Path
     if run_number == 1:
         generate_samples_for_isolated_paths_standard(agent, isolated_group, num_total=2000, top_k=200)
 
-    # Run : Path 
+    # Run : Path
     isolated_replay_buffer = StandardExperienceReplay(capacity=15000)
     agent_isolated = StandardDQNAgent(state_dim, action_dim, isolated_replay_buffer)
 
@@ -1235,7 +1282,7 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent_isolated.epsilon
     }, model_path_isolated)
 
-    # 
+    #
     enhanced_standard_metrics.end_training()
 
     # final samples
@@ -1267,10 +1314,8 @@ def run_single_experiment(run_number, results_save_dir):
 
     #  runMetric
     avg_similarity = np.mean(enhanced_standard_metrics.final_output_similarities)
-    training_time = enhanced_standard_metrics.end_time - enhanced_standard_metrics.start_time
     print(f"\nRun  {run_number}  runcompleted:")
     print(f"  Average Similarity: {avg_similarity:.4f}")
-    print(f"  Training Time: {training_time:.2f} seconds")
     print(f"  : {enhanced_standard_metrics.step_count}")
 
 

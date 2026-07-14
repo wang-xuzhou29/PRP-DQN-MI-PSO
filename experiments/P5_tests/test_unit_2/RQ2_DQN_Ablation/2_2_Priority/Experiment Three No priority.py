@@ -20,11 +20,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # X, Y, Z - 150
 X_MIN = 1
-X_MAX = 50
+X_MAX = 100
 Y_MIN = 1
-Y_MAX = 50
+Y_MAX = 100
 Z_MIN = 1
-Z_MAX = 50
+Z_MAX = 6
 
 
 # ===  ===
@@ -51,7 +51,7 @@ def denormalize_state(norm_state):
     x = int(round(norm_x * (X_MAX - X_MIN) + X_MIN))
     y = int(round(norm_y * (Y_MAX - Y_MIN) + Y_MIN))
     z = int(round(norm_z * (Z_MAX - Z_MIN) + Z_MIN))
-    # 
+    #
     x = max(X_MIN, min(X_MAX, x))
     y = max(Y_MIN, min(Y_MAX, y))
     z = max(Z_MIN, min(Z_MAX, z))
@@ -106,16 +106,16 @@ class EnhancedStandardMetricsCollector:
         # ()
         self.milestone_data = {}  # episode 50, 100, 150, 200
 
-        # 
-        self.convergence_window = 20  # 
-        self.convergence_threshold = 0.02  # 
+        #
+        self.convergence_window = 20  #
+        self.convergence_threshold = 0.02  #
         self.convergence_detected_episode = None
 
         # Metric
         self.sample_efficiency_data = []  # (episode, )
-        self.performance_milestones = [0.6, 0.7, 0.75, 0.8]  # 
+        self.performance_milestones = [0.6, 0.7, 0.75, 0.8]  #
 
-        # 
+        #
         self.learning_curve_characteristics = {}
         self.early_vs_late_performance = {}
 
@@ -276,82 +276,260 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
-
+def execute_Tr(x, y, weather):
     triggered = set()
+    actions = []
+    devices = {
+        'main_light': 'green',
+        'side_light': 'red',
+        'pedestrian_light': 'red',
+        'warning_system': 'off',
+        'weather_alert': 'off'
+    }
 
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
+    # Fixed all if statements with proper syntax
+    if (weather == 1 and x > 75 and y < 50) != (weather == 1 and x > 45 and y < 50):
+        triggered.add(1)
+    if (weather == 1 and x > 75 and y < 50) != (weather == 1 and x > 35 and y < 50):
+        triggered.add(2)
+    if (weather == 1 and x > 75 and y < 50) != (weather == 2 and x > 75 and y < 50):
+        triggered.add(3)
+    if (weather == 1 and x > 75 and y < 50) != (weather == 1 and x > 75 and y < 25):
+        triggered.add(4)
+    if (weather == 1 and x > 75 and y < 50) != (weather == 1 and x > 75 and y < 30):
+        triggered.add(5)
+    if (weather == 1 and x < 50 and y > 75) != (weather == 2 and x < 50 and y > 75):
+        triggered.add(6)
+    if (weather == 1 and x < 50 and y > 75) != (weather == 1 or x < 50 and y > 75):
+        triggered.add(7)
+    if (weather == 1 and x < 50 and y > 75) != (weather == 1 and x < 50 or y > 75):
+        triggered.add(8)
+    if (weather == 1 and x < 50 and y > 75) != (weather == 1 and x < 50 and y > 35):
+        triggered.add(9)
+    if (weather == 1 and x < 50 and y > 75) != (weather == 1 and x < 25 and y > 75):
+        triggered.add(10)
+    if (weather == 1 and x < 50 and y > 75) != (weather > 1 and x < 50 and y > 75):
+        triggered.add(11)
+    if (weather == 1 and x > 70 and y > 70) != (weather > 1 and x > 70 and y > 70):
+        triggered.add(12)
+    if (weather == 1 and x > 70 and y > 70) != (weather == 3 and x > 70 and y > 70):
+        triggered.add(13)
+    if (weather == 1 and x > 70 and y > 70) != (weather == 1 and x <= 70 and y > 70):
+        triggered.add(14)
+    if (weather == 1 and x > 70 and y > 70) != (weather == 1 and x > 70 and y <= 70):
+        triggered.add(15)
+    if (weather == 1 and x > 70 and y > 70) != (weather == 1 and x > 20 and y > 70):
+        triggered.add(16)
+    if (weather == 1 and x > 70 and y > 70) != (weather == 6 and x > 70 and y > 70):
+        triggered.add(17)
+    if (weather == 1 and x < 40 and y < 40) != (weather > 1 and x < 40 and y < 40):
+        triggered.add(18)
+    if (weather == 1 and x < 40 and y < 40) != (weather == 1 or x < 40 and y < 40):
+        triggered.add(19)
+    if (weather == 1 and x < 40 and y < 40) != (weather == 1 and x >= 40 and y < 40):
+        triggered.add(20)
+    if (weather == 1 and x < 40 and y < 40) != (weather == 1 and x < 20 and y < 40):
+        triggered.add(21)
+    if (weather == 1 and x < 40 and y < 40) != (weather == 1 and x < 40 or y < 40):
+        triggered.add(22)
+    if (weather == 1 and x < 40 and y < 40) != (weather == 1 and x < 40 and y >= 40):
+        triggered.add(23)
+    if (weather == 2 and x < 50 and y > 75) != (weather > 2 and x < 50 and y > 75):
+        triggered.add(24)
+    if (weather == 2 and x < 50 and y > 75) != (weather < 2 and x < 50 and y > 75):
+        triggered.add(25)
+    if (weather == 2 and x < 50 and y > 75) != (weather == 2 or x < 50 and y > 75):
+        triggered.add(26)
+    if (weather == 2 and x < 50 and y > 75) != (weather == 2 and x >= 50 and y > 75):
+        triggered.add(27)
+    if (weather == 2 and x < 50 and y > 75) != (weather == 2 and x < 50 or y > 75):
+        triggered.add(28)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather > 2 and x > 85 and 45 < y < 70):
+        triggered.add(29)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather < 2 and x > 85 and 45 < y < 70):
+        triggered.add(30)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather == 2 or x > 85 and 45 < y < 70):
+        triggered.add(31)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather == 2 and x > 85 or 45 < y < 70):
+        triggered.add(32)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather == 2 and x > 85 and 60 < y < 70):
+        triggered.add(33)
+    if (weather == 2 and x > 85 and 45 < y < 70) != (weather == 2 and x > 85 and 45 < y < 80):
+        triggered.add(34)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather > 3 and x > 75 and 40 < y < 65):
+        triggered.add(35)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather < 3 and x > 75 and 40 < y < 65):
+        triggered.add(36)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather == 3 or x > 75 and 40 < y < 65):
+        triggered.add(37)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather == 3 and x > 75 and 50 < y < 65):
+        triggered.add(38)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather == 3 and x > 75 and 40 < y < 75):
+        triggered.add(39)
+    if (weather == 3 and x > 75 and 40 < y < 65) != (weather == 3 and x > 45 and 40 < y < 65):
+        triggered.add(40)
+    if (weather == 4 and x > 65 and y > 65) != (weather > 4 and x > 65 and y > 65):
+        triggered.add(41)
+    if (weather == 4 and x > 65 and y > 65) != (weather < 4 and x > 65 and y > 65):
+        triggered.add(42)
+    if (weather == 4 and x > 65 and y > 65) != (weather == 4 or x > 65 and y > 65):
+        triggered.add(43)
+    if (weather == 4 and x > 65 and y > 65) != (weather == 4 and x > 25 and y > 65):
+        triggered.add(44)
+    if (weather == 4 and x > 65 and y > 65) != (weather == 4 and x > 65 and y > 35):
+        triggered.add(45)
+    if (weather == 4 and x > 65 and y > 65) != (weather == 4 and x > 65 and y > 85):
+        triggered.add(46)
+    if (weather == 5 and x < 45 and y > 75) != (weather > 5 and x < 45 and y > 75):
+        triggered.add(47)
+    if (weather == 5 and x < 45 and y > 75) != (weather < 5 and x < 45 and y > 75):
+        triggered.add(48)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 6 and x < 45 and y > 75):
+        triggered.add(49)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 or x < 45 and y > 75):
+        triggered.add(50)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 25 and y > 75):
+        triggered.add(51)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 35 and y > 75):
+        triggered.add(52)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 45 and y > 65):
+        triggered.add(53)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 45 and y > 55):
+        triggered.add(54)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 45 and y > 35):
+        triggered.add(55)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 45 and y > 25):
+        triggered.add(56)
+    if (weather == 5 and x < 45 and y > 75) != (weather == 5 and x < 45 and y > 15):
+        triggered.add(57)
+    if (weather == 6 and x < 40 and y < 40) != (weather < 6 and x < 40 and y < 40):
+        triggered.add(58)
+    if (weather == 6 and x < 40 and y < 40) != (weather != 6 and x < 40 and y < 40):
+        triggered.add(59)
+    if (weather == 6 and x < 40 and y < 40) != (weather == 6 and x < 20 and y < 40):
+        triggered.add(60)
+    if (weather == 6 and x < 40 and y < 40) != (weather == 6 and x < 40 and y < 20):
+        triggered.add(61)
+    if (weather == 6 and x < 40 and y < 40) != (weather == 6 and x < 40 or y < 40):
+        triggered.add(62)
+    if (weather == 1 and x > 90) != (weather > 1 and x > 90):
+        triggered.add(63)
+    if (weather == 1 and x > 90) != (weather == 1 and y > 90):
+        triggered.add(64)
+    if (weather == 1 and x > 90) != (weather == 1 and x > 40):
+        triggered.add(65)
+    if (weather == 1 and x > 90) != (weather == 1 and x > 20):
+        triggered.add(66)
+    if (weather == 1 and x > 90) != (weather == 1 and x > 60):
+        triggered.add(67)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [1, 3, 4, 6] and x > 80):
+        triggered.add(68)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [3, 4, 6] and x > 80):
+        triggered.add(69)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 4, 6] and x > 80):
+        triggered.add(70)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 6] and x > 80):
+        triggered.add(71)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 4] and x > 80):
+        triggered.add(72)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [1, 2, 3, 4, 6] and x > 80):
+        triggered.add(73)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 1, 4, 6] and x > 80):
+        triggered.add(74)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 1, 6] and x > 80):
+        triggered.add(75)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 4, 1] and x > 80):
+        triggered.add(76)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [5, 3, 4, 6] and x > 80):
+        triggered.add(77)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 4, 6] and x > 60):
+        triggered.add(78)
+    if (weather in [2, 3, 4, 6] and x > 80) != (weather in [2, 3, 4, 6] and x > 30):
+        triggered.add(79)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [4] and 60 < x < 85):
+        triggered.add(80)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3] and 60 < x < 85):
+        triggered.add(81)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4] or 60 < x < 85):
+        triggered.add(82)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4] and 50 < x < 85):
+        triggered.add(83)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4] and 20 < x < 85):
+        triggered.add(84)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4] and 60 < x < 75):
+        triggered.add(85)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4] and 60 < x < 65):
+        triggered.add(86)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4, 5] and 60 < x < 85):
+        triggered.add(87)
+    if (weather in [3, 4] and 60 < x < 85) != (weather in [3, 4, 2] and 60 < x < 85):
+        triggered.add(88)
+    if (weather == 2 and 45 < x < 70) != (weather > 2 and 45 < x < 70):
+        triggered.add(89)
+    if (weather == 2 and 45 < x < 70) != (weather < 2 and 45 < x < 70):
+        triggered.add(90)
+    if (weather == 2 and 45 < x < 70) != (weather == 3 and 45 < x < 70):
+        triggered.add(91)
+    if (weather == 2 and 45 < x < 70) != (weather == 5 and 45 < x < 70):
+        triggered.add(92)
+    if (weather == 2 and 45 < x < 70) != (weather == 2 and 55 < x < 70):
+        triggered.add(93)
+    if (weather == 2 and 45 < x < 70) != (weather == 2 and 45 < y < 70):
+        triggered.add(94)
+    if (weather == 2 and 45 < x < 70) != (weather == 2 and 45 < x < 60):
+        triggered.add(95)
+    if (weather == 2 and 45 < x < 70) != (weather == 2 and 45 < x < 50):
+        triggered.add(96)
+    if (x - y > 60 and x > 70) != (x + y > 60 and x > 70):
+        triggered.add(97)
+    if (x - y > 60 and x > 70) != (x - y > 60 and y > 70):
+        triggered.add(98)
+    if (x - y > 60 and x > 70) != (x - y > 60 or x > 70):
+        triggered.add(99)
+    if (x - y > 60 and x > 70) != (x - y > 50 and x > 70):
+        triggered.add(100)
+    if (x - y > 60 and x > 70) != (x - y > 30 and x > 70):
+        triggered.add(101)
+    if (x - y > 60 and x > 70) != (x - y > 20 and x > 70):
+        triggered.add(102)
+    if (x - y > 60 and x > 70) != (x - y > 60 and x < 70):
+        triggered.add(103)
+    if (x - y > 60 and x > 70) != (x - y < 60 and x > 70):
+        triggered.add(104)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 50 and y > 90 and abs(x - y) < 10):
+        triggered.add(105)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 30 and y > 90 and abs(x - y) < 10):
+        triggered.add(106)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x < 90 and y > 90 and abs(x - y) < 10):
+        triggered.add(107)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 90 and y < 90 and abs(x - y) < 10):
+        triggered.add(108)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 90 and y > 30 and abs(x - y) < 10):
+        triggered.add(109)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 90 and y > 90 and abs(x + y) < 10):
+        triggered.add(110)
+    if (x > 90 and y > 90 and abs(x - y) < 10) != (x > 90 and y > 90 and abs(x - y) > 10):
+        triggered.add(111)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (15 < x < 45 and 25 < y < 45 and abs(x - y) < 12):
+        triggered.add(112)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 or 25 < y < 45 and abs(x - y) < 12):
+        triggered.add(113)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x - weather < 45 and 25 < y < 45 and abs(x - y) < 12):
+        triggered.add(114)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 and 25 < y - weather < 45 and abs(x - y) < 12):
+        triggered.add(115)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x + weather < 45 and 25 < y < 45 and abs(x - y) < 12):
+        triggered.add(116)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 and 25 < y + weather < 45 and abs(x - y) < 12):
+        triggered.add(117)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 and 25 < y < 45 or abs(x - y) < 12):
+        triggered.add(118)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 and 25 < y < 45 and abs(x - y) < 22):
+        triggered.add(119)
+    if (25 < x < 45 and 25 < y < 45 and abs(x - y) < 12) != (25 < x < 45 and 25 < y < 45 and abs(x - weather) < 12):
+        triggered.add(120)
 
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
-
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
-
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
-
-    return triggered
+    return triggered, actions, devices
 
 
 def jaccard_similarity(set1, set2):
@@ -375,9 +553,43 @@ def compute_path_similarity_matrix(paths):
 
 
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    [7, 8, 12, 13, 14, 15, 17, 19, 28, 42, 43, 64, 65, 66, 67, 68, 73, 74, 75, 76, 97, 99, 104, 105, 106, 107, 118],
+    [3, 4, 5, 7, 15, 19, 20, 22, 62, 65, 66, 67, 68, 73, 74, 75, 76, 82, 97, 99, 100, 101, 102, 104],
+    [3, 4, 5, 7, 15, 19, 30, 31, 32, 36, 37, 63, 64, 68, 73, 74, 75, 76, 97, 99, 100, 101, 102, 104],
+    [7, 8, 12, 13, 14, 15, 17, 19, 28, 42, 43, 63, 64, 68, 73, 74, 75, 76, 97, 99, 104, 109, 118],
+    [8, 12, 13, 28, 37, 42, 43, 70, 74, 80, 85, 86, 97, 99, 104, 105, 106, 107, 118],
+    [8, 12, 26, 27, 28, 31, 32, 34, 42, 43, 63, 68, 69, 77, 97, 99, 102, 104],
+    [8, 12, 28, 41, 42, 71, 75, 81, 85, 86, 97, 99, 104, 105, 106, 107, 118],
+    [8, 26, 27, 28, 31, 78, 79, 82, 88, 89, 90, 91, 92, 94, 95, 96, 118],
+    [29, 31, 32, 41, 42, 46, 63, 71, 75, 82, 97, 99, 101, 102, 104],
+    [6, 10, 11, 14, 16, 19, 25, 26, 28, 48, 50, 64, 65, 66, 113],
+    [29, 31, 32, 35, 37, 63, 72, 76, 97, 99, 100, 101, 102, 104],
+    [29, 31, 32, 37, 39, 63, 70, 74, 82, 97, 99, 101, 102, 104],
+    [32, 35, 36, 38, 70, 74, 80, 85, 86, 97, 99, 101, 102, 104],
+    [26, 29, 30, 33, 36, 37, 68, 69, 77, 94, 97, 99, 102, 104],
+    [7, 8, 9, 18, 20, 21, 23, 58, 59, 62, 66, 113, 118, 119],
+    [1, 2, 7, 15, 19, 65, 66, 67, 82, 97, 99, 101, 102, 104],
+    [18, 19, 22, 26, 28, 31, 58, 59, 62, 112, 113, 116, 118],
+    [18, 19, 22, 37, 58, 59, 62, 79, 82, 84, 113, 118, 119],
+    [22, 43, 45, 62, 63, 71, 75, 82, 97, 99, 100, 101, 102],
+    [18, 19, 22, 37, 58, 59, 62, 79, 82, 84, 113, 117, 118],
+    [26, 28, 31, 79, 89, 90, 91, 92, 93, 94, 113, 114, 118],
+    [18, 19, 22, 26, 28, 31, 58, 59, 62, 114, 115, 120],
+    [37, 40, 78, 79, 80, 85, 86, 97, 99, 101, 102, 104],
+    [18, 19, 22, 50, 56, 57, 58, 59, 62, 112, 113, 118],
+    [22, 50, 62, 77, 82, 87, 97, 99, 100, 101, 102],
+    [18, 19, 22, 58, 59, 60, 61, 79, 115, 116, 120],
+    [22, 43, 62, 78, 79, 81, 89, 99, 103],
+    [37, 40, 79, 82, 83, 84, 89, 91, 118],
+    [22, 50, 55, 56, 57, 62, 116, 120],
+    [43, 44, 78, 79, 81, 86, 89, 118],
+    [7, 8, 12, 13, 14, 15, 17, 19, 28, 42, 43, 63, 64, 68, 73, 74, 75, 76, 97, 99, 104, 108, 109, 118],
+    [7, 8, 11, 24, 26, 28, 37, 79, 82, 84],
+    [22, 43, 45, 62, 63, 71, 75, 82, 98, 103, 104],
+    [7, 8, 11, 24, 26, 28, 47, 48, 49, 51],
+    [8, 12, 28, 41, 43, 50, 63, 77, 97, 99, 104, 107, 108, 110, 111, 118],
+    [32, 50, 53, 54, 55, 56, 57, 113],
+    [7, 8, 11, 24, 26, 28, 47, 48, 49, 51, 52, 113]
 ]
 
 
@@ -409,12 +621,12 @@ class StandardExperienceReplay:
 
     def sample(self, batch_size):
         """
-        
-        , 
+
+        ,
         """
         if len(self.buffer) < batch_size:
             return [], [], None
-        # replace=False 
+        # replace=False
         batch_indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         batch = [self.buffer[idx] for idx in batch_indices]
         return batch, batch_indices, None
@@ -428,10 +640,10 @@ class StandardExperienceReplay:
             return []
         samples_with_recalculated_scores = []
         for experience in self.buffer:
-            # , 
+            # ,
             norm_state_tensor = experience[0]
             norm_state = tuple(norm_state_tensor.cpu().numpy().flatten())
-            # 
+            #
             state_tuple = denormalize_state(norm_state)
             triggered = execute_Tr(state_tuple[0], state_tuple[1], state_tuple[2])
             new_reward = compute_reward(state_tuple, target_path, triggered, None, None)
@@ -498,12 +710,12 @@ class StandardDQNAgent:
 
     def act(self, state):
         """
-        
+
         :  (1-50)
         """
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
-        # 
+        #
         norm_state = normalize_state(state)
         state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -512,11 +724,11 @@ class StandardDQNAgent:
 
     def store_transition(self, state, action, reward, next_state, done):
         """
-        , 
+        ,
         :  (1-50)
         :  (0-1)
         """
-        # 
+        #
         norm_state = normalize_state(state)
         norm_next_state = normalize_state(next_state)
 
@@ -532,14 +744,14 @@ class StandardDQNAgent:
             target_q_values = reward + (self.gamma * max_next_q_values * (1 - done))
             td_error = torch.abs(q_values[0][action] - target_q_values).item()
 
-        # 
+        #
         self.replay_buffer.append((norm_state_tensor, action, reward, norm_next_state_tensor, done))
         return td_error
 
     def train(self, batch_size=32):
         """
-        
-        , 
+
+        ,
         """
         if len(self.replay_buffer) < batch_size:
             return
@@ -665,7 +877,7 @@ def enhanced_standard_generate_and_train_for_similar_paths(agent, similar_group,
                         break
 
                     step_count = 0
-                    state = path_data[test_data]  #  (1-50)
+                    state = path_data[test_data]  # (1-50)
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -810,11 +1022,11 @@ def generate_samples_for_isolated_paths_standard(agent_similar, isolated_group_i
         print(f"Path  {path_idx + 1}:  {len(samples_raw)} ")
         print(f"  Q: [{q_min:.4f}, {q_max:.4f}]")
 
-        # Run : Q, 
+        # Run : Q,
         samples_final = []
         for state, sim, len_diff, rob, q_value in samples_raw:
             # : (q - q_min) / (q_max - q_min)
-            if q_max - q_min > 1e-6:  # 
+            if q_max - q_min > 1e-6:  #
                 q_normalized = (q_value - q_min) / (q_max - q_min)
             else:
                 q_normalized = 0.5  # Q, 0.5
@@ -879,7 +1091,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         break
 
                     step_count = 0
-                    state = stage2_path_data[test_data_idx]  # 
+                    state = stage2_path_data[test_data_idx]  #
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -898,7 +1110,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         if random.random() < agent_isolated.epsilon:
                             action = random.choice(legal_actions)
                         else:
-                            # 
+                            #
                             norm_state = normalize_state(state)
                             state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
                             with torch.no_grad():
@@ -945,7 +1157,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                     # stage1_samples
                     stage1_state_tuple, _, _, _ = stage1_samples[sample_idx]
                     step_count = 0
-                    state = stage1_state_tuple  # 
+                    state = stage1_state_tuple  #
                     prev_state = None
                     prev_triggered = None
                     prev_reward = None
@@ -964,7 +1176,7 @@ def enhanced_standard_generate_and_train_for_isolated_paths(agent_similar, agent
                         if random.random() < agent_isolated.epsilon:
                             action = random.choice(legal_actions)
                         else:
-                            # 
+                            #
                             norm_state = normalize_state(state)
                             state_tensor = torch.tensor(norm_state, dtype=torch.float32).unsqueeze(0).to(device)
                             with torch.no_grad():
@@ -1037,16 +1249,15 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
     performance_row = {
         'Run': run_number,
         'Average Similarity': f"{avg_similarity:.4f}",
-        'TD': f"{avg_td_error:.4f}",
-        '': f"{action_improve_rate:.4f}",
-        'Training Time( seconds)': f"{training_time:.2f}",
-        '(MB)': f"{avg_memory:.2f}"
+        'TD Error': f"{avg_td_error:.4f}",
+        'Action Improve Rate': f"{action_improve_rate:.4f}",
+        'Memory(MB)': f"{avg_memory:.2f}"
     }
 
     # ===== final samples =====
     sample_rows = []
 
-    # 
+    #
     for path_idx in similar_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent_similar.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
@@ -1054,20 +1265,19 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Similar',  #
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
-
-    # 
+    #
     for path_idx in isolated_group:
         target_path = targetPaths[path_idx]
         high_reward_samples = agent_isolated.replay_buffer.get_high_reward_samples(target_path, num_samples=20)
@@ -1075,23 +1285,23 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for state_tuple, reward, sim, triggered in high_reward_samples:
             sample_rows.append({
                 'Run': run_number,
-                'Path ': '',
+                'Group Type': 'Isolated',  # 修复此处
                 'Path ID': path_idx + 1,
                 'X': state_tuple[0],
                 'Y': state_tuple[1],
                 'Z': state_tuple[2],
                 'Similarity': f"{sim:.4f}",
-                '': f"{reward:.2f}",
-                '': len(triggered),
-                '': len(target_path),
-                '': str(sorted(triggered)),
-                '': str(sorted(target_path))
+                'Reward': f"{reward:.2f}",  #
+                'Triggered Count': len(triggered),  #
+                'Target Count': len(target_path),  #
+                'Triggered Rules': str(sorted(triggered)),  #
+                'Target Rules': str(sorted(target_path))  #
             })
 
     # ===== Excel =====
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-    # 
+    #
     if os.path.exists(filepath):
         # Metricsheet
         try:
@@ -1123,18 +1333,18 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         # ===== Metricsheet =====
         ws_performance = writer.sheets['Metric']
 
-        # 
+        #
         ws_performance.column_dimensions['A'].width = 15
-        for col in ['B', 'C', 'D', 'E', 'F']:
+        for col in ['B', 'C', 'D', 'E']:
             ws_performance.column_dimensions[col].width = 20
 
-        # 
+        #
         header_font = Font(bold=True, size=11)
         for cell in ws_performance[1]:
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         for row in ws_performance.iter_rows(min_row=2, max_row=ws_performance.max_row):
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center')
@@ -1142,7 +1352,7 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         # ===== sheet =====
         ws_samples = writer.sheets['final samples']
 
-        # 
+        #
         column_widths = {
             'A': 12, 'B': 15, 'C': 12, 'D': 10, 'E': 10, 'F': 10,
             'G': 12, 'H': 12, 'I': 12, 'J': 12, 'K': 40, 'L': 40
@@ -1150,12 +1360,12 @@ def append_metrics_to_combined_excel(metrics_collector, agent_similar, agent_iso
         for col, width in column_widths.items():
             ws_samples.column_dimensions[col].width = width
 
-        # 
+        #
         for cell in ws_samples[1]:
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # 
+        #
         for row in ws_samples.iter_rows(min_row=2, max_row=ws_samples.max_row):
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
@@ -1182,7 +1392,7 @@ def run_single_experiment(run_number, results_save_dir):
 
     similar_group, isolated_group = group_paths_by_similarity(targetPaths)
 
-    # Run : Path 
+    # Run : Path
     if run_number == 1:
         generate_samples_for_similar_paths(similar_group, num_total=2000, top_k=200)
 
@@ -1201,11 +1411,11 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent.epsilon
     }, model_path_similar)
 
-    # Run : Path 
+    # Run : Path
     if run_number == 1:
         generate_samples_for_isolated_paths_standard(agent, isolated_group, num_total=2000, top_k=200)
 
-    # Run : Path 
+    # Run : Path
     isolated_replay_buffer = StandardExperienceReplay(capacity=15000)
     agent_isolated = StandardDQNAgent(state_dim, action_dim, isolated_replay_buffer)
 
@@ -1235,7 +1445,7 @@ def run_single_experiment(run_number, results_save_dir):
         'epsilon': agent_isolated.epsilon
     }, model_path_isolated)
 
-    # 
+    #
     enhanced_standard_metrics.end_training()
 
     # final samples
@@ -1267,10 +1477,8 @@ def run_single_experiment(run_number, results_save_dir):
 
     #  runMetric
     avg_similarity = np.mean(enhanced_standard_metrics.final_output_similarities)
-    training_time = enhanced_standard_metrics.end_time - enhanced_standard_metrics.start_time
     print(f"\nRun  {run_number}  runcompleted:")
     print(f"  Average Similarity: {avg_similarity:.4f}")
-    print(f"  Training Time: {training_time:.2f} seconds")
     print(f"  : {enhanced_standard_metrics.step_count}")
 
 

@@ -13,32 +13,130 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-
+# --- 全局状态范围配置 ---
+STATE_MIN_X, STATE_MAX_X = 1, 128
+STATE_MIN_Y, STATE_MAX_Y = 1, 128
+STATE_MIN_Z, STATE_MAX_Z = 1, 128
 def generate_input():
     return [
-        random.randint(1, 30),
-        random.randint(1, 40),
-        random.randint(1, 2100)
+        random.randint(STATE_MIN_X, STATE_MAX_X),
+        random.randint(STATE_MIN_Y, STATE_MAX_Y),
+        random.randint(STATE_MIN_Z, STATE_MAX_Z)
     ]
 
 
 def execute_Tr(a):
-    cpu_cores, memory_gb, disk_space_gb = int(a[0]), float(a[1]), float(a[2])
+    x, y, z = int(a[0]), int(a[1]), int(a[2])
     triggered = set()
-    b = {}
 
-    if (cpu_cores >= 16) != (cpu_cores >= 13):
-        b[0] = 1
+    # Rule Group 1: (x > y) related
+    if (x > y) != (x > 5):
         triggered.add(1)
-    if (cpu_cores >= 16) != (cpu_cores >= 18):
-        b[1] = 2
+    if (x > y) != (x * x > y):
         triggered.add(2)
-    if (cpu_cores >= 16) != (cpu_cores >= 21):
-        b[2] = 3
+    if (x > y) != (x > y * y):
         triggered.add(3)
-    if (cpu_cores >= 16) != (cpu_cores >= 24):
-        b[3] = 4
+
+        # Rule Group 2: (x > z) related
+    if (x > z) != (x > 10):
         triggered.add(4)
+    if (x > z) != (x * x > z):
+        triggered.add(5)
+    if (x > z) != (x > z * z):
+        triggered.add(6)
+
+        # Rule Group 3: (y > z) related
+    if (y > z) != (y > 8):
+        triggered.add(7)
+    if (y > z) != (y * y > z):
+        triggered.add(8)
+    if (y > z) != (y > z * z):
+        triggered.add(9)
+    if (y > z) != (10 > z):
+        triggered.add(10)
+
+        # Rule Group 4: (x + y <= z) related
+    if (x + y <= z) != (x + y <= z * x):
+        triggered.add(11)
+    if (x + y <= z) != (x + y <= z * y):
+        triggered.add(12)
+    if (x + y <= z) != (x * y <= z * z):
+        triggered.add(13)
+    if (x + y <= z) != (x - y <= z):
+        triggered.add(14)
+
+        # 修正后的规则 15：安全处理除以零
+    cond_xy_le_z = (x + y <= z)
+    cond_x_div_y_le_z = False
+    if y != 0:
+        cond_x_div_y_le_z = (x / y <= z)
+
+    if cond_xy_le_z != cond_x_div_y_le_z:
+        triggered.add(15)
+
+    if (x + y <= z) != (x + y <= 15):
+        triggered.add(16)
+    if (x + y <= z) != (x + y <= 20):
+        triggered.add(17)
+    if (x + y <= z) != (x + 5 <= z):
+        triggered.add(18)
+    if (x + y <= z) != (10 + y <= z):
+        triggered.add(19)
+    if (x + y <= z) != (x + 8 <= z):
+        triggered.add(20)
+
+        # Rule Group 5: (x == y == z) related
+    if (x == y == z) != (x <= y == z):
+        triggered.add(21)
+    if (x == y == z) != (x == y != z):
+        triggered.add(22)
+    if (x == y == z) != (x != y == z):
+        triggered.add(23)
+
+    if (x == y == z) != (x == y <= z):
+        triggered.add(24)
+
+        # Rule Group 6: Modulo operations
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+        triggered.add(25)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+        triggered.add(26)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+        triggered.add(27)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+        triggered.add(28)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+        triggered.add(29)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+        triggered.add(30)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+        triggered.add(31)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+        triggered.add(32)
+
+        # Rule Group 7: Quadratic equation discriminant like conditions
+    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
+
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+        triggered.add(33)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+        triggered.add(34)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+        triggered.add(35)
+
+    # Rule Group 8: System of equations like conditions
+    cond_eq_main_part = (x + y == z and y + z == 2 * x)
+
+    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+        triggered.add(36)
+
+    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+        triggered.add(37)
+
+    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+        triggered.add(38)
+    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+        triggered.add(39)
 
     return triggered
 
@@ -54,8 +152,21 @@ def jaccard_similarity(set1, set2):
 
 
 targetPaths = [
-    {2, 3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 16, 17, 19, 22, 27, 30, 33, 36, 38, 44, 46, 47, 50, 53, 55, 61, 63, 65, 67,
-     71, 79, 80, 81, 83, 84, 85, 87, 93, 94},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
+    {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
+    {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
+    {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
+    {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
 ]
 
 
@@ -74,7 +185,7 @@ class ExperimentConfig:
 
 
 def compute_robustness(state, path):
-    base = execute_Tr(state)
+    base = execute_Tr(*state)
     if not base:
         return 0.0
 
@@ -85,11 +196,11 @@ def compute_robustness(state, path):
                 if dx == dy == dz == 0:
                     continue
                 neighbor = np.array([
-                    np.clip(state[0] + dx, 1, 30),
-                    np.clip(state[1] + dy, 1, 40),
-                    np.clip(state[2] + dz, 1, 2100)
-                ])
-                n_trig = execute_Tr(neighbor)
+                        np.clip(state[0] + dx, STATE_MIN_X, STATE_MAX_X),
+                        np.clip(state[1] + dy, STATE_MIN_Y, STATE_MAX_Y),
+                        np.clip(state[2] + dz, STATE_MIN_Z, STATE_MAX_Z)
+                    ])
+                n_trig = execute_Tr(*neighbor)
                 if not n_trig:
                     continue
                 rob += jaccard_similarity(base, n_trig)
@@ -105,11 +216,11 @@ def generate_candidate_samples(target_path_idx, sample_count=1000):
     while len(samples) < sample_count and attempts < sample_count * 10:
         attempts += 1
         state = np.array([
-            random.randint(1, 30),
-            random.randint(1, 40),
-            random.randint(1, 2100)
+            random.randint(STATE_MIN_X, STATE_MAX_X),
+            random.randint(STATE_MIN_Y, STATE_MAX_Y),
+            random.randint(STATE_MIN_Z, STATE_MAX_Z)
         ])
-        triggered = execute_Tr(state)
+        triggered = execute_Tr(*state)
 
         if not triggered:
             continue
@@ -158,11 +269,11 @@ def generate_samples_with_strategy(target_path_idx, strategy_name, weights, conf
         while len(samples) < config.top_k_samples and attempts < config.top_k_samples * 10:
             attempts += 1
             state = np.array([
-                random.randint(1, 30),
-                random.randint(1, 40),
-                random.randint(1, 2100)
+                random.randint(STATE_MIN_X, STATE_MAX_X),
+                random.randint(STATE_MIN_Y, STATE_MAX_Y),
+                random.randint(STATE_MIN_Z, STATE_MAX_Z)
             ])
-            triggered = execute_Tr(state)
+            triggered = execute_Tr(*state)
 
             if not triggered:
                 continue

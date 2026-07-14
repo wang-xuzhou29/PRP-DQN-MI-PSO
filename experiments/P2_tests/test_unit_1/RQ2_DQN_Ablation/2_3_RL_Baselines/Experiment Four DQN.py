@@ -93,8 +93,8 @@ def unified_reward_function(triggered, target_path):
 
 
 # ===   ===
-def execute_Tr(a):
-    x, y, z = int(a[0]), int(a[1]), int(a[2])
+def execute_Tr(x, y, z):
+    x, y, z = int(x), int(y), int(z)
     triggered = set()
 
     # Rule Group 1: (x > y) related

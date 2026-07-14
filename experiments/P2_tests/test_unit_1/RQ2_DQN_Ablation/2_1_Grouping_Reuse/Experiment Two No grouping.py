@@ -19,43 +19,31 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # === ()===
-WEATHER_MIN = 1    # 
-WEATHER_MAX = 6    # 
-TIME_MIN = 1       # 
-TIME_MAX = 6       # 
-Z_MIN = 1          # 
-Z_MAX = 60         # 
+MIN_X = 1
+MAX_X = 128
+MIN_Y = 1
+MAX_Y = 128
+MIN_Z = 1
+MAX_Z = 128
 
 # === / ===
 def normalize_state(state):
-    """
-    [0, 1]
-    Args:
-        state: (weather, time_period, z) 
-    Returns:
-        
-    """
-    weather_norm = (state[0] - WEATHER_MIN) / (WEATHER_MAX - WEATHER_MIN)
-    time_norm = (state[1] - TIME_MIN) / (TIME_MAX - TIME_MIN)
-    z_norm = (state[2] - Z_MIN) / (Z_MAX - Z_MIN)
+    """将状态归一化到 [0, 1] 区间"""
+    weather_norm = (state[0] - MIN_X) / (MAX_X - MIN_X)
+    time_norm = (state[1] - MIN_Y) / (MAX_Y - MIN_Y)
+    z_norm = (state[2] - MIN_Z) / (MAX_Z - MIN_Z)
     return (weather_norm, time_norm, z_norm)
 
 def denormalize_state(state_norm):
-    """
-    [0, 1]
-    Args:
-        state_norm: (weather_norm, time_norm, z_norm) 
-    Returns:
-        
-    """
-    weather = int(round(state_norm[0] * (WEATHER_MAX - WEATHER_MIN) + WEATHER_MIN))
-    time_period = int(round(state_norm[1] * (TIME_MAX - TIME_MIN) + TIME_MIN))
-    z = int(round(state_norm[2] * (Z_MAX - Z_MIN) + Z_MIN))
+    """将归一化状态还原"""
+    weather = int(round(state_norm[0] * (MAX_X - MIN_X) + MIN_X))
+    time_period = int(round(state_norm[1] * (MAX_Y - MIN_Y) + MIN_Y))
+    z = int(round(state_norm[2] * (MAX_Z - MIN_Z) + MIN_Z))
 
-    # 
-    weather = np.clip(weather, WEATHER_MIN, WEATHER_MAX)
-    time_period = np.clip(time_period, TIME_MIN, TIME_MAX)
-    z = np.clip(z, Z_MIN, Z_MAX)
+    # 边界保护
+    weather = np.clip(weather, MIN_X, MAX_X)
+    time_period = np.clip(time_period, MIN_Y, MAX_Y)
+    z = np.clip(z, MIN_Z, MAX_Z)
 
     return (weather, time_period, z)
 
@@ -90,310 +78,143 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
 
     return reward
 
-def execute_validation_rules_block4(weather, time_period, z):
-    """ - weather, time_period, z"""
+
+def execute_Tr(x, y, z):
+    x, y, z = int(x), int(y), int(z)
     triggered = set()
 
-    # 
-    x = z  # zx
-    y = (weather * time_period * 10 + z) % 100 + 1  # y
+    # Rule Group 1: (x > y) related
+    if (x > y) != (x > 5):
+        triggered.add(1)
+    if (x > y) != (x * x > y):
+        triggered.add(2)
+    if (x > y) != (x > y * y):
+        triggered.add(3)
 
-    # 1-7: (time_period == 1)
-    if time_period == 1:
-        if x < 60 and y > 75:
-            triggered.add(1)
-        if x > 60 and y > 70:
-            triggered.add(2)
-        if x < 50 and y < 40:
-            triggered.add(3)
-        if x > 78 and 45 < y < 70:
-            triggered.add(4)
-        if 45 < x < 70 and y > 78:
-            triggered.add(5)
-        if x < 55 and 50 < y < 75:
-            triggered.add(6)
-        if 50 < x < 75 and y < 55:
-            triggered.add(7)
+        # Rule Group 2: (x > z) related
+    if (x > z) != (x > 10):
+        triggered.add(4)
+    if (x > z) != (x * x > z):
+        triggered.add(5)
+    if (x > z) != (x > z * z):
+        triggered.add(6)
 
-    # 8-14: (time_period == 2)
-    if time_period == 2:
-        if x < 60 and y > 75:
-            triggered.add(8)
-        if x > 60 and y > 70:
-            triggered.add(9)
-        if x < 55 and y < 45:
-            triggered.add(10)
-        if 45 < x < 70 and y > 78:
-            triggered.add(11)
-        if x > 78 and 45 < y < 70:
-            triggered.add(12)
-        if 55 < x < 75 and y < 50:
-            triggered.add(13)
-        if x < 50 and 55 < y < 75:
-            triggered.add(14)
+        # Rule Group 3: (y > z) related
+    if (y > z) != (y > 8):
+        triggered.add(7)
+    if (y > z) != (y * y > z):
+        triggered.add(8)
+    if (y > z) != (y > z * z):
+        triggered.add(9)
+    if (y > z) != (10 > z):
+        triggered.add(10)
 
-    # 15-19: (time_period == 3)
-    if time_period == 3:
-        if x > 60 and 40 < y < 65:
-            triggered.add(15)
-        if 40 < x < 65 and y > 60:
-            triggered.add(16)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(17)
-        if x < 50 and y < 40:
-            triggered.add(18)
-        if x > 65 and y < 45:
-            triggered.add(19)
+        # Rule Group 4: (x + y <= z) related
+    if (x + y <= z) != (x + y <= z * x):
+        triggered.add(11)
+    if (x + y <= z) != (x + y <= z * y):
+        triggered.add(12)
+    if (x + y <= z) != (x * y <= z * z):
+        triggered.add(13)
+    if (x + y <= z) != (x - y <= z):
+        triggered.add(14)
 
-    # 20-25: (time_period == 4)
-    if time_period == 4:
-        if x < 45 and y < 35:
-            triggered.add(20)
-        if x > 60 and y < 40:
-            triggered.add(21)
-        if x < 50 and y > 70:
-            triggered.add(22)
-        if 45 < x < 70 and 45 < y < 60:
-            triggered.add(23)
-        if x < 35 and y < 25:
-            triggered.add(24)
-        if 40 < x < 65 and y < 45:
-            triggered.add(25)
+        # 修正后的规则 15：安全处理除以零
+    cond_xy_le_z = (x + y <= z)
+    cond_x_div_y_le_z = False
+    if y != 0:
+        cond_x_div_y_le_z = (x / y <= z)
 
-    # 26-28: (time_period == 5)
-    if time_period == 5:
-        if x < 60 and y < 50:
-            triggered.add(26)
-        if x > 65 and y > 75:
-            triggered.add(27)
-        if x > 60 and y < 45:
-            triggered.add(28)
+    if cond_xy_le_z != cond_x_div_y_le_z:
+        triggered.add(15)
 
-    # 29-33: (time_period == 6)
-    if time_period == 6:
-        if 40 < x < 70 and 40 < y < 60:
-            triggered.add(29)
-        if x < 55 and y < 45:
-            triggered.add(30)
-        if x > 60 and y < 50:
-            triggered.add(31)
-        if x < 60 and y > 70:
-            triggered.add(32)
-        if x > 65 and y > 75:
-            triggered.add(33)
+    if (x + y <= z) != (x + y <= 15):
+        triggered.add(16)
+    if (x + y <= z) != (x + y <= 20):
+        triggered.add(17)
+    if (x + y <= z) != (x + 5 <= z):
+        triggered.add(18)
+    if (x + y <= z) != (10 + y <= z):
+        triggered.add(19)
+    if (x + y <= z) != (x + 8 <= z):
+        triggered.add(20)
 
-    # 34-68: 
-    if weather == 1:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(34)
-        if time_period in [1, 2] and y > 70:
-            triggered.add(35)
-        if time_period in [3, 4] and x < 50:
-            triggered.add(36)
-        if time_period in [3, 4] and y < 50:
-            triggered.add(37)
-        if time_period in [5, 6] and 40 < x < 80:
-            triggered.add(38)
-        if time_period in [5, 6] and 40 < y < 80:
-            triggered.add(39)
+        # Rule Group 5: (x == y == z) related
+    if (x == y == z) != (x <= y == z):
+        triggered.add(21)
+    if (x == y == z) != (x == y != z):
+        triggered.add(22)
+    if (x == y == z) != (x != y == z):
+        triggered.add(23)
 
-    if weather == 2:  # 
-        if time_period in [1, 2] and x > 75:
-            triggered.add(40)
-        if time_period in [1, 2] and y < 60:
-            triggered.add(41)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(42)
-        if time_period in [3, 4] and y > 65:
-            triggered.add(43)
-        if time_period in [5, 6] and 35 < x < 75:
-            triggered.add(44)
-        if time_period in [5, 6] and 35 < y < 75:
-            triggered.add(45)
+    if (x == y == z) != (x == y <= z):
+        triggered.add(24)
 
-    if weather == 3:  # 
-        if time_period in [1, 2] and x > 60:
-            triggered.add(46)
-        if time_period in [1, 2] and y > 65:
-            triggered.add(47)
-        if time_period in [3, 4] and x < 55:
-            triggered.add(48)
-        if time_period in [3, 4] and y < 55:
-            triggered.add(49)
-        if time_period in [5, 6] and 30 < x < 70:
-            triggered.add(50)
-        if time_period in [5, 6] and 30 < y < 70:
-            triggered.add(51)
+        # Rule Group 6: Modulo operations
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 3 + y % 2 + z % 2) >= 2):
+        triggered.add(25)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 3 + z % 2) >= 2):
+        triggered.add(26)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 3) >= 2):
+        triggered.add(27)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 1):
+        triggered.add(28)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 2) >= 3):
+        triggered.add(29)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 5 + z % 2) >= 2):
+        triggered.add(30)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 5 + y % 2 + z % 2) >= 2):
+        triggered.add(31)
+    if ((x % 2 + y % 2 + z % 2) >= 2) != ((x % 2 + y % 2 + z % 5) >= 2):
+        triggered.add(32)
 
-    if weather == 4:  # 
-        if time_period in [1, 2] and x > 65:
-            triggered.add(52)
-        if time_period in [1, 2] and y < 55:
-            triggered.add(53)
-        if time_period in [3, 4] and x < 40:
-            triggered.add(54)
-        if time_period in [3, 4] and y > 60:
-            triggered.add(55)
-        if time_period in [5, 6] and 25 < x < 65:
-            triggered.add(56)
-        if time_period in [5, 6] and 25 < y < 65:
-            triggered.add(57)
+        # Rule Group 7: Quadratic equation discriminant like conditions
+    cond_main_part = (x != 0 and (y * y - 4 * x * z == 0))
 
-    if weather == 5:  # 
-        if time_period in [1, 2] and x > 70:
-            triggered.add(58)
-        if time_period in [1, 2] and y > 60:
-            triggered.add(59)
-        if time_period in [3, 4] and x < 35:
-            triggered.add(60)
-        if time_period in [3, 4] and y < 40:
-            triggered.add(61)
-        if time_period in [5, 6] and 20 < x < 60:
-            triggered.add(62)
-        if time_period in [5, 6] and 20 < y < 60:
-            triggered.add(63)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z != 0)):
+        triggered.add(33)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z >= 0)):
+        triggered.add(34)
+    if cond_main_part != (x != 0 and (y * y - 4 * x * z <= 0)):
+        triggered.add(35)
 
-    if weather == 6:  # 
-        if time_period in [1, 2] and x > 55:
-            triggered.add(64)
-        if time_period in [1, 2] and y > 55:
-            triggered.add(65)
-        if time_period in [3, 4] and x < 45:
-            triggered.add(66)
-        if time_period in [3, 4] and y < 45:
-            triggered.add(67)
-        if time_period in [5, 6] and 15 < x < 55:
-            triggered.add(68)
+    # Rule Group 8: System of equations like conditions
+    cond_eq_main_part = (x + y == z and y + z == 2 * x)
 
-    # 69-78: ()
-    if weather + time_period > 6:
-        if x > 50 and y > 50:
-            triggered.add(69)
-        if x < 50 and y < 50:
-            triggered.add(70)
-        if x > y:
-            triggered.add(71)
-        if x < y:
-            triggered.add(72)
-        if abs(x - y) < 20:
-            triggered.add(73)
+    if cond_eq_main_part != (x + y != z and y + z == 2 * x):
+        triggered.add(36)
 
-    if weather + time_period <= 6:
-        if x > 60 or y > 60:
-            triggered.add(74)
-        if x < 40 or y < 40:
-            triggered.add(75)
-        if x + y > 100:
-            triggered.add(76)
-        if x + y < 80:
-            triggered.add(77)
-        if abs(x - y) > 30:
-            triggered.add(78)
+    if cond_eq_main_part != (x + y >= z and y + z == 2 * x):
+        triggered.add(37)
 
-    # 79-88: Value
-    if weather % 2 == time_period % 2:  # 
-        if x % 10 < 5:
-            triggered.add(79)
-        if y % 10 >= 5:
-            triggered.add(80)
-        if (x + y) % 3 == 0:
-            triggered.add(81)
-        if (x * y) % 7 == 0:
-            triggered.add(82)
-        if x // 10 == y // 10:
-            triggered.add(83)
-
-    if weather % 2 != time_period % 2:  # 
-        if x > 75 or y > 75:
-            triggered.add(84)
-        if x < 25 or y < 25:
-            triggered.add(85)
-        if max(x, y) - min(x, y) > 40:
-            triggered.add(86)
-        if (x + y) // 2 > 50:
-            triggered.add(87)
-        if weather * time_period > 15:
-            triggered.add(88)
-
-    # 89-95: ()
-    if weather in [1, 3, 5]:  # 
-        if time_period in [1, 3, 5] and x > 40:
-            triggered.add(89)
-        if time_period in [2, 4, 6] and y > 40:
-            triggered.add(90)
-        if x % 20 < 10 and y % 20 < 10:
-            triggered.add(91)
-        if x + weather * 10 > 50:
-            triggered.add(92)
-        if y + time_period * 10 > 50:
-            triggered.add(93)
-        if time_period in [1, 3, 5] and x < 60:
-            triggered.add(94)
-        if time_period in [2, 4, 6] and y < 60:
-            triggered.add(95)
-
-    # 96-98: 
-    if weather in [2, 4, 6]:  # 
-        if (x + y) % weather == 0:
-            triggered.add(96)
-        if x * weather > 100:
-            triggered.add(97)
-        if y * time_period > 100:
-            triggered.add(98)
-
-    # 99-100: 
-    if (weather * time_period + z) % 7 == 0:
-        triggered.add(99)
-    if max(weather, time_period) * min(x, y) > 150:
-        triggered.add(100)
+    if cond_eq_main_part != (x + y == z and y + z != 2 * x):
+        triggered.add(38)
+    if cond_eq_main_part != (x + y == z or y + z == 2 * x):
+        triggered.add(39)
 
     return triggered
 
-def execute_Tr(weather, time_period, z):
-    """"""
-    return execute_validation_rules_block4(weather, time_period, z)
-
 # === target path definitions ===
-target_paths = [
-    [15, 16, 48, 49, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [16, 18, 19, 60, 61, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [1, 4, 6, 46, 47, 74, 75, 76, 77, 78, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [30, 31, 50, 51, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [18, 19, 36, 37, 74, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 99, 100],
-    [20, 24, 25, 36, 37, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 99, 100],
-    [8, 12, 34, 35, 74, 75, 76, 77, 78, 84, 86, 87, 88, 90, 91, 92, 93, 95, 100],
-    [8, 10, 58, 59, 70, 71, 72, 73, 84, 85, 86, 87, 88, 91, 92, 93, 95, 99, 100],
-    [8, 14, 46, 47, 75, 76, 77, 78, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99, 100],
-    [1, 2, 6, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 92, 93, 94, 100],
-    [39, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [20, 21, 60, 61, 70, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 99],
-    [8, 9, 11, 13, 40, 41, 75, 76, 77, 78, 79, 80, 81, 83, 96, 97, 98, 100],
-    [18, 19, 54, 55, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 99, 100],
-    [25, 48, 49, 69, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [26, 28, 62, 70, 71, 72, 73, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [32, 33, 68, 69, 71, 72, 73, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [1, 52, 53, 74, 75, 76, 77, 78, 84, 85, 86, 87, 88, 97, 98, 99, 100],
-    [8, 12, 14, 64, 65, 69, 71, 72, 73, 80, 81, 82, 83, 96, 97, 98, 100],
-    [1, 3, 64, 65, 70, 71, 72, 73, 84, 86, 87, 88, 96, 97, 98, 99, 100],
-    [22, 36, 37, 76, 77, 78, 85, 86, 87, 88, 90, 91, 93, 95, 100],
-    [31, 45, 70, 71, 72, 73, 79, 80, 81, 83, 96, 97, 98, 99, 100],
-    [22, 66, 67, 69, 71, 72, 73, 79, 80, 82, 83, 97, 98, 100],
-    [44, 45, 69, 71, 72, 73, 79, 80, 83, 96, 97, 98, 99, 100],
-    [57, 71, 72, 73, 79, 80, 83, 97, 98, 100],
-    [15, 16, 17, 48, 49, 74, 75, 76, 77, 78, 79, 80, 82, 83, 89, 91, 92, 93, 94, 100],
-    [1, 2, 5, 46, 47, 75, 76, 77, 78, 79, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [20, 21, 25, 42, 43, 74, 76, 77, 78, 79, 80, 81, 82, 83, 96, 97, 98, 99, 100],
-    [2, 5, 7, 40, 41, 75, 76, 77, 78, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 56, 57, 70, 71, 72, 73, 84, 85, 86, 87, 88, 96, 97, 98, 99, 100],
-    [26, 28, 38, 74, 76, 77, 78, 80, 81, 82, 83, 89, 91, 92, 93, 94, 100],
-    [30, 31, 62, 63, 70, 71, 72, 73, 84, 86, 87, 88, 90, 91, 92, 93, 95],
-    [29, 62, 63, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100],
-    [23, 25, 60, 61, 71, 72, 73, 84, 85, 86, 87, 88, 90, 92, 93, 95, 100]
+targetPaths = [
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 27, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 14, 15, 17, 25, 26, 29, 30, 31, 33, 35},
+    {1, 2, 6, 9, 10, 11, 12, 14, 15, 25, 26, 27, 30, 31, 33, 34, 36, 37, 39},
+    {30, 1, 2, 4, 5, 33, 7, 8, 35, 16, 17, 38, 39, 26, 29},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 32, 33, 35},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 26, 27, 28, 30, 32, 33, 34},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 29, 30, 32, 33, 35},
+    {3, 6, 7, 8, 11, 12, 13, 15, 17, 25, 27, 28, 31, 32, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 27, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 18, 27, 30, 33, 35},
+    {30, 31, 32, 3, 4, 5, 33, 7, 8, 35, 16, 17, 26, 27, 28},
+    {1, 2, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 30, 31, 33, 35},
+    {3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 28, 30, 31, 33, 35},
+    {1, 2, 4, 5, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 25, 26, 27, 28, 30, 31, 32, 33, 34},
+    {30, 31, 32, 3, 6, 7, 8, 33, 35, 11, 12, 14, 15, 27, 28}
 ]
 
-# 
-target_paths = [set(path) for path in target_paths]
+#
+target_paths = [set(path) for path in targetPaths]
 
 targetPaths = [set(path) for path in target_paths]
 NUM_PATHS = len(targetPaths)
@@ -448,7 +269,7 @@ def compute_robustness(state, path, sample_size=9):
 
     rob, neighbors = 0.0, 0
 
-    # : 
+    # :
     # weather1-6, +/-1
     # time_period1-6, +/-1
     # z1-60, +/-6(10%), +/-3(5%)
@@ -463,9 +284,9 @@ def compute_robustness(state, path, sample_size=9):
         if dw == dt == dz == 0:
             continue
 
-        neighbor_weather = int(np.clip(state[0] + dw, WEATHER_MIN, WEATHER_MAX))
-        neighbor_time = int(np.clip(state[1] + dt, TIME_MIN, TIME_MAX))
-        neighbor_z = int(np.clip(state[2] + dz, Z_MIN, Z_MAX))
+        neighbor_weather = int(np.clip(state[0] + dw, MIN_X, MAX_X))
+        neighbor_time = int(np.clip(state[1] + dt, MIN_Y, MAX_Y))
+        neighbor_z = int(np.clip(state[2] + dz, MIN_Z, MAX_Z))
         neighbor = (neighbor_weather, neighbor_time, neighbor_z)
 
         n_trig = execute_Tr(neighbor[0], neighbor[1], neighbor[2])
@@ -505,9 +326,9 @@ def generate_samples_for_all_paths(num_candidates=2000, top_k=200, run_id=1):
         while len(candidate_samples) < num_candidates and attempts < max_attempts:
             attempts += 1
 
-            weather = np.random.randint(WEATHER_MIN, WEATHER_MAX + 1)
-            time_period = np.random.randint(TIME_MIN, TIME_MAX + 1)
-            z = np.random.randint(Z_MIN, Z_MAX + 1)
+            weather = np.random.randint(MIN_X, MAX_X + 1)
+            time_period = np.random.randint(MIN_Y, MAX_Y + 1)
+            z = np.random.randint(MIN_Z, MAX_Z + 1)
             state = (weather, time_period, z)
 
             triggered = execute_Tr(weather, time_period, z)
@@ -580,16 +401,16 @@ class SharedExperienceReplay:
             return []
 
         samples_with_scores = []
-        seen_states = set()  # 
+        seen_states = set()  #
 
         for experience in self.buffer:
             state_tensor = experience[0]
             state_norm = state_tensor.cpu().numpy().flatten()
 
-            # 
+            #
             state_tuple = denormalize_state((state_norm[0], state_norm[1], state_norm[2]))
 
-            # 
+            #
             if state_tuple in seen_states:
                 continue
             seen_states.add(state_tuple)
@@ -669,12 +490,12 @@ class DQNAgentWithPER:
     def decode_action(self, action_idx):
         """
         ()
-        30, : 
+        30, :
         - weather: +/-1, 0(x2)
         - time_period: +/-1, 0(x2)
         - z: +/-12(20%), +/-6(10%), +/-3(5%), 0(x2)
         """
-        delta_values_weather_time = [1, 0, 0, -1]  # 
+        delta_values_weather_time = [1, 0, 0, -1]  #
         delta_values_z = [12, 6, 3, 0, 0, -3, -6, -12]  # z
 
         dim = action_idx // 10
@@ -723,16 +544,16 @@ class DQNAgentWithPER:
             next_time = state[1] + dt
             next_z = state[2] + dz
 
-            if (WEATHER_MIN <= next_weather <= WEATHER_MAX and
-                    TIME_MIN <= next_time <= TIME_MAX and
-                    Z_MIN <= next_z <= Z_MAX):
+            if (MIN_X <= next_weather <= MAX_X and
+                    MIN_Y <= next_time <= MAX_Y and
+                    MIN_Z <= next_z <= MAX_Z):
                 legal_actions.append(action_idx)
 
         return legal_actions
 
     def store_transition(self, state, action, reward, next_state, done):
         """()"""
-        # 
+        #
         state_norm = normalize_state(state)
         next_state_norm = normalize_state(next_state)
 
@@ -855,17 +676,18 @@ def generate_and_train_for_individual_paths(path_documents, repeats=5, batch_siz
                         if not legal_actions:
                             break
 
-                        # 
+                        #
                         state_norm = normalize_state(state)
                         action = agent.act(state_norm, legal_actions)
                         if action is None:
                             break
 
                         dw, dt, dz = agent.decode_action(action)
+
                         next_state = (
-                            int(np.clip(state[0] + dw, WEATHER_MIN, WEATHER_MAX)),
-                            int(np.clip(state[1] + dt, TIME_MIN, TIME_MAX)),
-                            int(np.clip(state[2] + dz, Z_MIN, Z_MAX))
+                            int(np.clip(state[0] + dw, MIN_X, MAX_X)),
+                            int(np.clip(state[1] + dt, MIN_Y, MAX_Y)),
+                            int(np.clip(state[2] + dz, MIN_Z, MAX_Z))
                         )
 
                         triggered = execute_Tr(next_state[0], next_state[1], next_state[2])
@@ -873,7 +695,7 @@ def generate_and_train_for_individual_paths(path_documents, repeats=5, batch_siz
                                                 prev_triggered, prev_state)
                         done = (step == STEPS_PER_SAMPLE - 1)
 
-                        # 
+                        #
                         agent.store_transition(state, action, reward, next_state, done)
 
                         prev_state = state
@@ -1203,7 +1025,7 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
             round(run_data['min_similarity'], 4),
             round(high_group_avg, 4),
             round(low_group_avg, 4),
-            20000  # 
+            20000  #
         ]
 
         for col, value in enumerate(values, 1):
@@ -1221,7 +1043,7 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
 
-    # 
+    #
     stat_row = len(all_runs_data) + 2
     stat_labels = ['', '/', '', '', '', '', '', '']
 
@@ -1234,7 +1056,7 @@ def create_consolidated_excel_report(all_runs_data, similar_group, isolated_grou
 
     stat_row += 1
 
-    # 
+    #
     training_times = [r['training_time'] for r in all_runs_data]
     overall_avgs = [r['overall_avg_similarity'] for r in all_runs_data]
     max_sims = [r['max_similarity'] for r in all_runs_data]
@@ -1314,9 +1136,9 @@ def run_20_times_training():
     print(f"  Similar path group: {similar_group_display}")
     print(f"  Isolated path group: {isolated_group_display}")
     print(f"\n:")
-    print(f"   (weather): {WEATHER_MIN}-{WEATHER_MAX}")
-    print(f"   (time_period): {TIME_MIN}-{TIME_MAX}")
-    print(f"   (z): {Z_MIN}-{Z_MAX}")
+    print(f"   (weather): {MIN_X}-{MAX_X}")
+    print(f"   (time_period): {MIN_Y}-{MAX_Y}")
+    print(f"   (z): {MIN_Z}-{MAX_Z}")
     print(f"\n:")
     print(f"  x = z ()")
     print(f"  y = (weather * time_period * 10 + z) % 100 + 1")
@@ -1354,9 +1176,9 @@ def run_20_times_training():
             'run_id': run_id,
             'normalized': True,
             'value_ranges': {
-                'weather': [WEATHER_MIN, WEATHER_MAX],
-                'time_period': [TIME_MIN, TIME_MAX],
-                'z': [Z_MIN, Z_MAX]
+                'weather': [MIN_X, MAX_X],
+                'time_period': [MIN_Y, MAX_Y],
+                'z': [MIN_Z, MAX_Z]
             }
         }, model_path)
         print(f"[Run {run_id}] Model saved: {model_path}")
