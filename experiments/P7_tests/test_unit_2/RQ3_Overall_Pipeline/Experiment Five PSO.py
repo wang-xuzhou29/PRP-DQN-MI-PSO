@@ -6,7 +6,7 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
+import math
 
 def safe_divide(numerator, denominator, default=0.0):
     """, """
@@ -14,103 +14,167 @@ def safe_divide(numerator, denominator, default=0.0):
         return default
     return numerator / denominator
 
-def execute_validation_rules(dx: int, dy: int, dz: int) -> Set[int]:
-    """Path """
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 50.0  # 50.0
-    INITIAL_BATTERY = 500.0  # 
-    BATTERY_PER_STEP = 1.0  # 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 50.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 45.0, 45.0, 20.0  # 
+def execute_validation_rules(x, y, z):
+    b = {}  # 使用字典存储触发的规则
 
-    MIN_PLANNING_X = 5.0
-    MIN_PLANNING_Y = 7.5
-    MIN_PLANNING_Z = 4.0
-    CRITICAL_X_VELOCITY = 10.0
-    CRITICAL_Y_VELOCITY = 12.5
-    CRITICAL_Z_VELOCITY = 7.5
+    if (30 < x < 170) != (30 < x < 100): b[0] = 1
+    if (30 < x < 170) != (30 < x < 190): b[1] = 2
+    if (30 < x < 170) != (30 < x < 140): b[2] = 3
+    if (30 < x < 170) != (30 < x < 150): b[3] = 4
+    if (30 < x < 170) != (30 < x < 160): b[4] = 5
+    if (100 < y < 200) != (150 < y < 200): b[5] = 6
+    if (100 < y < 200) != (50 < y < 200): b[6] = 7
+    if (100 < y < 200) != (100 < y < 150): b[7] = 8
+    if (1 < z < 4) != (1 < z < 3): b[8] = 9
+    if (x > 10 and x < 152) != (x > 10 and x < 100): b[9] = 10
 
-    triggered = set()
+    # 规则11-20
+    if (x > 40 and x < 152) != (x > 40 and x < 202): b[10] = 11
+    if (abs(x - 50) < 4) != (abs(x - 50) < 2): b[11] = 12
+    if (abs(x - 50) < 4) != (abs(x + 50) < 4): b[12] = 13
+    if (abs(x - 50) < 4) != (abs(x * 50) < 4): b[13] = 14
+    if (x > 135) != (x > 215): b[14] = 15
+    if (x > 135) != (x > 235): b[15] = 16
+    if (x > 135) != (x > 225): b[16] = 17
+    if (y > 100) != (y > 120): b[17] = 18
+    if (y > 100) != (y > 140): b[18] = 19
+    if (y > 100) != (y > 50): b[19] = 20
 
-    # , 1-50
-    current_x = random.uniform(1.0, MAX_GRID_SIZE)
-    current_y = random.uniform(1.0, MAX_GRID_SIZE)
-    current_z = random.uniform(1.0, MAX_GRID_SIZE)
+    # 规则21-30
+    if (x < 165) != (x < 265): b[20] = 21
+    if (x < 165) != (x < 245): b[21] = 22
+    if (x < 165) != (x < 262): b[22] = 23
+    if (y < 150) != (y < 130): b[23] = 24
+    if (y < 150) != (x < 100): b[24] = 25
+    if (y < 190) != (y < 120): b[25] = 26
+    if ((x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 125) != (
+            (x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 115): b[26] = 27
+    if ((x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 125) != (
+            (x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 85): b[27] = 28
+    if ((x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 125) != (
+            (x + y / 30 + z / 2) > 95 and (x + y / 30 + z / 2) < 25): b[28] = 29
+    if (x / (y / 30) > 1 and x / (y / 30) < 2) != (x / (y / 30) > 1 and x / (y / 30) < 4): b[29] = 30
 
-    # ''''
-    simulated_y = current_y  #  current_y  self.y 
+    # 规则31-40
+    if (x / (y / 30) > 1 and x / (y / 30) < 2) != (x / (y / 30) > 1 and x / (y / 30) < 3): b[30] = 31
+    if (x / (z / 2) > 2 and x / (z / 2) < 4) != (x / (z / 2) > 1 and x / (z / 2) < 4): b[31] = 32
+    if (x / (z / 2) > 2 and x / (z / 2) < 4) != (x / (z / 3) > 2 and x / (z / 2) < 4): b[32] = 33
+    if (x / (z / 2) > 2 and x / (z / 2) < 4) != (x / (z / 2) > 2 and x / (z / 3) < 4): b[33] = 34
+    if ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 55) != ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 155): b[
+        34] = 35
+    if ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 55) != ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 125): b[
+        35] = 36
+    if ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 55) != ((x + y / 30) / 2 > 45 and (x + y / 30) / 2 < 25): b[
+        36] = 37
+    if (x - y / 30 > -10 and x - y / 30 < 10) != (x - y / 30 > -10 and x - y / 30 < 5): b[37] = 38
+    if (x - y / 30 > -10 and x - y / 30 < 10) != (x - y / 30 > -10 and x - y / 30 < 6): b[38] = 39
+    if (x - y / 30 > -10 and x - y / 30 < 10) != (x - y / 30 > -10 and x - y / 30 < 8): b[39] = 40
 
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
-        triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
-        triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
-        triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
-        triggered.add(4)
+    # 规则41-50
+    if (abs(x / (y / 30) - 1.0) < 1) != (abs(x / (y / 30) + 1.0) < 1): b[40] = 41
+    if (abs(x / (y / 30) - 1.0) < 1) != (abs(x / (y / 30) - 1.0) < 2): b[41] = 42
+    if (abs(x / (y / 30) - 1.0) < 1) != (abs(x / (y / 30) - 1.0) < 3): b[42] = 43
+    if (x / ((y / 30) + 20) > 1 and x / ((y / 30) + 20) < 2) != (x / ((y / 30) + 20) > 1 and x / ((y / 20) + 20) < 2):
+        b[43] = 44
+    if (x / ((y / 30) + 20) > 1 and x / ((y / 30) + 20) < 2) != (x / ((y / 30) + 20) > 1 and x / ((y / 40) + 20) < 2):
+        b[44] = 45
+    if (x / ((y / 30) + 20) > 1 and x / ((y / 30) + 20) < 2) != (x / ((y / 30) + 20) > 1 and x / ((y / 30) + 40) < 2):
+        b[45] = 46
+    if ((z / 50) / (x / 50) > 1 and (z / 50) / (x / 50) < 3) != ((z / 50) / (x / 50) > 1 and (z / 50) / (x / 50) < 4):
+        b[46] = 47
+    if ((z / 50) / (x / 50) > 1 and (z / 50) / (x / 50) < 3) != ((z / 50) / (x / 50) > 2 and (z / 50) / (x / 50) < 3):
+        b[47] = 48
+    if ((z / 50) / (x / 50) > 1 and (z / 50) / (x / 50) < 3) != ((z / 50) / (x / 50) > 3 and (z / 50) / (x / 50) < 3):
+        b[48] = 49
+    if ((x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 3 < 45) != (
+            (x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 3 < 70): b[49] = 50
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
-        triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
-        triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
-        triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
-        triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
-        triggered.add(9)
+    # 规则51-60
+    if ((x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 3 < 45) != (
+            (x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 3 < 60): b[50] = 51
+    if ((x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 3 < 45) != (
+            (x + y / 30 + z / 2) / 3 > 35 and (x + y / 30 + z / 2) / 6 < 45): b[51] = 52
+    if (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 8) != (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 48): b[
+        52] = 53
+    if (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 8) != (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 50): b[
+        53] = 54
+    if (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 8) != (math.sqrt((x - 50) ** 2 + (y / 30 - 50) ** 2) < 58): b[
+        54] = 55
+    if ((x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 200) != (
+            (x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 400): b[55] = 56
+    if ((x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 200) != (
+            (x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 300): b[56] = 57
+    if ((x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 200) != (
+            (x - 40) * (y / 30 - 40) > 50 and (x - 40) * (y / 30 - 40) < 500): b[57] = 58
+    if (abs((x + y / 30) - 100) < 15) != (abs((x + y / 30) - 100) < 35): b[58] = 59
+    if (abs((x + y / 30) - 100) < 15) != (abs((x + y / 30) - 100) < 45): b[59] = 60
 
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 5:
-        triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 15:
-        triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 20:
-        triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dy < 25:
-        triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dx < 10:
-        triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 10 != TARGET_Y > simulated_y and dz < 10:
-        triggered.add(15)
+    # 规则61-70
+    if (abs((x + y / 30) - 100) < 15) != (abs((x + y / 30) - 100) < 10): b[60] = 61
+    if (x / 50 > 1 and x / 50 < 4) != (x / 50 > 3 and x / 50 < 4): b[61] = 62
+    if (x / 50 > 1 and x / 50 < 4) != (x / 50 > 1 and x / 50 < 5): b[62] = 63
+    if (x < 135) != (x < 215): b[63] = 64
+    if (x < 135) != (x < 225): b[64] = 65
+    if (x < 135) != (x < 225): b[65] = 66
+    if (x > 65) != (x > 165): b[66] = 67
+    if (x > 65) != (x > 215): b[67] = 68
+    if (x > 65) != (x > 251): b[68] = 69
+    if (y < 110) != (y < 80): b[69] = 70
 
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
+    # 规则71-80
+    if (y < 110) != (y < 50): b[70] = 71
+    if (y < 110) != (y < 119): b[71] = 72
+    if (x < 32 or x > 68) != (x < 32 or x > 168): b[72] = 73
+    if (x < 32 or x > 68) != (x < 32 or x > 118): b[73] = 74
+    if (x < 32 or x > 68) != (x < 32 or x > 218): b[74] = 75
+    if (x < 35 and y < 120) != (x < 135 and y < 120): b[75] = 76
+    if (x < 35 and y < 120) != (x < 235 and y < 120): b[76] = 77
+    if (x < 35 and y < 120) != (x < 35 and y < 60): b[77] = 78
+    if (abs(x / (y / 30) - 1.0) > 1) != (abs(x / (y / 30) - 3.0) > 1): b[78] = 79
+    if (abs(x / (y / 30) - 1.0) > 1) != (abs(x / (y / 30) - 1.0) > 2): b[79] = 80
 
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
-        triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
-        triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
-        triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
-        triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
-        triggered.add(29)
+    # 规则81-90
+    if (abs(x / (y / 30) - 1.0) > 1) != (abs(x / (y / 30) - 1.0) > 3): b[80] = 81
+    if ((x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 135) != (
+            (x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 235): b[81] = 82
+    if ((x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 135) != (
+            (x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 335): b[82] = 83
+    if ((x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 135) != (
+            (x + y / 30 + z / 2) < 85 or (x + y / 30 + z / 2) > 435): b[83] = 84
+    if (x < 30 or x > 70) != (x < 30 or x * 7 > 70): b[84] = 85
+    if (x < 30 or x > 70) != (x < 30 or x > 270): b[85] = 86
+    if (x < 30 or x > 70) != (x < 30 or x > 170): b[86] = 87
+    if (x / (y / 30) > 1 and x / (y / 30) < 3) != (x / (y / 30) > 1 and x / (y / 20) < 3): b[87] = 88
+    if (x / (y / 30) > 1 and x / (y / 30) < 3) != (x / (y / 30) > 1 and x / (y / 30) < 4): b[88] = 89
+    if (x / (y / 30) > 1 and x / (y / 30) < 3) != (x / (y / 20) > 1 and x / (y / 30) < 3): b[89] = 90
 
+    # 规则91-100
+    if ((x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 112) != (
+            (x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 62): b[90] = 91
+    if ((x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 112) != (
+            (x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 92): b[91] = 92
+    if ((x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 112) != (
+            (x + y / 30 + z / 2) > 108 and (x + y / 30 + z / 2) < 82): b[92] = 93
+    if (abs((x + y / 30) / 2 - 50) < 1) != (abs((x + y / 30) / 2 - 50) < 4): b[93] = 94
+    if (abs((x + y / 30) / 2 - 50) < 1) != (abs((x + y / 30) / 2 + 50) < 1): b[94] = 95
+    if (abs((x + y / 30) / 2 - 50) < 1) != (abs((x + y / 20) / 2 + 50) < 1): b[95] = 96
+    if (x / (z / 2) > 2 and x / (z / 2) < 4) != (x / (z / 2) > 1 and x / (z / 2) < 4): b[96] = 97
+    if (x / (z / 2) > 20 and x / (z / 2) < 100) != (x / (z / 3) > 20 and x / (z / 2) < 100): b[97] = 98
+    if (x / (z / 2) > 20 and x / (z / 2) < 100) != (x / (z / 2) > 20 and x / (z / 2) < 150): b[98] = 99
+    if ((y / 30) / (z / 50) > 38 and (y / 30) / (z / 50) < 42) != (
+            (y / 30) / (z / 50) > 48 and (y / 30) / (z / 50) < 42): b[99] = 100
+
+    # 规则101-110
+    if ((y / 30) / (z / 50) > 38 and (y / 30) / (z / 50) < 42) != (
+            (y / 30) / (z / 50) > 58 and (y / 30) / (z / 50) < 42): b[100] = 101
+    if ((y / 30) / (z / 50) > 38 and (y / 30) / (z / 50) < 42) != (
+            (y / 30) / (z / 50) > 38 and (y / 30) / (z / 50) < 72): b[101] = 102
+    if ((x - 40) / 20 > 1 and (x - 40) / 20 < 6) != ((x - 40) / 30 > 1 and (x - 40) / 20 < 7): b[102] = 103
+    if ((x - 40) / 20 > 1 and (x - 40) / 20 < 6) != ((x - 50) / 20 > 1 and (x - 40) / 20 < 7): b[103] = 104
+    if ((x - 40) / 20 > 1 and (x - 40) / 20 < 6) != ((x - 40) / 20 > 1 and (x - 50) / 20 < 7): b[104] = 105
+
+    triggered = set(b.values())
     return triggered
-
 
 def calculate_fitness(particle: List[float], target_path: Set[int]) -> float:
     """"""
@@ -537,9 +601,57 @@ def main():
 
 
     target_paths = [
-        {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-        {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-        {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+        {1, 3, 4, 5, 6, 9, 11, 15, 16, 17, 18, 19, 21, 22, 23, 25, 35, 36, 50, 51, 52, 64, 65, 66, 67, 68, 69, 73, 75,
+         77,
+         82, 83, 84, 86, 87, 99, 102, 103, 104, 105},
+        {1, 3, 4, 5, 6, 9, 11, 15, 16, 17, 18, 19, 21, 22, 23, 25, 35, 36, 50, 51, 52, 64, 65, 66, 68, 69, 70, 71, 75,
+         77,
+         82, 83, 84, 86, 87, 99, 102, 103, 104, 105},
+        {1, 3, 4, 5, 6, 11, 15, 16, 17, 18, 19, 21, 22, 23, 25, 35, 36, 50, 52, 64, 65, 66, 68, 69, 70, 71, 73, 75, 77,
+         82,
+         83, 84, 86, 87, 98, 103, 104, 105},
+        {1, 3, 4, 5, 6, 11, 15, 16, 17, 19, 21, 22, 23, 24, 25, 26, 35, 36, 50, 51, 52, 64, 65, 66, 68, 69, 73, 75, 82,
+         83,
+         84, 86, 87, 102, 103, 104, 105},
+        {1, 3, 4, 5, 7, 11, 15, 16, 17, 20, 21, 22, 23, 25, 35, 36, 50, 51, 52, 64, 65, 66, 68, 69, 71, 73, 75, 77, 82,
+         83,
+         84, 86, 87, 98, 103, 104, 105},
+        {2, 6, 9, 11, 15, 16, 17, 18, 19, 21, 22, 23, 25, 35, 36, 50, 51, 52, 64, 65, 66, 68, 69, 70, 71, 75, 77, 82,
+         83,
+         84, 86, 99, 102, 103, 104, 105},
+        {2, 7, 11, 15, 16, 17, 20, 21, 22, 23, 25, 35, 36, 50, 51, 52, 64, 65, 66, 68, 69, 70, 71, 75, 77, 82, 83, 84,
+         86,
+         87, 100, 101, 103, 104, 105},
+        {1, 3, 4, 5, 6, 11, 15, 16, 17, 18, 19, 25, 35, 36, 50, 51, 52, 64, 65, 66, 67, 68, 69, 72, 73, 75, 77, 82, 83,
+         84,
+         86, 87, 98, 103, 104, 105},
+        {1, 3, 4, 5, 8, 9, 11, 15, 16, 17, 21, 22, 23, 26, 35, 36, 50, 51, 52, 64, 65, 66, 67, 68, 69, 73, 75, 82, 83,
+         84,
+         86, 87, 99, 103, 104, 105},
+        {1, 3, 7, 9, 10, 15, 16, 17, 20, 25, 35, 36, 50, 51, 52, 60, 62, 64, 65, 66, 67, 68, 69, 70, 71, 73, 75, 77, 82,
+         83,
+         84, 86, 87, 102},
+        {1, 6, 10, 18, 19, 25, 35, 36, 50, 51, 52, 59, 60, 62, 67, 68, 69, 70, 71, 73, 75, 76, 77, 82, 83, 84, 86, 87,
+         98},
+        {6, 11, 15, 16, 17, 19, 21, 22, 23, 24, 25, 26, 35, 36, 50, 52, 63, 64, 65, 66, 68, 69, 75, 82, 83, 84, 86,
+         102},
+        {1, 6, 10, 18, 19, 25, 35, 36, 50, 51, 52, 61, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 82, 83, 84, 86, 87},
+        {1, 7, 9, 10, 20, 25, 27, 28, 29, 35, 36, 59, 60, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 86, 87, 102},
+        {1, 7, 10, 20, 25, 28, 29, 37, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 86, 87, 91, 92, 93, 100, 101},
+        {1, 6, 10, 18, 19, 25, 28, 29, 37, 62, 67, 68, 69, 72, 73, 74, 75, 76, 77, 86, 87, 91, 92, 93, 94, 98},
+        {6, 18, 19, 28, 29, 46, 55, 61, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 86, 87, 91, 92, 93},
+        {7, 20, 28, 29, 34, 46, 55, 61, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 86, 87, 91, 92, 93},
+        {7, 20, 28, 29, 34, 46, 55, 59, 60, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 85, 103, 104},
+        {6, 18, 19, 27, 28, 29, 34, 37, 62, 67, 68, 69, 70, 71, 73, 74, 75, 76, 77, 86, 87, 95, 96},
+        {8, 25, 28, 29, 34, 46, 53, 54, 55, 59, 60, 62, 67, 68, 69, 73, 74, 75, 85, 103, 104},
+        {7, 12, 13, 14, 20, 32, 33, 44, 46, 48, 49, 53, 54, 55, 70, 71, 76, 77, 85, 97},
+        {6, 18, 19, 30, 31, 32, 33, 38, 39, 42, 43, 48, 49, 72, 78, 79, 80, 81, 97},
+        {7, 20, 30, 32, 33, 38, 39, 40, 43, 48, 49, 70, 71, 78, 79, 81, 88, 89, 97},
+        {6, 18, 19, 32, 33, 45, 48, 49, 53, 54, 55, 70, 71, 76, 77, 85, 97},
+        {6, 18, 19, 32, 33, 48, 49, 54, 55, 56, 57, 58, 70, 71, 78, 85, 97},
+        {6, 18, 19, 30, 31, 38, 39, 42, 43, 47, 70, 71, 78, 79, 80, 81},
+        {6, 19, 26, 32, 33, 41, 48, 49, 79, 97, 100, 101},
+        {7, 20, 32, 33, 41, 70, 71, 78, 79, 90, 97},
     ]
 
     print("=" * 70)

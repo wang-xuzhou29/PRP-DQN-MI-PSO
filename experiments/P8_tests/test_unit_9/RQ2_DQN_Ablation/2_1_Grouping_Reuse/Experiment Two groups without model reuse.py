@@ -20,11 +20,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # ===  ===
 # 
-MIN_X = 1
+MIN_X = 2
 MAX_X = 100
-MIN_Y = 1
+MIN_Y = 2
 MAX_Y = 100
-MIN_Z = 1
+MIN_Z = 2
 MAX_Z = 100
 
 
@@ -55,89 +55,444 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def execute_Tr(dx: int, dy: int, dz: int):
-    # --- 1. 常量与配置 ---
-    MAX_GRID_SIZE = 500.0  # 模拟网格的最大边界，扩大到 500.0
-    INITIAL_BATTERY = 1000.0  # 初始电量相应扩大，以支撑更长的路径
-    BATTERY_PER_STEP = 1.0  # 每走一步消耗的电量降低，避免一步耗尽
-    SAFE_DISTANCE = 5.0  # 安全距离阈值 (固定)
-    CRITICAL_BATTERY_LEVEL = 100.0  # 危险电量阈值 (固定)
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  # 目标坐标相应扩大 (固定值)
+def execute_Tr(a):
+    """
+    替换原有的编排规则函数
+    参数a: 包含3个元素的元组或数组，分别对应path_depth, file_count, access_level
+    返回: 触发的规则编号集合
+    """
+    path_depth, file_count, access_level = float(a[0]), int(a[1]), float(a[2])
 
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
+    # 使用正确的变量名
+    x, y, z = path_depth, file_count, access_level
 
     triggered = set()
+    # 创建一个字典来存储b数组的值，用于跟踪哪些规则被触发
+    b = {}
+    y_score = max(0, 100 - y * 5)
 
-    # 模拟环境状态变量，以修复原始代码中的语法错误
-    # 这些变量在原始代码中未定义，这里随机生成以确保代码可执行
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
 
-    # 为了模仿原始代码可能试图比较的'当前位置'与'速度'的关系，
-    # 针对第10-15分支中的 'self.y' 采用一个模拟值。
-    simulated_y = current_y  # 使用 current_y 作为 self.y 的模拟
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((78 * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+    0] = 1
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * 95) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+    1] = 2
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((y * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        2] = 3
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((z * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        3] = 4
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * x) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        4] = 5
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * z) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        5] = 6
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (55 + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        6] = 7
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (x + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        7] = 8
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (y + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        8] = 9
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (20 + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        9] = 10
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 30 or x ** 2 + y ** 2 > z ** 2): b[
+        10] = 11
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y * 2) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2): b[
+        11] = 12
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 33 or x ** 2 + y ** 2 > z ** 2): b[
+        12] = 13
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 and x ** 2 + y ** 2 > z ** 2): b[
+        13] = 14
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or y ** 2 + y ** 2 > z ** 2): b[
+        14] = 15
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or 22 ** 2 + y ** 2 > z ** 2): b[
+        15] = 16
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + x ** 2 > z ** 2): b[
+        16] = 17
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + 55 ** 2 > z ** 2): b[
+        17] = 18
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2.2 + y ** 2 > z ** 2): b[
+        18] = 19
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 1.5 > z ** 2): b[
+        19] = 20
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 != z ** 2): b[
+        20] = 21
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2.3): b[
+        21] = 22
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 1.4): b[
+        22] = 23
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > 27 ** 2): b[
+        23] = 24
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2.4 > z ** 2): b[
+        24] = 25
+    if ((x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2) != ((x * y) / (z + 1) > 50 or x ** 1.4 + y ** 2 > z ** 2): b[
+        25] = 26
+    if (x * y) / (z + 1) > 50 or x ** 2 + y ** 2 > z ** 2:
+        pattern_type = "221A1"
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (x ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[26] = 27
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (34 ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[27] = 28
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2.4 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[28] = 29
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 1.5 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[29] = 30
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - 35 ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[30] = 31
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - x ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[31] = 32
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2.7) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[32] = 33
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 1.2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[33] = 34
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (x + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[34] = 35
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (y + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[35] = 36
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (44 + 0.1) < -30 or (abs(x - y) * z) / 100 > 45): b[36] = 37
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 3) < -30 or (abs(x - y) * z) / 100 > 45): b[37] = 38
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) != -30 or (abs(x - y) * z) / 100 > 45): b[38] = 39
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -6 or (abs(x - y) * z) / 100 > 45): b[39] = 40
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 and (abs(x - y) * z) / 100 > 45): b[40] = 41
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(z - y) * z) / 100 > 45): b[41] = 42
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - z) * z) / 100 > 45): b[42] = 43
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(84 - y) * z) / 100 > 45): b[43] = 44
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - 93) * z) / 100 > 45): b[44] = 45
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * 69) / 100 > 45): b[45] = 46
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * x) / 100 > 45): b[46] = 47
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * y) / 100 > 45): b[47] = 48
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 77 > 45): b[48] = 49
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 != 45): b[49] = 50
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 63): b[50] = 51
+    if ((z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45) != (
+            (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 33): b[51] = 52
+    if (z ** 2 - y ** 2) / (z + 0.1) < -30 or (abs(x - y) * z) / 100 > 45:
+        pattern_type = "221A2"
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((y + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[52] = 53
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((z + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[53] = 54
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((45 + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[54] = 55
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + x) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[55] = 56
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + z) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[56] = 57
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + 65) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[57] = 58
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2.5) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[58] = 59
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 1.3) ** 2 < y * 20 and (x * y * z) / 1000 < 35): b[59] = 60
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2.4 < y * 20 and (x * y * z) / 1000 < 35): b[60] = 61
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 != y * 20 and (x * y * z) / 1000 < 35): b[61] = 62
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < 33 * 20 and (x * y * z) / 1000 < 35): b[62] = 63
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 15 and (x * y * z) / 1000 < 35): b[63] = 64
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < x * 20 and (x * y * z) / 1000 < 35): b[64] = 65
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < z * 20 and (x * y * z) / 1000 < 35): b[65] = 66
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 or (x * y * z) / 1000 < 35): b[66] = 67
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (25 * y * z) / 1000 < 35): b[67] = 68
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * 84 * z) / 1000 < 35): b[68] = 69
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * 56) / 1000 < 35): b[69] = 70
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (y * y * z) / 1000 < 35): b[70] = 71
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (z * y * z) / 1000 < 35): b[71] = 72
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * x * z) / 1000 < 35): b[72] = 73
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * z * z) / 1000 < 35): b[73] = 74
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * x) / 1000 < 35): b[74] = 75
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * y) / 1000 < 35): b[75] = 76
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1070 < 35): b[76] = 77
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 != 35): b[77] = 78
+    if (((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35) != (
+            ((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 47): b[78] = 79
+    if ((x + y) / 2) ** 2 < y * 20 and (x * y * z) / 1000 < 35:
+        pattern_type = "221A3"
+    if (x > 85 and z < 60) != (x > 85 or z < 60): b[79] = 80
+    if (x > 85 and z < 60) != (x != 85 and z < 60): b[80] = 81
+    if (x > 85 and z < 60) != (x > 94 and z < 60): b[81] = 82
+    if (x > 85 and z < 60) != (x > 85 and z != 60): b[82] = 83
+    if (x > 85 and z < 60) != (x > 85 and z < 42): b[83] = 84
+    if x > 85 and z < 60:
+        pattern_type = 222
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z != 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)): b[84] = 85
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 49 and x > 40) or (z < 45 and x > 45 and y_score < 50)): b[85] = 86
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 or x > 40) or (z < 45 and x > 45 and y_score < 50)): b[86] = 87
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x != 40) or (z < 45 and x > 45 and y_score < 50)): b[87] = 88
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 26) or (z < 45 and x > 45 and y_score < 50)): b[88] = 89
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) and (z < 45 and x > 45 and y_score < 50)): b[89] = 90
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z != 45 and x > 45 and y_score < 50)): b[90] = 91
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 33 and x > 45 and y_score < 50)): b[91] = 92
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 or x > 45 and y_score < 50)): b[92] = 93
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 and x != 45 and y_score < 50)): b[93] = 94
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 and x > 66 and y_score < 50)): b[94] = 95
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 and x > 45 or y_score < 50)): b[95] = 96
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 and x > 45 and y_score != 50)): b[96] = 97
+    if ((z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50)) != (
+            (z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 61)): b[97] = 98
+    if (z < 40 and x > 40) or (z < 45 and x > 45 and y_score < 50):
+        pattern_type = 223
+    if (y_score < 30 and x > 30) != (y_score < 30 or x > 30): b[98] = 99
+    if (y_score < 30 and x > 30) != (y_score < 30 and x != 30): b[99] = 100
+    if (y_score < 30 and x > 30) != (y_score < 30 and x > 44): b[100] = 101
+    if (y_score < 30 and x > 30) != (y_score != 30 and x > 30): b[101] = 102
+    if (y_score < 30 and x > 30) != (y_score < 50 and x > 30): b[102] = 103
+    if y_score < 30 and x > 30:
+        pattern_type = 224
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x != 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[103] = 104
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 56 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[104] = 105
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 or z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[105] = 106
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (40 - z)) / 100 > 25) or (x > 75 and z < 65)): b[106] = 107
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 20 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[107] = 108
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 or (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[108] = 109
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (y * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[109] = 110
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (z * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[110] = 111
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (33 * (80 - z)) / 100 > 25) or (x > 75 and z < 65)): b[111] = 112
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (78 - z)) / 100 > 25) or (x > 75 and z < 65)): b[112] = 113
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - x)) / 100 > 25) or (x > 75 and z < 65)): b[113] = 114
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - y)) / 100 > 25) or (x > 75 and z < 65)): b[114] = 115
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - 42)) / 100 > 25) or (x > 75 and z < 65)): b[115] = 116
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 67 > 25) or (x > 75 and z < 65)): b[116] = 117
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 != 25) or (x > 75 and z < 65)): b[117] = 118
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 18) or (x > 75 and z < 65)): b[118] = 119
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) and (x > 75 and z < 65)): b[119] = 120
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x != 75 and z < 65)): b[120] = 121
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 88 and z < 65)): b[121] = 122
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 or z < 65)): b[122] = 123
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z != 65)): b[123] = 124
+    if ((x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65)) != (
+            (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 47)): b[124] = 125
+    if (x > 70 and z < 70 and (x * (80 - z)) / 100 > 25) or (x > 75 and z < 65):
+        pattern_type = 225
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((45 ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)): b[125] = 126
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((x ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)): b[126] = 127
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((y ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)): b[127] = 128
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2.5) / (x + y_score + 1) < 30) or (z < 65 and x > 50)): b[128] = 129
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (y + y_score + 1) < 30) or (z < 65 and x > 50)): b[129] = 130
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (z + y_score + 1) < 30) or (z < 65 and x > 50)): b[130] = 131
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (66 + y_score + 1) < 30) or (z < 65 and x > 50)): b[131] = 132
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + 25 + 1) < 30) or (z < 65 and x > 50)): b[132] = 133
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) != 30) or (z < 65 and x > 50)): b[133] = 134
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 44) or (z < 65 and x > 50)): b[134] = 135
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) and (z < 65 and x > 50)): b[135] = 136
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) or (z != 65 and x > 50)): b[136] = 137
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) or (z < 75 and x > 50)): b[137] = 138
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) or (z < 65 or x > 50)): b[138] = 139
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x != 50)): b[139] = 140
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 66)): b[140] = 141
+    if (((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50)) != (
+            ((z ** 2) / (x + y_score + 10) < 30) or (z < 65 and x > 50)): b[141] = 142
+    if ((z ** 2) / (x + y_score + 1) < 30) or (z < 65 and x > 50):
+        pattern_type = 226
+    if (40 <= y_score < 70 and z > 70) != (40 <= y_score < 70 or z > 70): b[142] = 143
+    if (40 <= y_score < 70 and z > 70) != (40 <= y_score < 70 and z != 70): b[143] = 144
+    if (40 <= y_score < 70 and z > 70) != (40 <= y_score < 70 and z > 81): b[144] = 145
+    if (40 <= y_score < 70 and z > 70) != (40 <= y_score < 79 and z > 70): b[145] = 146
+    if (40 <= y_score < 70 and z > 70) != (22 <= y_score < 70 and z > 70): b[146] = 147
+    if 40 <= y_score < 70 and z > 70:
+        pattern_type = 227
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 89 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)): b[147] = 148
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (46 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)): b[148] = 149
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 or z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)): b[149] = 150
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z != 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)): b[150] = 151
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 66 and (x * z) / 100 > 52) or (x > 65 and z > 80)): b[151] = 152
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 or (x * z) / 100 > 52) or (x > 65 and z > 80)): b[152] = 153
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (z * z) / 100 > 52) or (x > 65 and z > 80)): b[153] = 154
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * x) / 100 > 52) or (x > 65 and z > 80)): b[154] = 155
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (55 * z) / 100 > 52) or (x > 65 and z > 80)): b[155] = 156
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * 45) / 100 > 52) or (x > 65 and z > 80)): b[156] = 157
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 92 > 52) or (x > 65 and z > 80)): b[157] = 158
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 != 52) or (x > 65 and z > 80)): b[158] = 159
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 32) or (x > 65 and z > 80)): b[159] = 160
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) and (x > 65 and z > 80)): b[160] = 161
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x != 65 and z > 80)): b[161] = 162
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 24 and z > 80)): b[162] = 163
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 or z > 80)): b[163] = 164
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z != 80)): b[164] = 165
+    if ((60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80)) != (
+            (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 91)): b[165] = 166
+    if (60 <= x < 80 and z > 75 and (x * z) / 100 > 52) or (x > 65 and z > 80):
+        pattern_type = 228
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x != 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)): b[166] = 167
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 10 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)): b[167] = 168
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 or 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)): b[168] = 169
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 55 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)): b[169] = 170
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 93) or (x < 35 and 75 <= y_score < 90)): b[170] = 171
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) and (x < 35 and 75 <= y_score < 90)): b[171] = 172
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) or (x != 35 and 75 <= y_score < 90)): b[172] = 173
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) or (x < 52 and 75 <= y_score < 90)): b[173] = 174
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) or (x < 35 or 75 <= y_score < 90)): b[174] = 175
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) or (x < 35 and 66 <= y_score < 90)): b[175] = 176
+    if ((x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90)) != (
+            (x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 96)): b[176] = 177
+    if (x < 30 and 70 <= y_score < 85) or (x < 35 and 75 <= y_score < 90):
+        pattern_type = 229
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 69 and y_score >= 85 and z >= 85): b[177] = 178
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (41 <= x <= 60 and y_score >= 85 and z >= 85): b[178] = 179
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 or y_score >= 85 and z >= 85): b[179] = 180
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 and y_score != 85 and z >= 85): b[180] = 181
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 and y_score >= 75 and z >= 85): b[181] = 182
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 and y_score >= 85 or z >= 85): b[182] = 183
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 and y_score >= 85 and z != 85): b[183] = 184
+    if (30 <= x <= 60 and y_score >= 85 and z >= 85) != (30 <= x <= 60 and y_score >= 85 and z >= 51): b[184] = 185
+    if 30 <= x <= 60 and y_score >= 85 and z >= 85:
+        pattern_type = 230
 
-    # --- 分支 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X: triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X: triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y: triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z: triggered.add(4)
+    # 返回被触发的规则编号集合
+    return set(b.values())
 
-    # --- 分支 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2: triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2: triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2: triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2: triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z: triggered.add(9)
-
-    # --- 分支 10-15 --- (使用 simulated_y 替代 self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10: triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30: triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40: triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50: triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20: triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20: triggered.add(15)
-
-    # --- 分支 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5: triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5: triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY: triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2: triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5: triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5: triggered.add(21)
-
-    # --- 分支 22-29 --- (使用 current_x, current_y, current_z 替代未定义的变量)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY: triggered.add(
-        25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY: triggered.add(
-        26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY: triggered.add(
-        27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY: triggered.add(
-        28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY: triggered.add(
-        29)
-
-    return triggered
 
 
 # === target path definitions ===
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {2, 5, 6, 9, 17, 18, 19, 21, 23, 24, 41, 43, 45, 46, 47, 48, 51, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 128, 134, 135, 137, 139, 143, 146, 150, 153, 154, 158, 159, 160, 164, 165, 167, 169, 173, 175},
+    {14, 17, 20, 28, 29, 31, 32, 34, 36, 37, 38, 41, 53, 54, 55, 58, 60, 61, 63, 64, 65, 66, 71, 80, 81, 87, 88, 93, 94, 96, 99, 100, 121, 123, 127, 130, 131, 132, 133, 134, 135, 139, 140, 142, 169, 175},
+    {2, 6, 9, 17, 18, 19, 21, 23, 24, 41, 43, 45, 46, 47, 48, 51, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 137, 139, 143, 150, 153, 154, 158, 159, 160, 162, 163, 164, 167, 169, 173, 175},
+    {14, 17, 20, 22, 29, 31, 32, 34, 36, 37, 41, 53, 54, 55, 58, 60, 61, 63, 64, 65, 66, 68, 69, 70, 71, 72, 80, 81, 87, 88, 93, 94, 96, 99, 100, 121, 123, 127, 130, 132, 133, 134, 139, 140, 169, 175},
+    {2, 6, 21, 23, 24, 41, 43, 45, 46, 47, 48, 51, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 137, 139, 143, 146, 149, 150, 153, 162, 163, 164, 167, 169, 173, 175, 180, 181, 182, 183},
+    {14, 17, 20, 22, 27, 30, 33, 35, 39, 40, 50, 53, 54, 55, 58, 60, 61, 63, 64, 65, 66, 71, 72, 80, 81, 87, 88, 93, 94, 96, 99, 100, 121, 123, 127, 130, 131, 132, 133, 134, 139, 140, 169, 175},
+    {2, 6, 19, 21, 23, 24, 41, 43, 45, 46, 47, 48, 51, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 137, 139, 143, 146, 155, 156, 157, 161, 167, 169, 173, 175, 180, 181, 182, 183},
+    {1, 2, 16, 18, 19, 21, 23, 25, 33, 39, 50, 54, 55, 57, 58, 60, 61, 64, 69, 80, 81, 87, 88, 93, 94, 96, 99, 100, 121, 123, 127, 128, 130, 131, 132, 133, 134, 135, 139, 140, 142, 169, 175},
+    {14, 15, 16, 22, 26, 41, 42, 43, 45, 48, 51, 53, 62, 67, 85, 87, 99, 102, 106, 109, 115, 116, 118, 123, 124, 127, 129, 130, 131, 132, 133, 136, 150, 151, 152, 153, 164, 165, 167, 169},
+    {14, 17, 18, 20, 22, 27, 28, 30, 33, 35, 37, 39, 40, 45, 46, 49, 50, 52, 53, 54, 55, 60, 61, 63, 64, 65, 66, 68, 71, 72, 80, 81, 96, 99, 100, 121, 123, 127, 134, 139, 140, 169, 175},
+    {2, 5, 6, 9, 17, 18, 19, 21, 23, 24, 39, 42, 44, 49, 50, 52, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 128, 134, 135, 137, 138, 139, 143, 146, 150, 164, 165, 167, 169, 173, 175},
+    {14, 15, 16, 22, 26, 41, 42, 43, 45, 48, 51, 53, 62, 67, 80, 83, 85, 87, 99, 102, 106, 109, 115, 116, 118, 123, 124, 127, 129, 130, 133, 136, 153, 164, 165, 167, 169, 173, 175},
+    {14, 15, 16, 22, 26, 41, 43, 45, 48, 53, 62, 67, 80, 83, 85, 87, 99, 102, 106, 123, 124, 126, 128, 134, 135, 137, 139, 143, 146, 148, 150, 153, 164, 165, 167, 169, 173, 175},
+    {14, 20, 28, 29, 31, 32, 34, 36, 37, 38, 41, 56, 57, 59, 62, 67, 80, 81, 87, 88, 93, 94, 96, 99, 100, 121, 123, 127, 130, 131, 132, 133, 134, 135, 139, 140, 142, 169, 175},
+    {14, 15, 16, 22, 26, 41, 42, 43, 45, 48, 51, 80, 83, 85, 87, 91, 93, 96, 99, 102, 103, 106, 109, 115, 116, 118, 123, 124, 126, 128, 134, 135, 137, 138, 139, 153, 164, 165},
+    {1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15, 19, 21, 23, 24, 25, 28, 30, 33, 39, 50, 85, 87, 91, 93, 96, 134, 137, 139, 143, 149, 150, 153, 162, 163, 164, 180, 181, 183},
+    {1, 15, 18, 21, 23, 24, 25, 27, 33, 39, 50, 53, 54, 55, 57, 58, 60, 61, 63, 64, 65, 68, 69, 70, 71, 72, 74, 80, 81, 96, 99, 100, 121, 123, 127, 134, 139, 140, 169, 175},
+    {14, 15, 16, 20, 22, 26, 33, 39, 50, 53, 62, 63, 65, 66, 67, 80, 81, 87, 88, 89, 93, 94, 96, 101, 121, 123, 127, 128, 131, 132, 133, 134, 135, 139, 140, 142, 175, 180},
+    {2, 6, 17, 18, 19, 21, 23, 24, 39, 42, 44, 49, 50, 52, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 135, 137, 138, 139, 143, 173, 175, 180, 183, 184, 185},
+    {14, 15, 16, 22, 26, 32, 39, 46, 47, 49, 50, 52, 53, 62, 67, 80, 81, 85, 87, 99, 102, 106, 109, 115, 116, 117, 118, 119, 121, 123, 150, 164, 165, 167, 169, 173, 175},
+    {2, 21, 23, 24, 39, 42, 44, 49, 50, 52, 53, 62, 63, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 143, 162, 163, 164, 167, 169, 173, 174, 175, 180, 181, 182, 183},
+    {2, 5, 6, 9, 17, 18, 19, 21, 23, 24, 41, 43, 45, 48, 53, 62, 67, 85, 87, 99, 102, 106, 123, 124, 126, 128, 134, 135, 137, 139, 143, 161, 166, 173, 175, 180, 183},
+    {2, 6, 9, 17, 18, 19, 21, 23, 24, 39, 42, 44, 49, 50, 52, 85, 87, 99, 102, 126, 127, 128, 134, 137, 139, 145, 150, 153, 154, 158, 159, 160, 162, 163, 164, 180},
+    {2, 6, 21, 23, 24, 41, 43, 45, 46, 47, 48, 51, 53, 62, 65, 66, 67, 85, 87, 99, 102, 126, 127, 128, 134, 137, 139, 143, 155, 157, 161, 173, 175, 178, 180, 183},
+    {14, 15, 16, 22, 26, 32, 39, 47, 50, 53, 62, 67, 80, 81, 85, 86, 87, 93, 96, 97, 98, 99, 102, 107, 108, 110, 111, 112, 113, 114, 120, 143, 144, 150, 164, 165},
+    {14, 15, 16, 22, 26, 41, 42, 43, 45, 48, 51, 85, 87, 91, 93, 96, 99, 102, 103, 106, 123, 124, 126, 128, 134, 135, 137, 138, 139, 143, 147, 153, 164, 165},
+    {14, 15, 16, 26, 32, 39, 46, 47, 50, 53, 62, 65, 67, 80, 81, 90, 99, 102, 107, 108, 110, 111, 112, 114, 120, 150, 164, 165, 167, 169, 173, 175},
+    {27, 28, 34, 35, 36, 37, 38, 41, 53, 54, 62, 63, 65, 67, 80, 81, 87, 88, 89, 93, 94, 96, 99, 102, 103, 104, 106, 109, 121, 123, 136, 175, 180},
+    {21, 23, 39, 42, 43, 44, 45, 50, 54, 55, 56, 57, 58, 60, 61, 64, 68, 69, 72, 73, 74, 96, 99, 100, 127, 128, 134, 143, 162, 164, 169, 175, 183},
+    {18, 21, 23, 39, 50, 54, 55, 57, 58, 60, 61, 69, 80, 81, 121, 123, 126, 127, 128, 131, 132, 134, 135, 139, 140, 142, 143, 144, 169, 170, 175},
+    {1, 15, 16, 18, 21, 23, 24, 25, 27, 30, 33, 39, 50, 67, 73, 75, 76, 77, 78, 79, 80, 81, 96, 99, 100, 121, 123, 127, 134, 139, 140, 169, 175},
+    {2, 5, 6, 17, 18, 19, 21, 23, 24, 39, 44, 49, 50, 52, 53, 62, 65, 66, 67, 85, 87, 99, 102, 121, 123, 136, 141, 150, 167, 169, 173, 175, 180},
+    {21, 39, 44, 45, 50, 53, 59, 62, 63, 65, 66, 67, 80, 81, 121, 123, 126, 127, 128, 131, 132, 134, 135, 139, 140, 142, 169, 171, 175, 177},
+    {14, 15, 16, 22, 26, 32, 39, 50, 53, 62, 67, 80, 81, 86, 87, 93, 96, 98, 99, 102, 104, 105, 106, 109, 121, 123, 143, 144, 150, 164, 165},
+    {21, 23, 24, 39, 42, 43, 44, 45, 50, 53, 62, 63, 65, 66, 67, 99, 102, 126, 127, 128, 134, 143, 162, 163, 164, 172, 180, 181, 182, 183},
+    {14, 15, 16, 22, 26, 32, 39, 44, 46, 47, 49, 50, 52, 85, 87, 91, 93, 96, 99, 102, 103, 120, 122, 125, 136, 143, 144, 150, 164, 165},
+    {21, 23, 24, 39, 42, 43, 44, 45, 50, 53, 62, 63, 65, 66, 67, 99, 102, 126, 127, 128, 134, 143, 162, 163, 164, 174, 175, 179, 181},
+    {14, 15, 16, 26, 32, 39, 46, 47, 49, 50, 52, 53, 62, 67, 82, 84, 85, 86, 87, 93, 96, 97, 99, 102, 164, 165, 167, 169, 173, 175},
+    {18, 21, 39, 50, 54, 55, 57, 58, 60, 61, 69, 80, 81, 121, 123, 126, 127, 128, 131, 132, 134, 135, 139, 140, 142, 168, 172},
+    {14, 15, 16, 26, 32, 39, 50, 80, 81, 90, 92, 99, 102, 103, 107, 108, 110, 111, 112, 114, 120, 150, 164, 165},
+    {14, 15, 16, 22, 26, 39, 50, 80, 81, 90, 92, 95, 121, 123, 128, 132, 133, 134, 135, 139, 140, 142, 180},
+    {2, 17, 18, 19, 21, 23, 24, 39, 50, 53, 62, 63, 65, 66, 67, 80, 81, 87, 88, 89, 93, 99, 102, 121, 123, 129, 136, 167, 169, 175, 176, 180}
 ]
 
 # 
