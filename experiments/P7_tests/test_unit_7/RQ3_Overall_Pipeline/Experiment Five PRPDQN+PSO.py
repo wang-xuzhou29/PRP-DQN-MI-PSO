@@ -21,11 +21,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # === new three-dimensional range settings ===
 LIGHT_MIN = 1
-LIGHT_MAX = 100
+LIGHT_MAX = 80
 MOISTURE_MIN = 1
-MOISTURE_MAX = 100
+MOISTURE_MAX = 120
 TEMP_MIN = 1
-TEMP_MAX = 100
+TEMP_MAX = 15
 
 BOUNDS = {
     'light': (LIGHT_MIN, LIGHT_MAX),  # x: light intensity
@@ -195,111 +195,492 @@ def compute_reward(state, target_path, triggered, prev_triggered=None, prev_stat
     return reward
 
 
-def category1_multivariable_control(dx, dy, dz):
-    """Execute the objective function and return triggered paths"""
-    # --- 1. constants and configuration ---
-    MAX_GRID_SIZE = 500.0  # ,  500.0
-    INITIAL_BATTERY = 1000.0  # , Path 
-    BATTERY_PER_STEP = 1.0  # , 
-    SAFE_DISTANCE = 5.0  #  ()
-    CRITICAL_BATTERY_LEVEL = 100.0  #  ()
-    TARGET_X, TARGET_Y, TARGET_Z = 450.0, 450.0, 200.0  #  ()
-
-    MIN_PLANNING_X = 10.0
-    MIN_PLANNING_Y = 15.0
-    MIN_PLANNING_Z = 8.0
-    CRITICAL_X_VELOCITY = 20.0
-    CRITICAL_Y_VELOCITY = 25.0
-    CRITICAL_Z_VELOCITY = 15.0
+def category1_multivariable_control(x, y, z):
+    # 确保数值在范围内（安全防护）
+    x = max(STATE_MIN_X, min(STATE_MAX_X, x))
+    y = max(STATE_MIN_Y, min(STATE_MAX_Y, y))
+    z = max(STATE_MIN_Z, min(STATE_MAX_Z, z))
 
     triggered = set()
 
-    # , 
-    # , 
-    current_x = random.uniform(0.0, MAX_GRID_SIZE)
-    current_y = random.uniform(0.0, MAX_GRID_SIZE)
-    current_z = random.uniform(0.0, MAX_GRID_SIZE)
-
-    # '''', 
-    # Run 10-15branch 'self.y' .
-    simulated_y = current_y  #  current_y  self.y 
-
-    # --- branch 1-4 ---
-    if abs(dx) < MIN_PLANNING_X != abs(dy) < MIN_PLANNING_X:
+    if (50 < x < 80) != (50 < x * 8 < 80):
         triggered.add(1)
-    if abs(dx) < MIN_PLANNING_X != abs(dz) < MIN_PLANNING_X:
+    if (50 < x < 80) != (50 < 70 < 80):
         triggered.add(2)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Y:
+
+    if (80 < y < 120) != (80 < y * 7 < 120):
         triggered.add(3)
-    if abs(dx) < MIN_PLANNING_X != abs(dx) < MIN_PLANNING_Z:
+    if (80 < y < 120) != (80 < 100 < 120):
         triggered.add(4)
 
-    # --- branch 5-9 ---
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dx) > MIN_PLANNING_Z * 2:
+    if (1.2 < z < 1.5) != (1.2 < z < 15):
         triggered.add(5)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dy) > MIN_PLANNING_Z * 2:
+    if (1.2 < z < 1.5) != (1.2 < z < 5):
         triggered.add(6)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_X * 2:
+
+    if (x > 60 and x < 70 and y > 90 and y < 110) != (x > 60 and x < 70 and y > 190 and y < 110):
         triggered.add(7)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Y * 2:
+    if (x > 60 and x < 70 and y > 90 and y < 110) != (x > 60 and x < 90 and y > 90 and y < 110):
         triggered.add(8)
-    if abs(dz) > MIN_PLANNING_Z * 2 != abs(dz) > MIN_PLANNING_Z:
+
+    if (x > 55 and x < 75 and z > 1.25 and z < 1.45) != (x > 55 and x < 75 and z > 1.25 and z < 14.5):
         triggered.add(9)
-
-    # --- branch 10-15 --- ( simulated_y  self.y)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 10:
+    if (x > 55 and x < 75 and z > 1.25 and z < 1.45) != (x > 55 and x < 75 and z > 1.25 and z < 15):
         triggered.add(10)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 30:
+
+    if (y > 85 and y < 115 and z > 1.25 and z < 1.45) != (y > 85 and y < 115 and z > 1.25 and z < 14.5):
         triggered.add(11)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 40:
+    if (y > 85 and y < 115 and z > 1.25 and z < 1.45) != (y > 85 and y < 115 and z > 1.25 and z < 145):
         triggered.add(12)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dy < 50:
+
+    if (x > 63 and x < 67) != (x > 63 and x < 167):
         triggered.add(13)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dx < 20:
+    if (x > 63 and x < 67) != (x > 163 and x < 67):
         triggered.add(14)
-    if TARGET_Y > simulated_y and dy < 20 != TARGET_Y > simulated_y and dz < 20:
+
+    if (y > 98 and y < 102) != (y > 98 and y < 12.2):
         triggered.add(15)
-
-    # --- branch 16-21 ---
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dx) > CRITICAL_X_VELOCITY * 1.5:
+    if (y > 98 and y < 102) != (y > 918 and y < 102):
         triggered.add(16)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dz) > CRITICAL_X_VELOCITY * 1.5:
-        triggered.add(17)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY:
-        triggered.add(18)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_X_VELOCITY * 2:
-        triggered.add(19)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Z_VELOCITY * 1.5:
-        triggered.add(20)
-    if abs(dy) > CRITICAL_X_VELOCITY * 1.5 != abs(dy) > CRITICAL_Y_VELOCITY * 1.5:
-        triggered.add(21)
 
-    # --- branch 22-29 --- ( current_x, current_y, current_z )
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_X < current_z and dz > CRITICAL_Z_VELOCITY:
+    if (z > 1.33 and z < 1.37) != (z > 1.33 and z < 13.7):
+        triggered.add(17)
+    if (z > 1.33 and z < 1.37) != (z > 1.33 and 1 < 1.37):
+        triggered.add(18)
+
+    if (abs(x - 65) < 2.5) != (abs(x - 65) < 12.5):
+        triggered.add(19)
+    if (abs(x - 65) < 2.5) != (abs(x - 65) < 25):
+        triggered.add(20)
+
+    if (abs(y - 100) < 5) != (abs(y - 100) < 15):
+        triggered.add(21)
+    if (abs(y - 100) < 5) != (abs(y - 100) < 51):
         triggered.add(22)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Y < current_z and dz > CRITICAL_Z_VELOCITY:
+
+    if (abs(z - 1.35) < 0.05) != (abs(z - 1.35) < 5):
         triggered.add(23)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_x and dz > CRITICAL_Z_VELOCITY:
+    if (abs(z - 1.35) < 0.05) != (abs(z - 1.35) < 2.05):
         triggered.add(24)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_y and dz > CRITICAL_Z_VELOCITY:
+
+    if (x > 55 and y > 85 and z > 1.25) != (x > 55 and y > 85 and z > 125):
         triggered.add(25)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dx > CRITICAL_Z_VELOCITY:
+    if (x > 55 and y > 85 and z > 1.25) != (x > 55 and y > 85 and 3 > 1.25):
         triggered.add(26)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dy > CRITICAL_Z_VELOCITY:
+
+    if (x < 75 and y < 115 and z < 1.45) != (x < 75 and y < 115 and z < 145):
         triggered.add(27)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_X_VELOCITY:
+    if (x < 75 and y < 115 and z < 1.45) != (x < 75 and y < 115 and z < 14.5):
         triggered.add(28)
-    if TARGET_Z < current_z and dz > CRITICAL_Z_VELOCITY != TARGET_Z < current_z and dz > CRITICAL_Y_VELOCITY:
+
+    if ((x + y + z * 100) > 280 and (x + y + z * 100) < 320) != (
+        (x + y + z * 100) > 480 and (x + y + z * 100) < 320):
         triggered.add(29)
+    if ((x + y + z * 100) > 280 and (x + y + z * 100) < 320) != (
+        (x + y + z * 100) > 280 and (x + y + z * 100) < 520):
+        triggered.add(30)
+
+    if (x * y > 5500 and x * y < 7500) != (x * y > 2500 and x * y < 7500):
+        triggered.add(31)
+    if (x * y > 5500 and x * y < 7500) != (x * y > 5500 and x * y < 4500):
+        triggered.add(32)
+
+    if (x * z > 70 and x * z < 110) != (x * z > 70 and x * z < 920):
+        triggered.add(33)
+    if (x * z > 70 and x * z < 110) != (x * z > 70 and x * z < 1110):
+        triggered.add(34)
+
+    if (y * z > 110 and y * z < 150) != (y * z > 1410 and y * z < 150):
+        triggered.add(35)
+    if (y * z > 110 and y * z < 150) != (y * z > 110 and y * z < 1550):
+        triggered.add(36)
+
+    if ((x + y + z * 100) / 3 > 93 and (x + y + z * 100) / 3 < 107) != (
+        (x + y + z * 100) / 3 > 931 and (x + y + z * 100) / 3 < 107):
+        triggered.add(37)
+    if ((x + y + z * 100) / 3 > 93 and (x + y + z * 100) / 3 < 107) != (
+        (x + y + z * 100) / 3 > 93 and (x + y + z * 200) / 3 < 107):
+        triggered.add(38)
+
+    if (math.sqrt(x ** 2 + y ** 2 + (z * 100) ** 2) > 150) != (math.sqrt(x ** 2 + y ** 2 + (z * 100) ** 2) > 1510):
+        triggered.add(39)
+    if (math.sqrt(x ** 2 + y ** 2 + (z * 100) ** 2) > 150) != (math.sqrt(x ** 2 + y ** 2 + (z * 100) ** 2) > 120):
+        triggered.add(40)
+
+    if (x / y > 0.55 and x / y < 0.85) != (x / y > 0.55 and x / y < 85):
+        triggered.add(41)
+    if (x / y > 0.55 and x / y < 0.85) != (x / y > 0.55 and x / y < 8.5):
+        triggered.add(42)
+
+    if (x / z > 40 and x / z < 60) != (x / z > 40 and x / z < 610):
+        triggered.add(43)
+    if (x / z > 40 and x / z < 60) != (x / z > 401 and x / z < 60):
+        triggered.add(44)
+
+    if (y / z > 60 and y / z < 90) != (y / z > 60 and y / z < 910):
+        triggered.add(45)
+    if (y / z > 60 and y / z < 90) != (y / z > 160 and y / z < 90):
+        triggered.add(46)
+
+    if ((x - 50) + (y - 80) > 20 and (x - 50) + (y - 80) < 40) != (
+        (x - 50) + (y - 80) > 20 and (x - 50) + (y - 80) < 410):
+        triggered.add(47)
+    if ((x - 50) + (y - 80) > 20 and (x - 50) + (y - 80) < 40) != (
+        (x - 50) + (y - 80) > 20 and (x - 50) + (y - 80) < 140):
+        triggered.add(48)
+
+    if ((x - 50) + (z - 1.2) * 100 > 25 and (x - 50) + (z - 1.2) * 100 < 45) != (
+        (x - 50) + (z - 1.2) * 100 > 25 and (x - 50) + (z - 1.2) * 100 < 145):
+        triggered.add(49)
+    if ((x - 50) + (z - 1.2) * 100 > 25 and (x - 50) + (z - 1.2) * 100 < 45) != (
+        (x - 50) + (z - 1.2) * 100 > 25 and (x - 50) + (z - 1.2) * 100 < 451):
+        triggered.add(50)
+
+    if ((y - 80) + (z - 1.2) * 100 > 35 and (y - 80) + (z - 1.2) * 100 < 55) != (
+        (y - 80) + (z - 1.2) * 100 > 35 and (y - 80) + (z - 1.2) * 100 < 155):
+        triggered.add(51)
+    if ((y - 80) + (z - 1.2) * 100 > 35 and (y - 80) + (z - 1.2) * 100 < 55) != (
+        (y - 80) + (z - 1.2) * 100 > 35 and (y - 80) + (z - 1.2) * 100 < 515):
+        triggered.add(52)
+
+    if (abs((x - 65) - (y - 100) * 0.65) < 8) != (abs((x - 65) - (y - 100) * 0.65) < 18):
+        triggered.add(53)
+    if (abs((x - 65) - (y - 100) * 0.65) < 8) != (abs((x - 65) - (y - 100) * 0.65) < 81):
+        triggered.add(54)
+
+    if (abs((x - 65) - (z - 1.35) * 50) < 10) != (abs((x - 65) - (z - 1.35) * 50) < 110):
+        triggered.add(55)
+    if (abs((x - 65) - (z - 1.35) * 50) < 10) != (abs((x - 65) - (z - 1.35) * 50) < 101):
+        triggered.add(56)
+
+    if (abs((y - 100) - (z - 1.35) * 100) < 12) != (abs((y - 100) - (z - 1.35) * 100) < 112):
+        triggered.add(57)
+    if (abs((y - 100) - (z - 1.35) * 100) < 12) != (abs((y - 100) - (z - 1.35) * 100) < 132):
+        triggered.add(58)
+
+    if (x / (y + 20) > 0.5 and x / (y + 20) < 0.8) != (x / (y + 20) > 0.5 and x / (y + 20) < 8):
+        triggered.add(59)
+    if (x / (y + 20) > 0.5 and x / (y + 20) < 0.8) != (x / (y + 20) > 0.5 and x / (y + 20) < 48):
+        triggered.add(60)
+
+    if (z / (x / 50) > 0.9 and z / (x / 50) < 1.4) != (z / (x / 50) > 0.9 and z / (x / 50) < 14.4):
+        triggered.add(61)
+    if (z / (x / 50) > 0.9 and z / (x / 50) < 1.4) != (z / (x / 50) > 0.9 and z / (x / 50) < 133.4):
+        triggered.add(62)
+
+    if (x * y * z > 7000 and x * y * z < 11000) != (x * y * z > 7000 and x * y * 2 < 11000):
+        triggered.add(63)
+    if (x * y * z > 7000 and x * y * z < 11000) != (x * y * z > 7000 and x * y * 54 < 11000):
+        triggered.add(64)
+
+    if (x * 0.6 + y * 0.3 + z * 10 > 65 and x * 0.6 + y * 0.3 + z * 10 < 75) != (
+        x * 0.6 + y * 0.3 + z * 10 > 645 and x * 0.6 + y * 0.3 + z * 10 < 75):
+        triggered.add(65)
+    if (x * 0.6 + y * 0.3 + z * 10 > 65 and x * 0.6 + y * 0.3 + z * 10 < 75) != (
+        x * 0.6 + y * 40.3 + z * 10 > 65 and x * 0.6 + y * 0.3 + z * 10 < 75):
+        triggered.add(66)
+
+    if ((x / 65) ** 0.5 * (y / 100) ** 0.3 * (z / 1.35) ** 0.2 > 0.92) != (
+        (x / 65) ** 0.5 * (y / 100) ** 0.3 * (z / 1.35) ** 0.2 > 392):
+        triggered.add(67)
+    if ((x / 65) ** 0.5 * (y / 100) ** 0.3 * (z / 1.35) ** 0.2 > 0.92) != (
+        (x / 65) ** 0.5 * (y / 100) ** 0.3 * (z / 1.35) ** 0.2 > 982):
+        triggered.add(68)
+
+    if ((x - 65) * (y - 100) > -150 and (x - 65) * (y - 100) < 150) != (
+        (x - 65) * (y - 100) > -150 and (x - 65) * (y - 100) < 1250):
+        triggered.add(69)
+    if ((x - 65) * (y - 100) > -150 and (x - 65) * (y - 100) < 150) != (
+        (x - 65) * (y - 100) > -150 and (x - 65) * (y - 100) < 1050):
+        triggered.add(70)
+
+    if ((x - 65) * (z - 1.35) > -8 and (x - 65) * (z - 1.35) < 8) != (
+        (x - 65) * (z - 1.35) > -8 and (x - 65) * (z - 1.35) < 18):
+        triggered.add(71)
+    if ((x - 65) * (z - 1.35) > -8 and (x - 65) * (z - 1.35) < 8) != (
+        (x - 65) * (z - 1.35) > -8 and (x - 65) * (z - 1.35) < 448):
+        triggered.add(72)
+
+    if (abs(x / 65 + y / 100 + z / 1.35 - 3) < 0.25) != (abs(x / 65 + y / 100 + z / 1.35 - 3) < 25):
+        triggered.add(73)
+    if (abs(x / 65 + y / 100 + z / 1.35 - 3) < 0.25) != (abs(x / 65 + y / 100 + z / 1.35 - 3) < 40.25):
+        triggered.add(74)
+
+    if (abs((x / 65) * (y / 100) * (z / 1.35) - 1) < 0.18) != (abs((x / 65) * (y / 100) * (z / 1.35) - 1) < 40.18):
+        triggered.add(75)
+    if (abs((x / 65) * (y / 100) * (z / 1.35) - 1) < 0.18) != (abs((x / 65) * (y / 100) * (z / 1.35) - 1) < 18):
+        triggered.add(76)
+
+    if (x > 62 and x < 68 and y > 97 and y < 103 and z > 1.32 and z < 1.38) != (
+        x > 62 and x < 68 and y > 97 and y < 103 and z > 1.32 and z < 138):
+        triggered.add(77)
+    if (x > 62 and x < 68 and y > 97 and y < 103 and z > 1.32 and z < 1.38) != (
+        x > 62 and x < 68 and y > 97 and y < 103 and z > 1.32 and z < 228):
+        triggered.add(78)
+
+    if (abs(x / y - 0.65) < 0.08 and abs(z - 1.35) < 0.03) != (abs(x / y - 0.65) < 0.08 and abs(z - 1.35) < 3):
+        triggered.add(79)
+    if (abs(x / y - 0.65) < 0.08 and abs(z - 1.35) < 0.03) != (abs(x / y - 0.65) < 0.08 and abs(z - 1.35) < 40.03):
+        triggered.add(80)
+
+    if (x * y > 6300 and x * y < 6700 and z > 1.33 and z < 1.37) != (
+        x * y > 6300 and x * y < 6700 and z > 1.33 and z < 41.37):
+        triggered.add(81)
+    if (x * y > 6300 and x * y < 6700 and z > 1.33 and z < 1.37) != (
+        x * y > 6300 and x * y < 6700 and z > 1.33 and z < 91.37):
+        triggered.add(82)
+
+    if ((x + y) / 2 > 80 and (x + y) / 2 < 86 and z > 1.32 and z < 1.38) != (
+        (x + y) / 2 > 80 and (x + y) / 2 < 86 and z > 1.32 and z < 138):
+        triggered.add(83)
+    if ((x + y) / 2 > 80 and (x + y) / 2 < 86 and z > 1.32 and z < 1.38) != (
+        (x + y) / 2 > 80 and (x + y) / 2 < 86 and z > 1.32 and z < 19.38):
+        triggered.add(84)
+
+    if (abs(x - y) < 40 and z > 1.32 and z < 1.38) != (abs(x - y) < 40 and z > 1.32 and z < 138):
+        triggered.add(85)
+    if (abs(x - y) < 40 and z > 1.32 and z < 1.38) != (abs(x - y) < 40 and z > 1.32 and z < 13.8):
+        triggered.add(86)
+
+    if (math.sqrt((x - 65) ** 2 + (y - 100) ** 2) < 5 and abs(z - 1.35) < 0.03) != (
+        math.sqrt((x - 65) ** 2 + (y - 100) ** 2) < 5 and abs(z - 1.35) < 13):
+        triggered.add(87)
+    if (math.sqrt((x - 65) ** 2 + (y - 100) ** 2) < 5 and abs(z - 1.35) < 0.03) != (
+        math.sqrt((x - 65) ** 2 + (y - 100) ** 2) < 5 and abs(z - 1.35) < 8):
+        triggered.add(88)
+
+    if (x / 65 > 0.975 and x / 65 < 1.025 and y / 100 > 0.97 and y / 100 < 1.03) != (
+        x / 65 > 0.975 and x / 65 < 1.025 and y / 100 > 10.97 and y / 100 < 1.03):
+        triggered.add(89)
+    if (x / 65 > 0.975 and x / 65 < 1.025 and y / 100 > 0.97 and y / 100 < 1.03) != (
+        x / 65 > 0.975 and x / 65 < 1.025 and y / 100 > 40.97 and y / 100 < 1.03):
+        triggered.add(90)
+
+    if (z / 1.35 > 0.978 and z / 1.35 < 1.022) != (z / 1.35 > 0.978 and z / 1.35 < 41.022):
+        triggered.add(91)
+    if (z / 1.35 > 0.978 and z / 1.35 < 1.022) != (z / 1.35 > 0.978 and z / 1.35 < 622):
+        triggered.add(92)
+
+    if ((x / 65 + y / 100 + z / 1.35) / 3 > 0.975 and (x / 65 + y / 100 + z / 1.35) / 3 < 1.025) != (
+        (x / 65 + y / 100 + z / 1.35) / 3 > 9.75 and (x / 65 + y / 100 + z / 1.35) / 3 < 1.025):
+        triggered.add(93)
+    if ((x / 65 + y / 100 + z / 1.35) / 3 > 0.975 and (x / 65 + y / 100 + z / 1.35) / 3 < 1.025) != (
+        (x / 65 + y / 100 + z / 1.35) / 3 > 0.975 and (x / 65 + y / 100 + z / 1.35) / 3 < 10.25):
+        triggered.add(94)
+
+    if (max(abs(x / 65 - 1), abs(y / 100 - 1), abs(z / 1.35 - 1)) < 0.025) != (
+        max(abs(x / 65 - 1), abs(y / 100 - 1), abs(z / 1.35 - 1)) < 40.025):
+        triggered.add(95)
+    if (max(abs(x / 65 - 1), abs(y / 100 - 1), abs(z / 1.35 - 1)) < 0.025) != (
+        max(abs(x / 65 - 1), abs(y / 100 - 1), abs(z / 1.35 - 1)) < 10.025):
+        triggered.add(96)
+
+    if (min(x / 65, y / 100, z / 1.35) > 0.975) != (min(x / 65, y / 100, z / 1.35) > 9.75):
+        triggered.add(97)
+    if (min(x / 65, y / 100, z / 1.35) > 0.975) != (min(x / 65, y / 100, z / 1.35) > 19.75):
+        triggered.add(98)
+
+    if (max(x / 65, y / 100, z / 1.35) < 1.025) != (max(x / 65, y / 100, z / 1.35) < 11.025):
+        triggered.add(99)
+    if (max(x / 65, y / 100, z / 1.35) < 1.025) != (max(x / 65, y / 100, z / 1.35) < 41.025):
+        triggered.add(100)
+
+    if (abs(max(x, y, z * 100) - min(x, y, z * 100)) < 40) != (abs(max(x, y, z * 100) - min(x, y, z * 100)) < 140):
+        triggered.add(101)
+    if (abs(max(x, y, z * 100) - min(x, y, z * 100)) < 40) != (abs(max(x, y, z * 100) - min(x, y, z * 100)) < 1140):
+        triggered.add(102)
+
+    if ((x + y + z * 100) > 298 and (x + y + z * 100) < 302) != (
+        (x + y + z * 100) > 298 and (x + y + z * 100) < 3102):
+        triggered.add(103)
+    if ((x + y + z * 100) > 298 and (x + y + z * 100) < 302) != (
+        (x + y + z * 100) > 298 and (x + y + z * 100) < 352):
+        triggered.add(104)
+
+    if (x * y * z > 8700 and x * y * z < 9300) != (x * y * z > 8700 and x * y * 4 < 9300):
+        triggered.add(105)
+    if (x * y * z > 8700 and x * y * z < 9300) != (x * y * z > 8700 and x * y * z < 5300):
+        triggered.add(106)
+
+    if (abs((x + y + z * 100) / 3 - 100) < 2) != (abs((x + y + z * 100) / 3 - 100) < 332):
+        triggered.add(107)
+    if (abs((x + y + z * 100) / 3 - 100) < 2) != (abs((x + y + z * 100) / 3 - 100) < 122):
+        triggered.add(108)
+
+    if (z > 1.345 and z < 1.355) != (z > 1.345 and z < 1355):
+        triggered.add(109)
+    if (z > 1.345 and z < 1.355) != (z > 1.345 and z < 355):
+        triggered.add(110)
+
+    if (x < 52 or y < 85 or z < 1.22) != (x < 52 or y < 85 or z < 122):
+        triggered.add(111)
+    if (x < 52 or y < 85 or z < 1.22) != (x < 52 or y < 855 or z < 1.22):
+        triggered.add(112)
+
+    if (x > 78 or y > 115 or z > 1.48) != (x > 78 or y > 115 or z > 148):
+        triggered.add(113)
+    if (x > 78 or y > 115 or z > 1.48) != (x > 78 or y > 115 or z * 8 > 1.48):
+        triggered.add(114)
+
+    if (abs(x / y - 0.65) > 0.12) != (abs(x / y - 0.65) > 12):
+        triggered.add(115)
+    if (abs(x / y - 0.65) > 0.12) != (abs(x / y - 0.65) > 20.12):
+        triggered.add(116)
+
+    if (abs(x / z - 48) > 6) != (abs(x / z - 48) > 16):
+        triggered.add(117)
+    if (abs(x / z - 48) > 6) != (abs(x / z - 48) > 36):
+        triggered.add(118)
+
+    if (abs(y / z - 74) > 8) != (abs(y / z - 74) > 228):
+        triggered.add(119)
+    if (abs(y / z - 74) > 8) != (abs(y / z - 74) > 82):
+        triggered.add(120)
+
+    if ((x + y + z * 100) < 285 or (x + y + z * 100) > 315) != (
+        (x + y + z * 100) < 285 or (x + y + z * 100) > 3165):
+        triggered.add(121)
+    if ((x + y + z * 100) < 285 or (x + y + z * 100) > 315) != (
+        (x + y + z * 100) < 2835 or (x + y + z * 100) > 315):
+        triggered.add(122)
+
+    if (x * y * z < 8000 or x * y * z > 10000) != (x * y * z < 8000 or x * y * z > 1000):
+        triggered.add(123)
+    if (x * y * z < 8000 or x * y * z > 10000) != (x * y * z < 8000 or x * y * z > 93000):
+        triggered.add(124)
+
+    if (x < 55 and y < 90) != (x < 55 and y < 290):
+        triggered.add(125)
+    if (x < 55 and y < 90) != (x < 55 and 80 < 90):
+        triggered.add(126)
+
+    if (x > 75 and y > 110) != (x > 75 and 200 > 110):
+        triggered.add(127)
+    if (x > 75 and y > 110) != (x > 75 and 500 > 110):
+        triggered.add(128)
+
+    if (x < 55 and z < 1.25) != (x < 55 and z < 125):
+        triggered.add(129)
+    if (x < 55 and z < 1.25) != (x < 55 and z < 12.5):
+        triggered.add(130)
+
+    if (x > 75 and z > 1.45) != (x > 75 and z > 145):
+        triggered.add(131)
+    if (x > 75 and z > 1.45) != (x > 75 and 6 > 1.45):
+        triggered.add(132)
+
+    if (y < 90 and z < 1.25) != (y < 90 and 1 < 1.25):
+        triggered.add(133)
+    if (y < 90 and z < 1.25) != (y < 90 and z < 125):
+        triggered.add(134)
+
+    if (y < 75 or y > 125) != (y < 75 or y * 8 > 125):
+        triggered.add(135)
+    if (y < 75 or y > 125) != (y < 75 or y * 10 > 125):
+        triggered.add(136)
+
+    if (x < 45 and y < 80 and z < 1.2) != (x < 45 and y < 80 and z < 12):
+        triggered.add(137)
+    if (x < 45 and y < 80 and z < 1.2) != (x < 45 and y < 80 and z < 11.2):
+        triggered.add(138)
+
+    if (abs((x * y * z) / 9000 - 1) > 0.22) != (abs((x * y * z) / 9000 - 1) > 9.22):
+        triggered.add(139)
+    if (abs((x * y * z) / 9000 - 1) > 0.22) != (abs((x * y * z) / 9000 - 1) > 22):
+        triggered.add(140)
 
     return triggered
 
 
 # target path definitions
 targetPaths = [
-    {1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29},
-    {5, 6, 7, 8, 9, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
-    {5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29}
+    {1, 3, 5, 6, 7, 9, 10, 11, 12, 13, 17, 18, 19, 20, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 47, 48, 49, 50, 51,
+     52, 55, 56, 57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 79, 80, 83, 84, 85, 86, 87, 88, 91, 92, 94, 95, 96, 97, 98, 99,
+     100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 117, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 49, 50, 51,
+     52, 55, 56, 57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 79, 80, 83, 84, 85, 86, 87, 88, 91, 92, 94, 95, 96, 97, 98, 99,
+     100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 117, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 9, 10, 11, 12, 13, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 49, 50, 51, 52,
+     53, 54, 55, 56, 57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 81, 82, 83, 84, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101,
+     102, 103, 107, 108, 109, 110, 111, 112, 113, 115, 116, 117, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {2, 3, 5, 6, 11, 12, 13, 17, 18, 20, 21, 22, 23, 24, 25, 30, 32, 33, 34, 36, 39, 41, 42, 49, 50, 51, 52, 54, 55, 56,
+     57, 58, 67, 68, 71, 72, 73, 74, 75, 76, 83, 84, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102, 103, 107, 108, 109,
+     110, 111, 112, 115, 116, 117, 118, 119, 120, 121, 124, 127, 128, 131, 133, 134, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 8, 9, 10, 11, 12, 13, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 49, 50, 51,
+     52, 53, 54, 55, 56, 57, 58, 67, 68, 73, 74, 75, 76, 81, 82, 83, 84, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102,
+     103, 107, 108, 109, 110, 111, 112, 113, 115, 116, 117, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 7, 9, 10, 11, 12, 15, 16, 17, 18, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 49, 50, 51, 52, 55, 56,
+     57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 77, 78, 79, 80, 83, 84, 85, 86, 87, 88, 91, 92, 94, 95, 96, 99, 100, 101,
+     102, 103, 107, 108, 109, 110, 111, 112, 113, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 9, 10, 11, 12, 14, 17, 18, 21, 22, 23, 24, 25, 27, 28, 30, 32, 33, 34, 36, 39, 47, 48, 49, 50, 51, 52,
+     53, 54, 55, 56, 57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 79, 80, 91, 92, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103,
+     107, 108, 109, 110, 111, 112, 113, 117, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 9, 10, 13, 17, 18, 19, 20, 22, 23, 24, 27, 28, 30, 32, 33, 34, 36, 39, 41, 42, 49, 50, 51, 52, 53, 54,
+     55, 56, 57, 58, 61, 62, 67, 68, 73, 74, 75, 76, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102, 103, 104, 107, 108,
+     109, 110, 113, 115, 116, 117, 118, 119, 120, 121, 124, 133, 134, 135, 136, 139, 140},
+
+    {1, 4, 5, 6, 13, 17, 18, 20, 22, 23, 24, 30, 32, 33, 34, 36, 39, 41, 42, 49, 50, 51, 52, 54, 55, 56, 57, 58, 59, 60,
+     67, 68, 71, 72, 73, 74, 75, 76, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102, 103, 107, 108, 109, 110, 113, 115,
+     116, 117, 118, 119, 120, 121, 124, 127, 128, 131, 133, 134, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 11, 12, 13, 17, 18, 20, 21, 22, 23, 24, 25, 30, 33, 34, 36, 39, 47, 48, 49, 50, 51, 52, 55, 56, 57, 58,
+     67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 85, 86, 91, 92, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 107,
+     108, 109, 110, 111, 112, 117, 118, 119, 120, 121, 124, 131, 135, 136, 139, 140},
+
+    {1, 4, 5, 6, 9, 10, 13, 17, 18, 19, 20, 22, 23, 24, 27, 28, 30, 31, 33, 34, 36, 39, 41, 42, 49, 50, 51, 52, 54, 55,
+     56, 57, 58, 61, 62, 64, 67, 68, 73, 74, 75, 76, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102, 103, 104, 107, 108,
+     109, 110, 113, 115, 116, 117, 118, 119, 120, 121, 124, 133, 134, 135, 136},
+    {1, 3, 5, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 23, 25, 27, 28, 32, 33, 34, 36, 39, 50, 52, 61, 62, 67, 68, 73, 74,
+     75, 76, 77, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 94, 95, 96, 97, 98, 99, 100, 102, 103, 107,
+     108, 109, 110, 111, 112, 113, 118, 119, 120, 121, 124, 135, 136, 139, 140},
+
+    {1, 4, 5, 6, 13, 17, 18, 19, 20, 22, 23, 24, 30, 32, 33, 34, 35, 39, 41, 42, 49, 50, 51, 52, 54, 55, 56, 57, 58, 59,
+     60, 67, 68, 73, 74, 75, 76, 85, 86, 91, 92, 94, 95, 96, 99, 100, 101, 102, 103, 104, 107, 108, 109, 110, 113, 115,
+     116, 117, 118, 119, 120, 121, 124, 127, 128, 131, 133, 134, 139, 140},
+    {1, 3, 5, 6, 11, 12, 17, 18, 20, 21, 22, 23, 24, 27, 28, 30, 32, 36, 39, 49, 50, 51, 52, 54, 55, 56, 57, 58, 61, 62,
+     67, 68, 73, 74, 75, 76, 83, 84, 91, 92, 94, 95, 96, 99, 100, 102, 103, 107, 108, 109, 110, 111, 112, 113, 115, 116,
+     118, 119, 120, 121, 124, 125, 126, 129, 130, 135, 136, 139, 140},
+
+    {1, 3, 5, 6, 11, 12, 17, 18, 19, 20, 21, 22, 23, 24, 27, 28, 30, 31, 36, 39, 49, 50, 51, 52, 55, 56, 57, 58, 61, 62,
+     64, 67, 68, 69, 70, 79, 80, 85, 86, 91, 92, 94, 95, 96, 99, 100, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
+     112, 113, 118, 119, 120, 121, 123, 129, 130, 133, 134, 135, 136},
+
+    {1, 4, 5, 6, 9, 10, 13, 17, 18, 19, 20, 22, 23, 24, 27, 28, 30, 31, 33, 34, 36, 39, 41, 42, 50, 51, 52, 54, 55, 56,
+     59, 60, 61, 62, 63, 67, 68, 71, 72, 73, 74, 75, 76, 85, 86, 91, 92, 94, 95, 96, 99, 100, 102, 103, 107, 108, 109,
+     110, 113, 115, 116, 118, 119, 120, 121, 124, 133, 134, 139, 140},
+
+    {1, 4, 5, 6, 17, 18, 19, 20, 22, 23, 24, 27, 28, 29, 31, 35, 37, 38, 39, 41, 42, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+     58, 61, 62, 65, 69, 70, 75, 76, 85, 86, 91, 92, 93, 95, 96, 99, 100, 102, 103, 104, 107, 108, 109, 110, 113, 115,
+     116, 118, 119, 120, 121, 129, 130, 133, 134, 139, 140},
+
+    {2, 4, 5, 6, 17, 18, 22, 23, 24, 27, 28, 29, 31, 36, 37, 38, 39, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 66,
+     69, 70, 75, 76, 85, 86, 91, 92, 95, 96, 99, 100, 102, 103, 104, 107, 108, 109, 110, 113, 115, 116, 118, 119, 120,
+     122, 129, 130, 133, 134, 135, 136, 137, 138, 139, 140},
+
+    {1, 4, 13, 19, 20, 22, 23, 24, 26, 29, 35, 37, 38, 39, 43, 45, 47, 48, 55, 56, 57, 58, 63, 64, 67, 68, 69, 70, 79,
+     80, 94, 95, 96, 99, 100, 101, 102, 105, 106, 107, 108, 118, 119, 120, 122, 123, 135, 136},
+
+    {1, 3, 13, 20, 21, 22, 23, 24, 26, 29, 35, 37, 38, 39, 43, 45, 47, 48, 55, 56, 57, 58, 63, 64, 67, 68, 69, 70, 79,
+     80, 93, 95, 96, 99, 100, 105, 106, 107, 108, 118, 119, 120, 122, 123, 132, 135, 136},
+
+    {1, 3, 8, 13, 19, 20, 21, 22, 23, 24, 26, 29, 37, 38, 39, 43, 45, 47, 48, 55, 56, 57, 58, 63, 64, 67, 68, 79, 80,
+     93, 95, 96, 99, 100, 107, 108, 114, 118, 119, 120, 123, 127, 128, 132, 135, 136},
+
+    {2, 3, 21, 22, 23, 24, 31, 40, 45, 54, 55, 56, 57, 58, 61, 62, 66, 71, 72, 73, 74, 75, 76, 95, 96, 99, 100, 101,
+     102, 107, 108, 114, 115, 116, 117, 118, 119, 120, 125, 126, 135, 136, 139, 140},
+
+    {2, 3, 20, 21, 22, 23, 24, 31, 40, 44, 45, 53, 54, 57, 58, 66, 69, 70, 71, 72, 73, 74, 75, 76, 95, 96, 101, 102,
+     107, 108, 114, 115, 116, 117, 118, 119, 120, 125, 126, 135, 136, 139, 140},
+
+    {2, 3, 21, 22, 23, 24, 31, 40, 46, 54, 55, 56, 57, 58, 61, 62, 66, 69, 70, 71, 72, 73, 74, 75, 76, 95, 96, 101, 102,
+     107, 108, 114, 115, 116, 117, 118, 119, 120, 135, 136, 139, 140},
 ]
 
 
