@@ -15,7 +15,7 @@ def safe_divide(numerator, denominator, default=0.0):
     return numerator / denominator
 
 def execute_validation_rules(x, y, z):
-    """第10类: 综合混合控制 (湿度x, 扭矩y, 电流z) - 158个分支（删除99、100后顺延编号）"""
+    """第10类: 综合混合控制 (湿度x, 扭矩y, 电流z) """
     triggered = set()  # 用于记录触发的条件编号，便于问题溯源
 
     # -------------------------- 1-40：综合系统基础检查（每组2个） --------------------------
